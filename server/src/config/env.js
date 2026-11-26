@@ -1,0 +1,47 @@
+import 'dotenv/config'
+import { z } from 'zod'
+
+// Empty strings in .env are treated as "not set".
+const optional = z.preprocess((v) => (v === '' ? undefined : v), z.string().optional())
+
+const schema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.coerce.number().int().positive().default(4000),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+
+  DATABASE_URL: z.string().min(1),
+  JWT_SECRET: z.string().min(8),
+
+  // Meta Messenger (required from M1)
+  FB_APP_SECRET: optional,
+  FB_VERIFY_TOKEN: optional,
+  FB_PAGE_ACCESS_TOKEN: optional,
+  GRAPH_API_VERSION: z.string().default('v23.0'),
+
+  // SePay (required from M4)
+  SEPAY_WEBHOOK_API_KEY: optional,
+
+  // AI, OpenAI-compatible chat completions (required from M2)
+  AI_BASE_URL: optional,
+  AI_API_KEY: optional,
+  AI_MODEL: optional,
+
+  // Receiving bank account (VietQR)
+  BANK_CODE: z.string().default('MB'),
+  BANK_ACCOUNT_NUMBER: optional,
+  BANK_ACCOUNT_NAME: optional,
+})
+
+const parsed = schema.safeParse(process.env)
+
+if (!parsed.success) {
+  // Print only variable names and issues, never values.
+  console.error('Invalid environment variables:')
+  for (const issue of parsed.error.issues) {
+    console.error(`  - ${issue.path.join('.')}: ${issue.message}`)
+  }
+  process.exit(1)
+}
+
+export const env = Object.freeze(parsed.data)
