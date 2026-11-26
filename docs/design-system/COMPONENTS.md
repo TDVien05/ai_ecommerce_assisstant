@@ -1,6 +1,6 @@
-# Component DòngTiền AI
+# Component Flowy
 
-Import từ `@/components/dongtien`. Ví dụ đầy đủ nằm ở `client/src/pages/DesignSystemPage.tsx` (route `/design-system`).
+Import từ `@/components/flowy`. Ví dụ đầy đủ nằm ở `client/src/pages/DesignSystemPage.tsx` (route `/design-system`).
 
 ## Bố cục
 

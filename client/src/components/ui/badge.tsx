@@ -18,7 +18,7 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
-        // DòngTiền AI: risk levels and order states. Always keep a text label.
+        // Flowy: risk levels and order states. Always keep a text label.
         "risk-low": "bg-risk-low-soft text-risk-low before:size-[7px] before:bg-current before:content-['']",
         "risk-mid": "bg-risk-mid-soft text-risk-mid before:size-[7px] before:bg-current before:content-['']",
         "risk-high": "bg-risk-high-soft text-risk-high before:size-[7px] before:bg-current before:content-['']",

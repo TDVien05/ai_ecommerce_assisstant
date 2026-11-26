@@ -6,7 +6,7 @@
 
 1. Đọc [README.md](./README.md) (nguyên tắc, màu, chữ, giọng văn) và [COMPONENTS.md](./COMPONENTS.md).
 2. Mở trang `/design-system` (`npm run dev`) để xem bố cục chuẩn. Màn mới nên bắt đầu bằng cách sao chép cấu trúc của `client/src/pages/DesignSystemPage.tsx`.
-3. Dựng từ component trong `@/components/dongtien` trước, rồi component shadcn trong `@/components/ui`. Chỉ tự viết component mới khi hai nơi đó không có, và viết bằng token của hệ thống.
+3. Dựng từ component trong `@/components/flowy` trước, rồi component shadcn trong `@/components/ui`. Chỉ tự viết component mới khi hai nơi đó không có, và viết bằng token của hệ thống.
 4. Trước khi báo xong: chạy `npm run build` và `npm run lint` trong `client/`, rồi mở màn hình ở cả theme sáng và tối.
 
 ## Bắt buộc
@@ -34,4 +34,4 @@
 
 ## Khi thiếu component
 
-Ghép từ `Block`, `BlockHeader`, `BlockBody`, `BlockFooter` (khung chung của khối AI) và component shadcn. Nếu thứ đó sẽ dùng lại ở nhiều nơi, đặt vào `client/src/components/dongtien/`, export trong `index.ts`, thêm mục vào `COMPONENTS.md` và một ví dụ vào trang `/design-system`.
+Ghép từ `Block`, `BlockHeader`, `BlockBody`, `BlockFooter` (khung chung của khối AI) và component shadcn. Nếu thứ đó sẽ dùng lại ở nhiều nơi, đặt vào `client/src/components/flowy/`, export trong `index.ts`, thêm mục vào `COMPONENTS.md` và một ví dụ vào trang `/design-system`.
