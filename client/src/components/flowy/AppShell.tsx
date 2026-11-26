@@ -35,8 +35,8 @@ export function AppShell(props: AppShellProps) {
     >
       <aside className="flex min-h-0 flex-col border-b bg-sidebar text-sidebar-foreground md:border-r md:border-b-0 md:border-sidebar-border">
         <div className="flex items-center gap-2 px-3 pt-3 pb-2 font-bold tracking-tight">
-          <span className="grid size-[22px] place-items-center bg-primary text-xs text-primary-foreground">Đ</span>
-          DòngTiền AI
+          <span className="grid size-[22px] place-items-center bg-primary text-xs text-primary-foreground">F</span>
+          Flowy
         </div>
         <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-2">
           <div className="px-2 py-1">

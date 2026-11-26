@@ -1,12 +1,12 @@
-# DòngTiền AI Design System
+# Flowy Design System
 
-Nguồn sự thật cho giao diện của dự án. Mọi màn hình mới (do người hoặc do agent AI làm) phải dựng từ tài liệu này, theme trong `client/src/index.css` và các component trong `client/src/components/dongtien/`.
+Nguồn sự thật cho giao diện của dự án. Mọi màn hình mới (do người hoặc do agent AI làm) phải dựng từ tài liệu này, theme trong `client/src/index.css` và các component trong `client/src/components/flowy/`.
 
 - Xem trực tiếp: chạy `npm run dev` rồi mở `/design-system`.
 - Agent AI: đọc [AGENTS.md](./AGENTS.md) trước.
 - Cách dùng từng component: [COMPONENTS.md](./COMPONENTS.md).
 
-DòngTiền AI là trợ lý dòng tiền cho hộ kinh doanh online. AI làm việc như một thư ký: nhận việc qua chat, tự chạy từng việc trong một luồng riêng, chủ động báo khi có chuyện, và chỉ thay đổi dữ liệu sau khi chủ shop duyệt. Giao diện trắng đen, vuông góc, ít chi tiết, để người bán hàng nhỏ dùng được ngay mà không cần học.
+Flowy là tên sản phẩm và cũng là tên trợ lý AI: trợ lý dòng tiền cho hộ kinh doanh online. AI làm việc như một thư ký: nhận việc qua chat, tự chạy từng việc trong một luồng riêng, chủ động báo khi có chuyện, và chỉ thay đổi dữ liệu sau khi chủ shop duyệt. Giao diện trắng đen, vuông góc, ít chi tiết, để người bán hàng nhỏ dùng được ngay mà không cần học.
 
 Mọi giao diện mới của dự án phải dựa trên tài liệu này. Khi cần thứ chưa có ở đây, ghép từ token và component sẵn có trước, rồi đề xuất bổ sung vào hệ thống.
 
@@ -58,7 +58,7 @@ Mọi giao diện mới của dự án phải dựa trên tài liệu này. Khi 
 
 ## Giọng văn
 
-- AI xưng "mình", gọi người dùng là "bạn". Câu ngắn, nói việc đã làm và việc cần bạn làm.
+- AI (tên Flowy) xưng "mình", gọi người dùng là "bạn". Nhãn AI trên tin nhắn vẫn là chữ "AI"; chữ "F" chỉ dùng cho logo tạm của sản phẩm ở sidebar. Câu ngắn, nói việc đã làm và việc cần bạn làm.
   - Đúng: "Mình đã đọc 14 dòng, còn 2 dòng cần bạn chọn loại."
   - Sai: "Quá trình xử lý đã hoàn tất thành công!"
 - Nút là động từ cụ thể: "Duyệt và ghi sổ", "Giữ đơn, chưa giao", "Vào duyệt". Không dùng "OK", "Xác nhận" trơn.

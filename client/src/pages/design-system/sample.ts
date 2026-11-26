@@ -1,6 +1,6 @@
 // Dữ liệu mẫu cho trang /design-system. Không phải dữ liệu thật.
 import { BookOpen, ChartLine, Database, MessageCircle, ShieldAlert, ShoppingBag } from 'lucide-react'
-import type { FeatureNavItem, ThreadItem } from '@/components/dongtien'
+import type { FeatureNavItem, ThreadItem } from '@/components/flowy'
 
 export const FEATURES: FeatureNavItem[] = [
   { id: 'ledger', label: 'Sổ thu chi', icon: BookOpen },

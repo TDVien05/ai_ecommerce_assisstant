@@ -24,7 +24,7 @@
 - Ưu tiên component shadcn có sẵn (`npx shadcn@latest add <name>`) trước khi tự viết.
 - Gọi API qua một client duy nhất `src/lib/api.ts`.
 - Format tiền: `new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })`.
-- Giao diện phải theo design system: đọc `docs/design-system/AGENTS.md` trước khi làm UI. Chỉ dùng token màu của theme và component trong `src/components/dongtien/`; giao diện trắng đen, bo góc tối đa 2px, màu chỉ cho rủi ro/trạng thái/tiền tăng giảm. Xem mẫu ở `/design-system`.
+- Giao diện phải theo design system: đọc `docs/design-system/AGENTS.md` trước khi làm UI. Chỉ dùng token màu của theme và component trong `src/components/flowy/`; giao diện trắng đen, bo góc tối đa 2px, màu chỉ cho rủi ro/trạng thái/tiền tăng giảm. Xem mẫu ở `/design-system`.
 
 ## Git
 - Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`…

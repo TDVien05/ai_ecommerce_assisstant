@@ -1,4 +1,4 @@
-// DòngTiền AI design system components. Hướng dẫn: docs/design-system/COMPONENTS.md
+// Flowy design system components. Hướng dẫn: docs/design-system/COMPONENTS.md
 export * from './types'
 export { AppShell, ChatFeed, ChatFooter, ThreadBreadcrumb, ThreadScope, type FeatureNavItem } from './AppShell'
 export { AiMark, AssistantMessage, UserMessage, TypingIndicator, DayDivider } from './ChatMessage'

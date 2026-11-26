@@ -21,12 +21,12 @@ import {
   ThreadSummary,
   UserMessage,
   toastDone,
-} from '@/components/dongtien'
+} from '@/components/flowy'
 import { FEATURES, THREADS } from './design-system/sample'
 
 /**
  * Trang demo design system: /design-system
- * Dựng lại đúng bố cục đã chốt (chat trung tâm + luồng việc) bằng các component trong @/components/dongtien.
+ * Dựng lại đúng bố cục đã chốt (chat trung tâm + luồng việc) bằng các component trong @/components/flowy.
  * Dùng làm mẫu khi dựng màn hình thật.
  */
 export default function DesignSystemPage() {
