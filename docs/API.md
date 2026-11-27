@@ -1,31 +1,31 @@
 # API
 
-Base URL: `http://localhost:4000`. Response lỗi thống nhất: `{ "error": { "code": "STRING", "message": "..." } }`.
+Base URL: `http://localhost:4000`. Uniform error response: `{ "error": { "code": "STRING", "message": "..." } }`.
 
-## 1. Webhook Messenger
+## 1. Messenger webhook
 
-### `GET /webhooks/messenger` — xác minh endpoint
-Meta gửi query `hub.mode=subscribe`, `hub.verify_token`, `hub.challenge`.
-Nếu `hub.verify_token === FB_VERIFY_TOKEN` → trả `200` với body là giá trị `hub.challenge` (plain text). Ngược lại → `403`.
+### `GET /webhooks/messenger` — endpoint verification
+Meta sends the query `hub.mode=subscribe`, `hub.verify_token`, `hub.challenge`.
+If `hub.verify_token === FB_VERIFY_TOKEN` → return `200` with the value of `hub.challenge` as the body (plain text). Otherwise → `403`.
 
-### `POST /webhooks/messenger` — nhận sự kiện
-- Header `X-Hub-Signature-256: sha256=<hex>`: HMAC-SHA256 của **raw body**, key là `FB_APP_SECRET`. Phải verify trên raw bytes (dùng `express.raw()` hoặc `express.json({ verify })` để giữ raw body); chữ ký sai → `403`.
-- Trả `200` ngay, xử lý bất đồng bộ.
+### `POST /webhooks/messenger` — receive events
+- Header `X-Hub-Signature-256: sha256=<hex>`: HMAC-SHA256 of the **raw body**, keyed with `FB_APP_SECRET`. It must be verified on the raw bytes (use `express.raw()` or `express.json({ verify })` to keep the raw body); invalid signature → `403`.
+- Return `200` immediately and process asynchronously.
 - Payload: `{ object: "page", entry: [{ id: PAGE_ID, messaging: [{ sender: { id: PSID }, message: { mid, text, attachments? } }] }] }`
-- Bỏ qua: `message.is_echo === true`, event `delivery`/`read`, `mid` đã xử lý.
+- Ignore: `message.is_echo === true`, `delivery`/`read` events, already-processed `mid`s.
 
-### Gửi tin (outbound, Send API)
+### Sending messages (outbound, Send API)
 ```
 POST https://graph.facebook.com/{GRAPH_API_VERSION}/me/messages?access_token={PAGE_ACCESS_TOKEN}
 { "recipient": { "id": "<PSID>" }, "messaging_type": "RESPONSE", "message": { "text": "..." } }
 ```
-Gửi ảnh QR: `message.attachment = { type: "image", payload: { url, is_reusable: true } }`.
+Sending a QR image: `message.attachment = { type: "image", payload: { url, is_reusable: true } }`.
 
-## 2. Webhook SePay
+## 2. SePay webhook
 
 ### `POST /webhooks/sepay`
-- Header: `Authorization: Apikey <SEPAY_WEBHOOK_API_KEY>`; sai → `401`.
-- Body mẫu:
+- Header: `Authorization: Apikey <SEPAY_WEBHOOK_API_KEY>`; wrong → `401`.
+- Sample body:
 ```json
 {
   "id": 92704,
@@ -42,56 +42,56 @@ Gửi ảnh QR: `message.attachment = { type: "image", payload: { url, is_reusab
   "description": ""
 }
 ```
-- Thành công → `200 { "success": true }`. Quy tắc đối soát: [PAYMENT_ANTI_SCAM.md](PAYMENT_ANTI_SCAM.md).
+- Success → `200 { "success": true }`. Reconciliation rules: [PAYMENT_ANTI_SCAM.md](PAYMENT_ANTI_SCAM.md).
 
-## 3. REST API cho dashboard (`/api`, yêu cầu JWT của chủ shop)
+## 3. Dashboard REST API (`/api`, requires the shop owner's JWT)
 
 ### Auth
-| Method | Path | Mô tả |
+| Method | Path | Description |
 |---|---|---|
 | POST | `/api/auth/login` | `{ email, password }` → `{ token }` |
-| GET | `/api/auth/me` | thông tin shop hiện tại |
+| GET | `/api/auth/me` | current shop info |
 
-### Sản phẩm
-| Method | Path | Mô tả |
+### Products
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/products?q=&page=` | danh sách |
-| POST | `/api/products` | tạo |
-| PATCH | `/api/products/:id` | sửa |
-| DELETE | `/api/products/:id` | ẩn (`is_active=false`) |
+| GET | `/api/products?q=&page=` | list |
+| POST | `/api/products` | create |
+| PATCH | `/api/products/:id` | update |
+| DELETE | `/api/products/:id` | hide (`is_active=false`) |
 
-### Đơn hàng
-| Method | Path | Mô tả |
+### Orders
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/orders?status=&from=&to=` | danh sách |
-| GET | `/api/orders/:id` | chi tiết + items + giao dịch thanh toán |
+| GET | `/api/orders?status=&from=&to=` | list |
+| GET | `/api/orders/:id` | details + items + payment transactions |
 | PATCH | `/api/orders/:id/status` | `{ status: "SHIPPING" \| "COMPLETED" \| "CANCELLED" }` |
 
-### Hội thoại
-| Method | Path | Mô tả |
+### Conversations
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/conversations` | danh sách hội thoại |
-| GET | `/api/conversations/:id/messages` | lịch sử |
-| POST | `/api/conversations/:id/messages` | chủ shop gửi tin tay |
-| PATCH | `/api/conversations/:id` | `{ ai_paused: true }`: tắt AI cho hội thoại này |
+| GET | `/api/conversations` | conversation list |
+| GET | `/api/conversations/:id/messages` | history |
+| POST | `/api/conversations/:id/messages` | shop owner sends a manual message |
+| PATCH | `/api/conversations/:id` | `{ ai_paused: true }`: turn the AI off for this conversation |
 
-### Thanh toán
-| Method | Path | Mô tả |
+### Payments
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/payments?match_status=` | giao dịch SePay, lọc `UNDERPAID` / `NO_ORDER` để xử lý tay |
-| POST | `/api/payments/:id/assign` | `{ orderId }`: gán tay giao dịch cho đơn |
+| GET | `/api/payments?match_status=` | SePay transactions; filter `UNDERPAID` / `NO_ORDER` for manual handling |
+| POST | `/api/payments/:id/assign` | `{ orderId }`: manually assign a transaction to an order |
 
-### Tài chính
-| Method | Path | Mô tả |
+### Finance
+| Method | Path | Description |
 |---|---|---|
 | GET | `/api/finance/summary?from=&to=` | `{ revenue, cost, grossProfit, expenses, netProfit, orderCount, aov }` |
-| GET | `/api/finance/timeseries?from=&to=&interval=day` | doanh thu theo ngày/tuần |
-| GET | `/api/finance/top-products?from=&to=&limit=5` | sản phẩm bán chạy |
-| GET | `/api/finance/ledger` | sổ thu chi |
-| POST | `/api/finance/ledger` | thêm khoản chi tay `{ type: "EXPENSE", category, amount, note, occurredAt }` |
-| POST | `/api/finance/ask` | `{ question }` → `{ answer, data }` (trợ lý tài chính AI) |
+| GET | `/api/finance/timeseries?from=&to=&interval=day` | revenue by day/week |
+| GET | `/api/finance/top-products?from=&to=&limit=5` | best-selling products |
+| GET | `/api/finance/ledger` | income/expense ledger |
+| POST | `/api/finance/ledger` | add a manual expense `{ type: "EXPENSE", category, amount, note, occurredAt }` |
+| POST | `/api/finance/ask` | `{ question }` → `{ answer, data }` (AI finance assistant) |
 
-## Tham khảo
+## References
 - Messenger Webhooks: https://developers.facebook.com/docs/messenger-platform/webhooks
 - Messenger Quick Start (Send API, page access token): https://developers.facebook.com/documentation/business-messaging/messenger-platform/getting-started/quick-start
 - SePay Webhook: https://developer.sepay.vn/en/sepay-webhooks/tich-hop-webhook

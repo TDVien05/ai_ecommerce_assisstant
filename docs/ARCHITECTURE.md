@@ -1,39 +1,39 @@
-# Kiến trúc
+# Architecture
 
-## Tổng quan
+## Overview
 
 ```mermaid
 flowchart LR
-  KH[Khách hàng<br/>Messenger] -->|tin nhắn| META[Meta Messenger Platform]
+  KH[Customer<br/>Messenger] -->|message| META[Meta Messenger Platform]
   META -->|POST webhook| API[Express Server]
   API -->|Send API| META
   API <--> LLM[LLM Provider]
   API <--> DB[(PostgreSQL)]
-  BANK[Ngân hàng] --> SEPAY[SePay]
-  SEPAY -->|POST webhook biến động số dư| API
-  OWNER[Chủ shop] --> WEB[React Dashboard]
+  BANK[Bank] --> SEPAY[SePay]
+  SEPAY -->|POST balance-change webhook| API
+  OWNER[Shop owner] --> WEB[React Dashboard]
   WEB -->|REST /api| API
 ```
 
-## Phân lớp backend
+## Backend layering
 
 ```
 request → routes/ → middlewares/ → controllers/ → services/ → db/
-                                        ↓ lỗi (throw HttpError)
+                                        ↓ error (throw HttpError)
                                    errorHandler → { error: { code, message } }
 ```
 
-| Lớp | Được làm | Không được làm |
+| Layer | Does | Does not |
 |---|---|---|
-| `routes/` | Khai báo method + path, gắn middleware (verify chữ ký/API key, body parser, `validate(schema)`), trỏ tới controller | Viết handler inline, gọi service/db |
-| `controllers/` | Đọc `req.body` / `req.params` / `req.validatedQuery`, gọi service, chọn status code, trả JSON | Business logic, tính tiền, mở transaction, truy cập `db/` |
-| `services/` | Business logic, transaction (đổi trạng thái đơn + ghi sổ + trừ kho), gọi API ngoài, gọi `db/` | Đọc `req` / ghi `res` |
-| `db/` | Pool kết nối, migration | |
+| `routes/` | Declares method + path, attaches middleware (signature/API key verification, body parser, `validate(schema)`), points to a controller | Write inline handlers, call services/db |
+| `controllers/` | Reads `req.body` / `req.params` / `req.validatedQuery`, calls a service, picks the status code, returns JSON | Business logic, money calculations, opening transactions, accessing `db/` |
+| `services/` | Business logic, transactions (order status change + ledger entry + stock decrement), external API calls, calls `db/` | Read `req` / write `res` |
+| `db/` | Connection pool, migrations | |
 
-Quy ước tên: `routes/orders.js` → `controllers/orders.controller.js` → `services/order.service.js`.
-Controller là hàm async; lỗi được Express 5 tự chuyển tới `errorHandler`, nên không bọc try/catch.
+Naming: `routes/orders.js` → `controllers/orders.controller.js` → `services/order.service.js`.
+Controllers are async functions; Express 5 forwards their errors to `errorHandler`, so no try/catch is needed.
 
-Ví dụ:
+Example:
 
 ```js
 // routes/orders.js
@@ -45,77 +45,77 @@ export const create = async (req, res) => {
 }
 ```
 
-## Module backend
+## Backend modules
 
-| Module | Trách nhiệm |
+| Module | Responsibility |
 |---|---|
-| `messenger.service` | Parse webhook event, gửi tin nhắn (text, ảnh QR, quick replies) qua Send API |
-| `ai.service` | Gọi LLM, giữ lịch sử hội thoại, thực thi các tool (`search_products`, `create_order`…) |
-| `order.service` | Tạo/cập nhật đơn, sinh mã thanh toán duy nhất, quản lý vòng đời trạng thái |
-| `payment.service` | Nhận webhook SePay, đối soát giao dịch với đơn, chống trùng, đánh dấu PAID |
-| `finance.service` | Ghi sổ thu chi, tổng hợp báo cáo, trả lời câu hỏi tài chính của chủ shop |
+| `messenger.service` | Parses webhook events, sends messages (text, QR image, quick replies) via the Send API |
+| `ai.service` | Calls the LLM, keeps conversation history, executes tools (`search_products`, `create_order`…) |
+| `order.service` | Creates/updates orders, generates unique payment codes, manages the status lifecycle |
+| `payment.service` | Receives SePay webhooks, reconciles transactions with orders, deduplicates, marks orders PAID |
+| `finance.service` | Writes the income/expense ledger, aggregates reports, answers the shop owner's finance questions |
 
-## Luồng 1 — Khách nhắn tin → AI trả lời
+## Flow 1 — Customer messages → AI replies
 
 ```mermaid
 sequenceDiagram
-  participant C as Khách
+  participant C as Customer
   participant M as Meta
   participant S as Server
   participant AI as LLM
-  C->>M: "Áo thun trắng size M còn không?"
+  C->>M: "Áo thun trắng size M còn không?" (Is the white T-shirt in size M in stock?)
   M->>S: POST /webhooks/messenger (X-Hub-Signature-256)
-  S->>S: Xác thực chữ ký, trả 200 ngay
-  S->>S: Lưu message, lấy lịch sử hội thoại
+  S->>S: Verify signature, return 200 immediately
+  S->>S: Store message, load conversation history
   S->>AI: messages + tools
   AI-->>S: tool_call search_products("áo thun trắng", size M)
   S->>S: Query DB
-  S->>AI: kết quả tool
-  AI-->>S: Câu trả lời
+  S->>AI: tool result
+  AI-->>S: Reply
   S->>M: Send API (recipient = PSID)
-  M->>C: Tin nhắn trả lời
+  M->>C: Reply message
 ```
 
-Lưu ý: trả `200` cho Meta trước, xử lý AI **bất đồng bộ** (tránh timeout/retry gây trả lời trùng). Chống trùng bằng `message.mid`.
+Note: return `200` to Meta first and run the AI **asynchronously** (avoids timeouts/retries that cause duplicate replies). Deduplicate by `message.mid`.
 
-## Luồng 2 — Tạo đơn + thanh toán + chống scam
+## Flow 2 — Order creation + payment + anti-scam
 
 ```mermaid
 sequenceDiagram
-  participant C as Khách
+  participant C as Customer
   participant S as Server
   participant SP as SePay
-  C->>S: Chốt đơn (tên, SĐT, địa chỉ, sản phẩm)
+  C->>S: Places the order (name, phone, address, products)
   S->>S: create_order → status AWAITING_PAYMENT, payment_code = DH8F3K2A
-  S->>C: Tóm tắt đơn + ảnh VietQR (số tiền + nội dung DH8F3K2A)
-  C->>C: Chuyển khoản
+  S->>C: Order summary + VietQR image (amount + transfer note DH8F3K2A)
+  C->>C: Makes the bank transfer
   SP->>S: POST /webhooks/sepay (Authorization: Apikey ...)
-  S->>S: Đối soát: code, số tiền, số tài khoản, chống trùng id
-  S->>S: Đơn → PAID, ghi giao dịch thu vào finance
-  S->>C: "Đã nhận đủ 250.000đ, đơn DH8F3K2A đã xác nhận"
+  S->>S: Reconcile: code, amount, account number, dedupe by id
+  S->>S: Order → PAID, write income entry to finance
+  S->>C: "Received 250,000đ in full, order DH8F3K2A is confirmed"
 ```
 
-Nếu khách gửi ảnh chụp màn hình "đã chuyển khoản" mà chưa có webhook → AI trả lời là hệ thống đang chờ ngân hàng xác nhận, **không** xác nhận đơn. Chi tiết: [PAYMENT_ANTI_SCAM.md](PAYMENT_ANTI_SCAM.md).
+If the customer sends a "transfer done" screenshot before any webhook arrives → the AI replies that the system is waiting for the bank's confirmation and does **not** confirm the order. Details: [PAYMENT_ANTI_SCAM.md](PAYMENT_ANTI_SCAM.md).
 
-## Luồng 3 — Trợ lý tài chính
+## Flow 3 — Finance assistant
 
 ```mermaid
 sequenceDiagram
-  participant O as Chủ shop
+  participant O as Shop owner
   participant W as Dashboard
   participant S as Server
   participant AI as LLM
-  O->>W: "Tuần này lời bao nhiêu? Món nào bán chạy?"
+  O->>W: "How much profit this week? What sells best?"
   W->>S: POST /api/finance/ask
-  S->>AI: câu hỏi + tools (get_summary, get_top_products)
+  S->>AI: question + tools (get_summary, get_top_products)
   AI-->>S: tool_call get_summary(from, to)
-  S->>S: SQL tổng hợp (do server viết, không để LLM tự sinh SQL)
-  S->>AI: số liệu
-  AI-->>S: Câu trả lời kèm số liệu
+  S->>S: Aggregate SQL (written by the server, never generated by the LLM)
+  S->>AI: figures
+  AI-->>S: Answer with figures
   S->>W: { answer, data }
 ```
 
-## Tài liệu tham khảo
+## References
 
 - Meta Messenger Webhooks: https://developers.facebook.com/docs/messenger-platform/webhooks
 - SePay Webhooks: https://developer.sepay.vn/en/sepay-webhooks/tich-hop-webhook

@@ -1,11 +1,11 @@
 # Setup
 
-## Yêu cầu
-- Node.js 18+ (yêu cầu của Express 5)
-- PostgreSQL (local hoặc Docker)
-- Tunnel public HTTPS để Meta và SePay gọi được webhook về máy local (ngrok, cloudflared…)
+## Requirements
+- Node.js 18+ (required by Express 5)
+- PostgreSQL (local or Docker)
+- A public HTTPS tunnel so Meta and SePay can reach webhooks on your local machine (ngrok, cloudflared…)
 
-## 1. Khởi tạo repo
+## 1. Initialize the repo
 
 ```bash
 mkdir sales-assistant && cd sales-assistant && git init
@@ -23,17 +23,17 @@ cd client && npm install
 npm install tailwindcss @tailwindcss/vite react-router-dom
 ```
 
-## 2. shadcn/ui cho Vite
-1. Thêm alias `@` → `./src` vào `tsconfig.json` + `tsconfig.app.json` (`compilerOptions.paths`) và `vite.config.ts` (`resolve.alias`). Thêm plugin `tailwindcss()`.
-2. Thay nội dung `src/index.css` bằng `@import "tailwindcss";`.
-3. Chạy:
+## 2. shadcn/ui for Vite
+1. Add the `@` → `./src` alias to `tsconfig.json` + `tsconfig.app.json` (`compilerOptions.paths`) and `vite.config.ts` (`resolve.alias`). Add the `tailwindcss()` plugin.
+2. Replace the contents of `src/index.css` with `@import "tailwindcss";`.
+3. Run:
 ```bash
 npx shadcn@latest init -t vite
 npx shadcn@latest add button card table badge input dialog tabs sonner
 ```
-4. Thêm proxy cho dev trong `vite.config.ts`: `server.proxy = { '/api': 'http://localhost:4000' }`.
+4. Add a dev proxy in `vite.config.ts`: `server.proxy = { '/api': 'http://localhost:4000' }`.
 
-## 3. Biến môi trường (`server/.env.example`)
+## 3. Environment variables (`server/.env.example`)
 
 ```env
 PORT=4000
@@ -44,7 +44,7 @@ JWT_SECRET=change-me
 FB_APP_SECRET=
 FB_VERIFY_TOKEN=any-random-string
 FB_PAGE_ACCESS_TOKEN=
-GRAPH_API_VERSION=v23.0         # kiểm tra version hiện hành trong App Dashboard
+GRAPH_API_VERSION=v23.0         # check the current version in the App Dashboard
 
 # SePay
 SEPAY_WEBHOOK_API_KEY=
@@ -54,31 +54,31 @@ AI_BASE_URL=
 AI_API_KEY=
 AI_MODEL=
 
-# Ngân hàng nhận tiền (tạo VietQR)
+# Receiving bank account (VietQR)
 BANK_CODE=MB
 BANK_ACCOUNT_NUMBER=
 BANK_ACCOUNT_NAME=
 ```
 
-## 4. Cấu hình Facebook App
-1. Tạo app tại https://developers.facebook.com, thêm sản phẩm **Messenger**.
-2. Kết nối Page → tạo **Page access token** → `FB_PAGE_ACCESS_TOKEN`.
+## 4. Facebook App configuration
+1. Create an app at https://developers.facebook.com and add the **Messenger** product.
+2. Connect the Page → generate a **Page access token** → `FB_PAGE_ACCESS_TOKEN`.
 3. App Settings → Basic → **App Secret** → `FB_APP_SECRET`.
-4. Webhooks: Callback URL = `https://<tunnel>/webhooks/messenger`, Verify Token = `FB_VERIFY_TOKEN`. Subscribe ít nhất `messages` (thêm `messaging_postbacks` nếu dùng nút).
-5. Test handshake ở local:
+4. Webhooks: Callback URL = `https://<tunnel>/webhooks/messenger`, Verify Token = `FB_VERIFY_TOKEN`. Subscribe to at least `messages` (add `messaging_postbacks` if you use buttons).
+5. Test the handshake locally:
 ```bash
 curl "http://localhost:4000/webhooks/messenger?hub.mode=subscribe&hub.verify_token=<FB_VERIFY_TOKEN>&hub.challenge=CHALLENGE_ACCEPTED"
 # → CHALLENGE_ACCEPTED
 ```
-6. Khi app còn ở chế độ development, chỉ tài khoản có role trong app mới nhắn thử được. Muốn mở cho khách thật thì phải qua App Review. Xem yêu cầu tại trang Messenger Platform.
+6. While the app is in development mode, only accounts with a role in the app can message it. Opening it to real customers requires App Review; see the requirements on the Messenger Platform page.
 
-## 5. Cấu hình SePay
-1. Đăng ký tại https://my.sepay.vn, liên kết tài khoản ngân hàng.
-2. Cấu hình chung → **Cấu trúc mã thanh toán**: prefix `DH`.
-3. Tích hợp Webhook → Thêm: URL `https://<tunnel>/webhooks/sepay`, loại giao dịch **Tiền vào**, xác thực **API Key** → `SEPAY_WEBHOOK_API_KEY`, bật "Chỉ gửi khi có mã thanh toán".
-4. Dùng **Test mode** để giả lập giao dịch.
+## 5. SePay configuration
+1. Sign up at https://my.sepay.vn and link your bank account.
+2. General settings → **Cấu trúc mã thanh toán** (payment code structure): prefix `DH`.
+3. Webhook integration → Add: URL `https://<tunnel>/webhooks/sepay`, transaction type **Tiền vào** (incoming), authentication **API Key** → `SEPAY_WEBHOOK_API_KEY`, enable "Chỉ gửi khi có mã thanh toán" (only send when a payment code is present).
+4. Use **Test mode** to simulate transactions.
 
-## Tham khảo
+## References
 - Express installing: https://expressjs.com/en/starter/installing.html
 - shadcn/ui Vite: https://ui.shadcn.com/docs/installation/vite
 - Messenger Quick Start: https://developers.facebook.com/documentation/business-messaging/messenger-platform/getting-started/quick-start
