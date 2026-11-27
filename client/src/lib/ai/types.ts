@@ -107,13 +107,24 @@ export type AIEvent =
   | { type: 'thread'; thread: Thread }
   | { type: 'typing'; conversationId: ConversationId; value: boolean }
 
+/** File đã tải lên, dùng lại id khi gửi tin. */
+export type Attachment = { fileId: string; name: string }
+
+export type SendRequest = { conversationId: ConversationId; text: string; attachments: Attachment[] }
+
+export type AnswerRequest = { stepId: string; questionId: string; option: string }
+
+export type ApproveResponse = { message: string }
+
 export interface FlowyAI {
   /** Sự kiện đầu tiên luôn là 'snapshot'. Trả về hàm hủy đăng ký. */
   subscribe(listener: (event: AIEvent) => void): () => void
-  send(conversationId: ConversationId, text: string, files: File[]): Promise<void>
-  answer(stepId: string, questionId: string, option: string): Promise<void>
+  /** Hàm duy nhất không gửi JSON: bản thật gửi multipart. */
+  upload(file: File): Promise<Attachment>
+  send(request: SendRequest): Promise<void>
+  answer(request: AnswerRequest): Promise<void>
   /** Trả về câu thông báo đã ghi gì, ở thì quá khứ, có số. */
-  approve(stepId: string): Promise<{ message: string }>
+  approve(stepId: string): Promise<ApproveResponse>
   undo(stepId: string): Promise<void>
   safeAction(alertId: string): Promise<void>
   dismissNotice(noticeId: string): Promise<void>

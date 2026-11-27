@@ -14,7 +14,7 @@ export function BlockView({ block, onOpenThread }: { block: Block; onOpenThread:
           state={block.state}
           steps={block.steps}
           questions={block.questions}
-          onAnswer={(questionId, option) => run(ai.answer(block.stepId, questionId, option))}
+          onAnswer={(questionId, option) => run(ai.answer({ stepId: block.stepId, questionId, option }))}
           approveLabel={block.approveLabel}
           onApprove={() => approve(block.stepId)}
           onUndo={() => run(ai.undo(block.stepId))}

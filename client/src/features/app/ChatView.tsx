@@ -51,7 +51,13 @@ export function ChatView({ conversationId, messages, typing, scope, onOpenThread
           key={conversationId}
           placeholder={hub ? undefined : 'Nhắn trong luồng này...'}
           suggestions={hub ? ['Lãi tuần này?', 'Đơn nào chưa thanh toán?', 'Nhập sao kê'] : undefined}
-          onSubmit={(text, files) => run(ai.send(conversationId, text, files))}
+          onSubmit={(text, files) =>
+            run(
+              Promise.all(files.map((f) => ai.upload(f))).then((attachments) =>
+                ai.send({ conversationId, text, attachments }),
+              ),
+            )
+          }
         />
       </ChatFooter>
     </>

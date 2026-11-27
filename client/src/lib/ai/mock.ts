@@ -1,7 +1,18 @@
 // AI giả lập chạy trong trình duyệt. Không gọi mạng, tải lại trang là về dữ liệu đầu.
 import { clock, initialSnapshot, ledgerStep, profitResult, say, text, today } from './mockData'
 import { applyEvent } from './reduce'
-import { HUB, type AIEvent, type Block, type ConversationId, type FlowyAI, type Message, type Snapshot, type Thread } from './types'
+import {
+  HUB,
+  type AIEvent,
+  type AnswerRequest,
+  type Block,
+  type ConversationId,
+  type FlowyAI,
+  type Message,
+  type SendRequest,
+  type Snapshot,
+  type Thread,
+} from './types'
 
 type StepBlock = Extract<Block, { type: 'agentStep' }>
 
@@ -19,23 +30,27 @@ export class MockFlowyAI implements FlowyAI {
 
   subscribe(listener: (event: AIEvent) => void) {
     this.listeners.add(listener)
-    listener({ type: 'snapshot', snapshot: this.state })
+    listener({ type: 'snapshot', snapshot: structuredClone(this.state) })
     this.start()
     return () => {
       this.listeners.delete(listener)
     }
   }
 
-  async send(conversationId: ConversationId, value: string, files: File[]) {
+  async upload(file: File) {
+    return { fileId: this.nextId('f'), name: file.name }
+  }
+
+  async send({ conversationId, text: value, attachments }: SendRequest) {
     this.post(conversationId, {
       id: this.nextId('u'),
       role: 'user',
       text: value,
-      files: files.length ? files.map((f) => f.name) : undefined,
+      files: attachments.length ? attachments.map((a) => a.name) : undefined,
     })
     const q = value.toLowerCase()
-    if (conversationId === HUB && (files.length > 0 || q.includes('sao kê'))) {
-      if (files.length === 0) return this.reply(HUB, text('Bạn đính kèm file sao kê (nút kẹp giấy) rồi gửi nhé.'))
+    if (conversationId === HUB && (attachments.length > 0 || q.includes('sao kê'))) {
+      if (attachments.length === 0) return this.reply(HUB, text('Bạn đính kèm file sao kê (nút kẹp giấy) rồi gửi nhé.'))
       return this.openLedgerThread()
     }
     if (q.includes('lãi') || q.includes('doanh thu')) {
@@ -50,7 +65,7 @@ export class MockFlowyAI implements FlowyAI {
     )
   }
 
-  async answer(stepId: string, questionId: string, option: string) {
+  async answer({ stepId, questionId, option }: AnswerRequest) {
     this.updateStep(stepId, (step) => {
       if (step.state !== 'waiting') return step
       const questions = step.questions?.map((q) => (q.id === questionId ? { ...q, value: option } : q))
@@ -218,7 +233,9 @@ export class MockFlowyAI implements FlowyAI {
     this.emit({ type: 'message', conversationId, message })
   }
 
-  private emit(event: AIEvent) {
+  private emit(raw: AIEvent) {
+    // Ép qua JSON để mọi thứ không gửi được qua mạng lỗi ngay ở bản mock.
+    const event = JSON.parse(JSON.stringify(raw)) as AIEvent
     this.state = applyEvent(this.state, event) ?? this.state
     this.listeners.forEach((listener) => listener(event))
   }

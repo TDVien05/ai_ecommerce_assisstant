@@ -68,14 +68,29 @@ Giao diện chat (chat trung tâm và luồng việc) chỉ phụ thuộc interf
 
 ### Hợp đồng
 
-| Hàm | Ý nghĩa |
-|---|---|
-| `subscribe(listener)` | Dòng sự kiện từ AI (server có thể dùng SSE hoặc WebSocket). Sự kiện đầu tiên là `snapshot`; sau đó là `message`, `thread`, `typing`. Tin chủ động của AI cũng đi qua đây. |
-| `send(conversationId, text, files)` | Người dùng nhắn. `conversationId` là `hub` hoặc id luồng. Câu trả lời về qua `subscribe`. |
-| `answer(stepId, questionId, option)` | Trả lời câu AI hỏi lại. |
-| `approve(stepId)` / `undo(stepId)` | Duyệt hoặc hoàn tác một thay đổi dữ liệu. |
-| `safeAction(alertId)` | Hành động an toàn trên cảnh báo, ví dụ giữ đơn. |
-| `dismissNotice(noticeId)` | Bỏ qua một tin chủ động. |
+Các đường dẫn dưới đây là đề xuất cho server, chưa cài đặt. Body và response là JSON, trừ upload. Lỗi theo dạng chung trong [API.md](API.md).
+
+| Hàm | Method và path | Request | Response |
+|---|---|---|---|
+| `subscribe(listener)` | `GET /api/assistant/stream` (SSE) | không | dòng sự kiện, xem bảng dưới |
+| `upload(file)` | `POST /api/assistant/files` | multipart, trường `file` | `{ fileId, name }` |
+| `send(request)` | `POST /api/assistant/messages` | `{ conversationId, text, attachments: [{ fileId, name }] }` | `204`; câu trả lời về qua stream |
+| `answer(request)` | `POST /api/assistant/steps/:stepId/answers` | `{ questionId, option }` | `204` |
+| `approve(stepId)` | `POST /api/assistant/steps/:stepId/approve` | không | `{ message }` |
+| `undo(stepId)` | `POST /api/assistant/steps/:stepId/undo` | không | `204` |
+| `safeAction(alertId)` | `POST /api/assistant/alerts/:alertId/safe-action` | không | `204` |
+| `dismissNotice(noticeId)` | `POST /api/assistant/notices/:noticeId/dismiss` | không | `204` |
+
+`conversationId` là `hub` (chat trung tâm) hoặc id luồng.
+
+| Sự kiện | Dữ liệu | Ghi chú |
+|---|---|---|
+| `snapshot` | `{ snapshot: { shopName, threads, conversations, typing } }` | luôn là sự kiện đầu tiên, gửi lại khi kết nối lại |
+| `message` | `{ conversationId, message }` | trùng `message.id` thì thay tin cũ |
+| `thread` | `{ thread }` | trùng `thread.id` thì thay luồng cũ |
+| `typing` | `{ conversationId, value }` | AI đang soạn |
+
+Tin AI tự gửi cũng đi qua stream. Lưu ý: `EventSource` không gửi được header `Authorization: Bearer` mà `api.ts` dùng, nên bản thật cần đọc stream bằng `fetch` hoặc truyền token cách khác. `api.ts` cũng cần thêm hàm gửi multipart.
 
 AI trả nội dung bằng các khối JSON: `text`, `agentStep`, `resultCard`, `riskAlert`, `threadSummary`, `proactiveNotice`. Lỗi thì reject với câu tiếng Việt nói lỗi gì và cách sửa.
 
