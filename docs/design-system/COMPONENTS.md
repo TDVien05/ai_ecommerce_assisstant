@@ -53,6 +53,7 @@ Import từ `@/components/flowy`. Ví dụ đầy đủ nằm ở `client/src/pa
 ## Nhỏ
 
 - `Money`: `<Money value={8420000} />`, `size="lg"` cho số chính. Số âm hiện "−".
+- `BarChart`: `<BarChart points={[{ label: '26/11', value: 250000 }]} />` cho chuỗi tiền do nguồn dữ liệu cung cấp; luôn kèm bảng số liệu và nguồn ở màn hình sử dụng.
 - `RiskBadge level="low|mid|high"` và `OrderStatusBadge status="pending|approved|cancelled|new"`.
 - `toastDone('Đã ghi 14 giao dịch vào sổ.', onUndo)`: thông báo sau khi ghi dữ liệu, có Hoàn tác 10 giây. Đặt `<Toaster />` (đã có trong `App.tsx`).
 - `Button` shadcn: `default` cho hành động chính (một nút mỗi khối), `outline` cho phụ, `ghost` cho thanh công cụ, `destructive` cho xóa. Nút trong khối AI dùng `size="lg"`.
