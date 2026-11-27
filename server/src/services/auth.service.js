@@ -1,11 +1,12 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { env } from '../config/env.js'
-import { findByEmail } from '../db/users.js'
+import { findByEmail, findWithShop } from '../db/users.js'
 import { pool } from '../db/pool.js'
-import { HttpError } from '../lib/httpError.js'
+import { HttpError, unauthorized } from '../lib/httpError.js'
 
 const dummyHash = bcrypt.hashSync('not-a-user-password', 10)
+const demoEmail = () => env.DEMO_EMAIL?.trim().toLowerCase() || null
 export async function login(email, password) {
   const user = await findByEmail(email)
   const valid = await bcrypt.compare(password, user?.password_hash ?? dummyHash)
@@ -13,7 +14,24 @@ export async function login(email, password) {
   return jwt.sign({ shopId: user.shop_id }, env.JWT_SECRET, { subject: user.id, algorithm: 'HS256', expiresIn: '12h' })
 }
 
+export async function loginDemo() {
+  if (!demoEmail() || !env.DEMO_PASSWORD) throw new HttpError(503, 'DEMO_UNAVAILABLE', 'Tài khoản demo chưa sẵn sàng.')
+  return login(demoEmail(), env.DEMO_PASSWORD)
+}
+
+// Current user + shop for a verified token ({ userId, shopId } from requireAuth).
+export async function getSession({ userId, shopId }) {
+  const user = await findWithShop(userId)
+  if (!user || user.shop_id !== shopId) throw unauthorized('Phiên đăng nhập không hợp lệ.')
+  return {
+    user: { id: user.id, email: user.email, ownerName: user.owner_name },
+    shop: { id: user.shop_id, name: user.shop_name, isDemo: user.email === demoEmail() },
+  }
+}
+
 export async function register({ ownerName, shopName, email, password }) {
+  // The demo account is reserved, even before the seed has created it.
+  if (email === demoEmail()) throw new HttpError(409, 'EMAIL_EXISTS', 'Email này đã được đăng ký.')
   const hash = await bcrypt.hash(password, 10)
   const client = await pool.connect()
   try {
