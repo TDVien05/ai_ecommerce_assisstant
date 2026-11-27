@@ -7,7 +7,11 @@
 - Frontend: React + Vite + TypeScript, Tailwind v4, shadcn/ui. Import theo alias `@/`.
 
 ## Quy tắc backend
-- Cấu trúc theo lớp: `routes/` (chỉ parse request + gọi service) → `services/` (business logic) → `db/`.
+- Cấu trúc theo lớp: `routes/` → `controllers/` → `services/` → `db/` (chi tiết ở `docs/ARCHITECTURE.md`, mục "Phân lớp backend").
+  - `routes/`: chỉ khai báo path + chuỗi middleware (verify, body parser, `validate`) rồi trỏ tới controller. Không viết handler inline.
+  - `controllers/`: đọc `req` (đã validate), gọi service, chọn status code và trả `res`. Không chứa business logic, không truy cập `db/`.
+  - `services/`: business logic, transaction. Không biết gì về `req`/`res`.
+  - Đặt tên: `routes/<name>.js` ↔ `controllers/<name>.controller.js` ↔ `services/<name>.service.js`.
 - Validate mọi input (body, query, tool input của AI) bằng `zod`.
 - Express 5 tự bắt lỗi từ async handler, nên không cần bọc try/catch ở từng route. Ném lỗi có `status` + `code`, để `errorHandler` trả JSON.
 - Webhook: verify chữ ký/API key **trước** khi parse hay xử lý. Route Messenger cần giữ raw body.

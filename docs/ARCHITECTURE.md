@@ -15,6 +15,36 @@ flowchart LR
   WEB -->|REST /api| API
 ```
 
+## Phân lớp backend
+
+```
+request → routes/ → middlewares/ → controllers/ → services/ → db/
+                                        ↓ lỗi (throw HttpError)
+                                   errorHandler → { error: { code, message } }
+```
+
+| Lớp | Được làm | Không được làm |
+|---|---|---|
+| `routes/` | Khai báo method + path, gắn middleware (verify chữ ký/API key, body parser, `validate(schema)`), trỏ tới controller | Viết handler inline, gọi service/db |
+| `controllers/` | Đọc `req.body` / `req.params` / `req.validatedQuery`, gọi service, chọn status code, trả JSON | Business logic, tính tiền, mở transaction, truy cập `db/` |
+| `services/` | Business logic, transaction (đổi trạng thái đơn + ghi sổ + trừ kho), gọi API ngoài, gọi `db/` | Đọc `req` / ghi `res` |
+| `db/` | Pool kết nối, migration | |
+
+Quy ước tên: `routes/orders.js` → `controllers/orders.controller.js` → `services/order.service.js`.
+Controller là hàm async; lỗi được Express 5 tự chuyển tới `errorHandler`, nên không bọc try/catch.
+
+Ví dụ:
+
+```js
+// routes/orders.js
+ordersRouter.post('/', validate(createOrderBody), ordersController.create)
+
+// controllers/orders.controller.js
+export const create = async (req, res) => {
+  res.status(201).json(await orderService.create(req.body))
+}
+```
+
 ## Module backend
 
 | Module | Trách nhiệm |

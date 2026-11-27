@@ -37,11 +37,15 @@ Trợ lý AI giúp chủ shop bán hàng qua Facebook Messenger:
 sales-assistant/
 ├── server/                 # Express API
 │   ├── src/
-│   │   ├── routes/         # webhook.messenger, webhook.sepay, orders, products, finance
-│   │   ├── services/       # messenger, ai, order, payment, finance
-│   │   ├── middlewares/    # verifyFbSignature, verifySepayKey, errorHandler
-│   │   ├── db/             # schema + migrations
-│   │   └── index.js
+│   │   ├── routes/         # path + middleware: webhook.messenger, webhook.sepay, orders, products, finance
+│   │   ├── controllers/    # req/res: *.controller.js, mỗi route một controller
+│   │   ├── services/       # business logic: messenger, ai, order, payment, finance
+│   │   ├── middlewares/    # verifyFbSignature, verifySepayKey, validate, errorHandler
+│   │   ├── db/             # pool, migrate, migrations
+│   │   ├── config/         # env.js (validate process.env)
+│   │   ├── lib/            # httpError, logger
+│   │   ├── app.js          # gắn middleware + mount routes
+│   │   └── index.js        # listen + graceful shutdown
 │   └── .env.example
 ├── client/                 # React Vite + shadcn dashboard
 │   └── src/{pages,components/ui,lib}
