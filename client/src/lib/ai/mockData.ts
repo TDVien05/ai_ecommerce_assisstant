@@ -1,9 +1,6 @@
 // Dữ liệu giả cho bản mock. Số tiền ở đây đóng vai kết quả server trả về, không phải số thật.
 import type { Block, Message, Snapshot } from './types'
 
-/** Dữ liệu minh họa cho thẻ kết quả trên trang giới thiệu. */
-export const landingRevenue = { amount: 2450000, source: 'sổ thu chi (dữ liệu minh họa)', updatedAt: '09:00' }
-
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /** Giờ "21:42" của thời điểm cách đây `minutesAgo` phút. */

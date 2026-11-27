@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes'
 import { AgentStep, AssistantMessage, Block, BlockBody, ResultCard, RiskBadge, UserMessage } from '@/components/flowy'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { landingRevenue } from '@/lib/ai/mockData'
+import { localFixture } from '@/lib/mockServer/localFixture'
 import { useAuth } from './useAuth'
 
 export function PublicShell({ children }: { children: ReactNode }) {
@@ -39,7 +39,7 @@ function ChatPreview() {
       <UserMessage>Hôm nay cửa hàng có gì cần xem?</UserMessage>
       <AssistantMessage>
         <Block tone="danger"><BlockBody><div className="flex flex-wrap items-center justify-between gap-1"><strong>Đơn có dấu hiệu bất thường</strong><RiskBadge level="high" /></div><p className="text-xs text-muted-foreground">Khách gửi ảnh chuyển khoản, ngân hàng chưa báo tiền vào.</p></BlockBody></Block>
-        <div className="border p-2"><ResultCard metrics={[{ label: 'Doanh thu hôm nay', value: landingRevenue.amount }]} source={landingRevenue.source} updatedAt={landingRevenue.updatedAt} how={[{ label: 'Doanh thu đã ghi', value: landingRevenue.amount, total: true }]} /></div>
+        <div className="border p-2">{localFixture.landingRevenue ? <ResultCard metrics={[{ label: 'Doanh thu hôm nay', value: localFixture.landingRevenue.amount }]} source={localFixture.landingRevenue.source} updatedAt={localFixture.landingRevenue.updatedAt} how={[{ label: 'Doanh thu đã ghi', value: localFixture.landingRevenue.amount, total: true }]} /> : <p className="text-sm text-muted-foreground">Chưa có dữ liệu doanh thu.</p>}</div>
         <fieldset disabled aria-label="Ví dụ bước chờ duyệt"><AgentStep title="Ghi giao dịch vào sổ" state="waiting" steps={[]} approveLabel="Duyệt và ghi sổ" onApprove={() => {}} onSkip={() => {}} onUndo={() => {}} undoNote="Có thể hoàn tác sau khi ghi." /></fieldset>
       </AssistantMessage>
     </div>

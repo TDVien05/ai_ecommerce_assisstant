@@ -60,7 +60,7 @@ export function AppShell(props: AppShellProps) {
             ))}
           </SidebarGroup>
         </nav>
-        <div className="hidden items-center gap-2.5 border-t px-3.5 py-2.5 md:flex">
+        <button type="button" onClick={() => onNavigate('settings')} aria-current={activeId === 'settings' ? 'page' : undefined} className="hidden w-full items-center gap-2.5 border-t px-3.5 py-2.5 text-left hover:bg-sidebar-accent md:flex">
           <span className="grid size-7 place-items-center border bg-muted text-xs font-semibold">
             {shopName.slice(0, 2).toUpperCase()}
           </span>
@@ -68,12 +68,13 @@ export function AppShell(props: AppShellProps) {
             <b className="font-semibold">{shopName}</b>
             <small className="block text-xs text-muted-foreground">Cài đặt cửa hàng</small>
           </div>
-        </div>
+        </button>
       </aside>
       <nav aria-label="Điều hướng" className="flex items-center gap-2 overflow-x-auto border-b bg-sidebar p-2 min-[860px]:hidden">
         <span className="shrink-0 px-2 font-semibold">Flowy</span>
         <button type="button" onClick={() => onNavigate('hub')} aria-current={activeId === 'hub' ? 'page' : undefined} className={cn('shrink-0 rounded-sm px-2 py-1', activeId === 'hub' ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'hover:bg-sidebar-accent')}>Chat trung tâm</button>
         {features.map((f) => <button key={f.id} type="button" onClick={() => onNavigate(f.id)} aria-current={activeId === f.id ? 'page' : undefined} className={cn('shrink-0 rounded-sm px-2 py-1', activeId === f.id ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'hover:bg-sidebar-accent')}>{f.label}</button>)}
+        <button type="button" onClick={() => onNavigate('settings')} aria-current={activeId === 'settings' ? 'page' : undefined} className={cn('shrink-0 rounded-sm px-2 py-1', activeId === 'settings' ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'hover:bg-sidebar-accent')}>Cài đặt cửa hàng</button>
         {threads.map((thread) => <button key={thread.id} type="button" onClick={() => onNavigate(thread.id)} className={cn('shrink-0 rounded-sm px-2 py-1', activeId === thread.id ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'hover:bg-sidebar-accent')}>{thread.title}</button>)}
       </nav>
       <main className="flex min-h-0 min-w-0 flex-col">
