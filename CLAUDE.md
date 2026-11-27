@@ -1,4 +1,5 @@
 # CLAUDE.md — Quy ước dự án
+Mọi agent phải đọc `AGENTS.md` trước khi làm việc; khi làm giao diện, đọc thêm `docs/design-system/AGENTS.md`.
 
 Đọc `README.md` và `docs/` trước khi code. Khi code và docs mâu thuẫn, hỏi lại thay vì tự đoán.
 
