@@ -131,7 +131,8 @@ Dạng JSON giao diện đang dùng (đề xuất) nằm trong `client/src/lib/p
 | GET | `/api/finance/timeseries?from=&to=&interval=day` | doanh thu theo ngày/tuần |
 | GET | `/api/finance/top-products?from=&to=&limit=5` | sản phẩm bán chạy |
 | GET | `/api/finance/ledger` | sổ thu chi |
-| POST | `/api/finance/ledger` | thêm khoản chi tay `{ type: "EXPENSE", category, amount, note, occurredAt }` |
+| POST | `/api/finance/ledger` | thêm khoản thu hoặc chi tay `{ type: "INCOME" \| "EXPENSE", category, amount, note, occurredAt }` |
+| DELETE | `/api/finance/ledger/:id` | xóa khoản nhập tay; khoản tự động trả `409` |
 | POST | `/api/finance/ask` | `{ question }` → `{ answer, data }` (trợ lý tài chính AI) |
 
 ## Tham khảo
