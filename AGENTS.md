@@ -48,6 +48,8 @@ Tài liệu này áp dụng cho mọi agent AI (Claude Code, Cursor, Copilot, Co
 
 3.4. Không đẩy trực tiếp lên nhánh `main`; mọi thay đổi đi qua nhánh riêng và Pull Request. Commit theo quy ước `feat:`, `fix:`, `chore:`, `docs:` như trong `CLAUDE.md`.
 
+3.5. Để hạn chế xung đột (conflict), agent phải luôn kiểm tra nhánh `main` trên máy chủ từ xa có mã mới hay không bằng `git fetch origin`: trước khi bắt đầu một công việc mới, trước mỗi lần đẩy mã (`git push`) và định kỳ trong quá trình làm việc dài. Nếu `main` có thay đổi mới, agent phải kéo về và hợp nhất vào nhánh đang làm (`git merge origin/main` hoặc `git pull origin main`), xử lý xung đột nếu có và chạy lại `npm run build` trong `client/` trước khi đẩy. Agent không ghi đè lịch sử của nhánh đã được người khác sử dụng.
+
 ## 4. Quy định về dữ liệu và AI
 
 4.1. Mô hình ngôn ngữ không được tự tính giá, không được tự xác nhận thanh toán và không có công cụ nào cho phép chuyển đơn hàng sang trạng thái đã thanh toán. Chi tiết tại `docs/AI_AGENT.md`.
