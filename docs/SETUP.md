@@ -49,10 +49,18 @@ GRAPH_API_VERSION=v23.0         # check the current version in the App Dashboard
 # SePay
 SEPAY_WEBHOOK_API_KEY=
 
-# AI (OpenAI-compatible chat completions)
-AI_BASE_URL=
+# AI (OpenAI-compatible chat completions; the team uses OpenRouter)
+AI_BASE_URL=https://openrouter.ai/api/v1
 AI_API_KEY=
-AI_MODEL=
+AI_MODEL=                       # default model, e.g. <provider>/<model>
+AI_MODEL_AGENT=                 # per-role overrides, fall back to AI_MODEL
+AI_MODEL_BOT=                   # agent/bot need tool support, vision needs image input
+AI_MODEL_CLASSIFY=
+AI_MODEL_VISION=
+AI_MODEL_FRAUD=
+AI_MOCK=false                   # true: scripted mock, no provider calls
+AI_DAILY_RUN_LIMIT=50
+AI_TIMEOUT_MS=30000
 
 # Receiving bank account (VietQR)
 BANK_CODE=MB

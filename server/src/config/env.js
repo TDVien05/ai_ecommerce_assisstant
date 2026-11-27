@@ -29,6 +29,16 @@ const schema = z.object({
   AI_BASE_URL: optional,
   AI_API_KEY: optional,
   AI_MODEL: optional,
+  // Per-role models; each falls back to AI_MODEL when empty (see services/ai/config.js).
+  AI_MODEL_AGENT: optional,
+  AI_MODEL_CLASSIFY: optional,
+  AI_MODEL_BOT: optional,
+  AI_MODEL_VISION: optional,
+  AI_MODEL_FRAUD: optional,
+  // true → scripted mock, never calls the provider.
+  AI_MOCK: z.preprocess((v) => (v === '' || v === undefined ? 'false' : v), z.enum(['true', 'false'])).transform((v) => v === 'true'),
+  AI_DAILY_RUN_LIMIT: z.coerce.number().int().positive().default(50),
+  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
 
   // Receiving bank account (VietQR)
   BANK_CODE: z.string().default('MB'),
