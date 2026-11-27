@@ -57,7 +57,7 @@ export default function AppPage() {
       }
     >
       {feature ? (
-        <FeaturePage title={feature.label} about={feature.about} />
+        <FeaturePage id={feature.id} title={feature.label} about={feature.about} />
       ) : (
         <ChatView
           key={conversationId}
