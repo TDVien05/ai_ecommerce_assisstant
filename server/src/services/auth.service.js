@@ -8,6 +8,6 @@ const dummyHash = bcrypt.hashSync('not-a-user-password', 10)
 export async function login(email, password) {
   const user = await findByEmail(email)
   const valid = await bcrypt.compare(password, user?.password_hash ?? dummyHash)
-  if (!user || !valid) throw new HttpError(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect')
+  if (!user || !valid) throw new HttpError(401, 'INVALID_CREDENTIALS', 'Email hoặc mật khẩu không đúng.')
   return jwt.sign({ shopId: user.shop_id }, env.JWT_SECRET, { subject: user.id, algorithm: 'HS256', expiresIn: '12h' })
 }

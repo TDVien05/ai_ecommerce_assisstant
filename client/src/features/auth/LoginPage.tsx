@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ApiError } from '@/lib/api'
 import { useAuth } from './useAuth'
 
 export default function LoginPage() {
@@ -17,7 +18,7 @@ export default function LoginPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(''); setSubmitting(true)
     try { await login({ email, password }); navigate(location.state?.from || '/', { replace: true }) }
-    catch { setError('Không thể đăng nhập. Kiểm tra thông tin và thử lại.') }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'Không thể đăng nhập. Kiểm tra kết nối và thử lại.') }
     finally { setSubmitting(false) }
   }
   return <main className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
