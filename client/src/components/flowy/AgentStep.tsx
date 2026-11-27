@@ -36,6 +36,8 @@ type AgentStepProps = {
   approveLabel?: string
   onApprove?: () => void
   onEdit?: () => void
+  /** Bỏ qua đề xuất mà không thay đổi dữ liệu. */
+  onSkip?: () => void
   onUndo?: () => void
   onRetry?: () => void
   /** Dòng nói hậu quả khi hoàn tác, bắt buộc khi có onUndo. */
@@ -87,6 +89,7 @@ export function AgentStep(props: AgentStepProps) {
               Sửa trước
             </Button>
           )}
+          {props.onSkip && <Button size="lg" variant="outline" onClick={props.onSkip}>Bỏ qua</Button>}
           <span className="flex-1" />
           <span className="text-xs text-muted-foreground">Ghi xong vẫn hoàn tác được</span>
         </BlockFooter>

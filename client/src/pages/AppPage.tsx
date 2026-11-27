@@ -12,22 +12,28 @@ import { useAuth } from '@/features/auth/useAuth'
 
 /** Màn hình chính: "/" chat trung tâm, "/threads/:id" luồng việc, "/pages/:id" trang chức năng. */
 export default function AppPage() {
+  const { session } = useAuth()
+  if (!session?.shop.isDemo) return <EmptyApp />
+  return <DemoApp />
+}
+
+function DemoApp() {
   const state = useFlowy()
   const { session, logout } = useAuth()
   const navigate = useNavigate()
   const threadId = useMatch('/threads/:id')?.params.id
   const featureId = useMatch('/pages/:id')?.params.id
-  const atHub = Boolean(useMatch('/'))
+  const atHub = Boolean(useMatch('/app'))
 
   if (!state) return null
 
   const thread = state.threads.find((t) => t.id === threadId)
   const feature = FEATURES.find((f) => f.id === featureId)
-  if (!atHub && !thread && !feature) return <Navigate to="/" replace />
+  if (!atHub && !thread && !feature) return <Navigate to="/app" replace />
 
   const conversationId = thread?.id ?? HUB
   const go = (id: string) => {
-    if (id === HUB) navigate('/')
+    if (id === HUB) navigate('/app')
     else if (FEATURES.some((f) => f.id === id)) navigate(`/pages/${id}`)
     else navigate(`/threads/${id}`)
   }
@@ -55,7 +61,7 @@ export default function AppPage() {
             </Button>
           )}
           <ThemeToggle />
-          <Button variant="ghost" onClick={logout}>Đăng xuất</Button>
+          <Button variant="ghost" onClick={() => { logout(); window.location.assign('/') }}>Đăng xuất</Button>
         </>
       }
     >
@@ -73,6 +79,20 @@ export default function AppPage() {
       )}
     </AppShell>
   )
+}
+
+function EmptyApp() {
+  const { session, logout } = useAuth()
+  const navigate = useNavigate()
+  const featureId = useMatch('/pages/:id')?.params.id
+  const feature = FEATURES.find((item) => item.id === featureId)
+  const go = (id: string) => navigate(id === HUB ? '/app' : `/pages/${id}`)
+  return <AppShell shopName={session?.shop.name ?? ''} hubPending={0} threads={[]} features={FEATURES} activeId={feature?.id ?? HUB} onNavigate={go}
+    topbar={<><b className="font-semibold">{feature?.label ?? 'Chat trung tâm'}</b><span className="flex-1" /><ThemeToggle /><Button variant="ghost" onClick={() => { logout(); window.location.assign('/') }}>Đăng xuất</Button></>}>
+    <div className="flex-1 overflow-y-auto"><div className="mx-auto max-w-2xl space-y-4 p-6">
+      {feature ? <><h1 className="text-[22px] font-semibold">{feature.label}</h1><p>{feature.about}</p><p className="border border-dashed p-4 text-muted-foreground">Chưa có dữ liệu. Hãy kết nối nguồn dữ liệu để bắt đầu.</p></> : <><h1 className="text-[22px] font-semibold">Chào mừng bạn đến với Flowy</h1><div className="border p-4"><p>Mình là Flowy. Bạn có thể bắt đầu bằng cách kết nối nguồn dữ liệu của cửa hàng.</p><p className="mt-2 text-sm text-muted-foreground">Các tính năng dữ liệu thật sẽ sẵn sàng khi kết nối máy chủ.</p></div><Button variant="outline" onClick={() => go('sources')}>Xem nguồn dữ liệu</Button></>}
+    </div></div>
+  </AppShell>
 }
 
 function ThemeToggle() {

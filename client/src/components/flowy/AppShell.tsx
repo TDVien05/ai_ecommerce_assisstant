@@ -29,11 +29,11 @@ export function AppShell(props: AppShellProps) {
   return (
     <div
       className={cn(
-        'grid h-dvh grid-cols-1 bg-background text-foreground md:grid-cols-[232px_minmax(0,1fr)]',
+        'grid h-dvh grid-cols-1 grid-rows-[auto_minmax(0,1fr)] bg-background text-foreground min-[860px]:grid-cols-[232px_minmax(0,1fr)] min-[860px]:grid-rows-1',
         props.className,
       )}
     >
-      <aside className="flex min-h-0 flex-col border-b bg-sidebar text-sidebar-foreground md:border-r md:border-b-0 md:border-sidebar-border">
+      <aside className="hidden min-h-0 flex-col border-b bg-sidebar text-sidebar-foreground min-[860px]:flex min-[860px]:border-r min-[860px]:border-b-0 min-[860px]:border-sidebar-border">
         <div className="flex items-center gap-2 px-3 pt-3 pb-2 font-bold tracking-tight">
           <span className="grid size-[22px] place-items-center bg-primary text-xs text-primary-foreground">F</span>
           Flowy
@@ -70,6 +70,12 @@ export function AppShell(props: AppShellProps) {
           </div>
         </div>
       </aside>
+      <nav aria-label="Điều hướng" className="flex items-center gap-2 overflow-x-auto border-b bg-sidebar p-2 min-[860px]:hidden">
+        <span className="shrink-0 px-2 font-semibold">Flowy</span>
+        <button type="button" onClick={() => onNavigate('hub')} aria-current={activeId === 'hub' ? 'page' : undefined} className={cn('shrink-0 rounded-sm px-2 py-1', activeId === 'hub' ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'hover:bg-sidebar-accent')}>Chat trung tâm</button>
+        {features.map((f) => <button key={f.id} type="button" onClick={() => onNavigate(f.id)} aria-current={activeId === f.id ? 'page' : undefined} className={cn('shrink-0 rounded-sm px-2 py-1', activeId === f.id ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'hover:bg-sidebar-accent')}>{f.label}</button>)}
+        {threads.map((thread) => <button key={thread.id} type="button" onClick={() => onNavigate(thread.id)} className={cn('shrink-0 rounded-sm px-2 py-1', activeId === thread.id ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'hover:bg-sidebar-accent')}>{thread.title}</button>)}
+      </nav>
       <main className="flex min-h-0 min-w-0 flex-col">
         <div className="flex h-11 shrink-0 items-center gap-2 border-b px-5">{props.topbar}</div>
         {props.children}

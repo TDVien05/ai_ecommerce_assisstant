@@ -6,6 +6,8 @@ export const httpAuth: AuthApi = {
     const { token } = await api.post<{ token: string }>('/auth/login', credentials)
     authToken.set(token)
   },
+  async register(data) { const { token } = await api.post<{ token: string }>('/auth/register', data); authToken.set(token) },
+  async demo() { const { token } = await api.post<{ token: string }>('/auth/demo'); authToken.set(token) },
   me: () => api.get<Session>('/auth/me'),
   logout: () => authToken.clear(),
 }

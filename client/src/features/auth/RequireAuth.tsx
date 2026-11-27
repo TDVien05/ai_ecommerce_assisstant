@@ -6,6 +6,6 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth()
   const location = useLocation()
   if (loading) return <p className="p-6 text-muted-foreground">Đang kiểm tra phiên đăng nhập…</p>
-  if (!session) return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  if (!session) return <Navigate to="/login" state={{ from: location.pathname + location.search + location.hash }} replace />
   return children
 }

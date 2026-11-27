@@ -56,7 +56,7 @@ async function request<T>(path: string, { method = 'GET', query, body, signal }:
   const data = res.status === 204 ? null : await res.json().catch(() => null)
 
   if (!res.ok) {
-    if (res.status === 401 && path.startsWith('/api/') && path !== '/api/auth/login') {
+    if (res.status === 401 && path.startsWith('/api/') && !['/api/auth/login', '/api/auth/register', '/api/auth/demo'].includes(path)) {
       authToken.clear()
       window.location.assign('/login')
     }
