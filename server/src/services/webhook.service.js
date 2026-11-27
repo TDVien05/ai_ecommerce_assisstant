@@ -62,14 +62,16 @@ export async function resolveShopId(provider, payload) {
     return pageId ? (await shopsRepo.findByPageId(pageId))?.id ?? null : null
   }
 
+  // Payment code first: it is globally unique and points at the exact order, which also makes
+  // "paid into the wrong account" attributable (and flaggable) instead of just "unknown shop".
+  const code = payload?.code ?? fraud.extractPaymentCode(payload?.content)
+  const order = await ordersRepo.findShopByPaymentCode(code)
+  if (order) return order.shop_id
+
   const byAccount = payload?.accountNumber
     ? await shopsRepo.findByBankAccount(payload.accountNumber)
     : null
   if (byAccount) return byAccount.id
-
-  const code = payload?.code ?? fraud.extractPaymentCode(payload?.content)
-  const order = await ordersRepo.findShopByPaymentCode(code)
-  if (order) return order.shop_id
 
   const pageId = payload?.entry?.[0]?.id
   if (pageId) return (await shopsRepo.findByPageId(pageId))?.id ?? null
