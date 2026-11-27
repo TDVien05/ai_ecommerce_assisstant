@@ -50,7 +50,11 @@ Gửi ảnh QR: `message.attachment = { type: "image", payload: { url, is_reusab
 | Method | Path | Mô tả |
 |---|---|---|
 | POST | `/api/auth/login` | `{ email, password }` → `{ token }` |
+| POST | `/api/auth/register` | `{ ownerName, shopName, email, password, acceptedTerms: true }` → `201 { token }`; email đã dùng → `409 EMAIL_EXISTS` |
+| POST | `/api/auth/demo` | Không cần body → `{ token }` của tài khoản demo cấu hình ở máy chủ |
 | GET | `/api/auth/me` | thông tin shop hiện tại |
+
+Đăng ký và demo có giới hạn tần suất. `GET /api/auth/me` trả `user` (bao gồm `ownerName`, có thể null) và `shop` (bao gồm `isDemo`). Mật khẩu demo không được gửi tới trình duyệt.
 
 ### Sản phẩm
 | Method | Path | Mô tả |
@@ -131,8 +135,18 @@ Dạng JSON giao diện đang dùng (đề xuất) nằm trong `client/src/lib/p
 | GET | `/api/finance/timeseries?from=&to=&interval=day` | doanh thu theo ngày/tuần |
 | GET | `/api/finance/top-products?from=&to=&limit=5` | sản phẩm bán chạy |
 | GET | `/api/finance/ledger` | sổ thu chi |
-| POST | `/api/finance/ledger` | thêm khoản chi tay `{ type: "EXPENSE", category, amount, note, occurredAt }` |
+| POST | `/api/finance/ledger` | thêm khoản thu hoặc chi tay `{ type: "INCOME" \| "EXPENSE", category, amount, note, occurredAt }` |
+| DELETE | `/api/finance/ledger/:id` | xóa khoản nhập tay; khoản tự động trả `409` |
 | POST | `/api/finance/ask` | `{ question }` → `{ answer, data }` (trợ lý tài chính AI) |
+
+#### Đề xuất hợp đồng mẫu sổ (T14, cần server xác nhận)
+
+- Khoản sổ bổ sung `kind: BUSINESS_REVENUE | PERSONAL | EXPENSE | TRANSFER`, `channel: CASH | BANK | EWALLET`, `documentRef: string | null`, `documentDate: string | null`, `industry: string | null`; `category` tiếp tục là nhóm nghiệp vụ. Đây là thay đổi hợp đồng, cần thống nhất trước khi nối API thật. Không suy diễn khoản thu chưa phân loại thành doanh thu.
+- `GET /api/ledger-templates` → `{ items: Template[] }`: mã, tên, đối tượng tham khảo, cột, nguồn/công thức, quy tắc lọc và cờ cần đối chiếu bản gốc.
+- `GET /api/ledger-books/:code?from=&to=` → `{ template, from, to, sections, warnings, updatedAt, source }`; `from` bao gồm, `to` không bao gồm, ISO 8601 có múi giờ. `sections` gồm dòng, tổng theo cột và số dư đầu/cuối kỳ nullable. Tất cả tiền là số nguyên VND do server tính; dữ liệu thiếu là `null`, không tự suy đoán.
+- Đề xuất `GET /api/ledger-books/:code/export?from=&to=&format=pdf|xlsx` để server xuất sau; hiện client xuất cục bộ. Cần thống nhất header và quyền truy cập trước khi triển khai server.
+- Đề xuất `GET /api/ledger-books/threshold?year=` → `{ year, revenue, threshold, updatedAt, source }`: chỉ tính các khoản đã phân loại là doanh thu kinh doanh; không tự kết luận nghĩa vụ thuế. Cần phân biệt dữ liệu chưa đủ so với doanh thu bằng 0.
+- S2e cần số dư đầu kỳ và thông tin hai đầu chuyển tiền để tính tồn; khi thiếu phải để trống, không mặc định 0. S2a/S2b cần nhóm ngành và chứng từ; ô thiếu trả `null` và kèm cảnh báo.
 
 ## Tham khảo
 - Messenger Webhooks: https://developers.facebook.com/docs/messenger-platform/webhooks

@@ -1,4 +1,5 @@
 import express from 'express'
+import path from 'node:path'
 import { pinoHttp } from 'pino-http'
 import { env } from './config/env.js'
 import { logger } from './lib/logger.js'
@@ -46,6 +47,17 @@ export function createApp() {
 
   app.use('/health', healthRouter)
   app.use('/api', apiRouter)
+
+  if (env.SERVE_CLIENT_DIR) {
+    const directory = path.resolve(env.SERVE_CLIENT_DIR)
+    const reserved = /^\/(?:api|webhooks|health)(?:\/|$)/
+    const staticFiles = express.static(directory, { index: false })
+    app.use((req, res, next) => reserved.test(req.path) ? next() : staticFiles(req, res, next))
+    app.get(/.*/, (req, res, next) => {
+      if (reserved.test(req.path)) return next()
+      res.sendFile(path.join(directory, 'index.html'))
+    })
+  }
 
   app.use(notFoundHandler)
   app.use(errorHandler)
