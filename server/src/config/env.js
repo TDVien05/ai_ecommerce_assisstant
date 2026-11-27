@@ -9,9 +9,12 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  SERVE_CLIENT_DIR: optional,
 
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(8),
+  DEMO_EMAIL: optional,
+  DEMO_PASSWORD: optional,
 
   // Meta Messenger (required from M1)
   FB_APP_SECRET: optional,
@@ -31,6 +34,16 @@ const schema = z.object({
   BANK_CODE: z.string().default('MB'),
   BANK_ACCOUNT_NUMBER: optional,
   BANK_ACCOUNT_NAME: optional,
+}).superRefine(({ NODE_ENV, JWT_SECRET }, ctx) => {
+  // Production must not run with a short or sample signing key (the repo is public).
+  if (NODE_ENV !== 'production') return
+  if (JWT_SECRET.trim().length < 32 || /change-?me/i.test(JWT_SECRET)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['JWT_SECRET'],
+      message: 'In production, use a random value of at least 32 characters, not a sample value',
+    })
+  }
 })
 
 const parsed = schema.safeParse(process.env)

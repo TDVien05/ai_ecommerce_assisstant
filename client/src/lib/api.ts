@@ -40,10 +40,25 @@ function buildUrl(path: string, query?: Query) {
   return qs ? `${path}?${qs}` : path
 }
 
-async function request<T>(path: string, { method = 'GET', query, body, signal }: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+function headersFor(accept: string): Record<string, string> {
+  const headers: Record<string, string> = { Accept: accept }
   const token = authToken.get()
   if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
+
+async function checkResponse(res: Response, path: string) {
+  if (res.ok) return
+  const data = await res.json().catch(() => null)
+  if (res.status === 401 && path.startsWith('/api/') && !['/api/auth/login', '/api/auth/register', '/api/auth/demo'].includes(path)) {
+    authToken.clear()
+    window.location.assign('/login')
+  }
+  throw new ApiError(res.status, data?.error?.code ?? 'HTTP_ERROR', data?.error?.message ?? 'Không thể kết nối máy chủ.')
+}
+
+async function request<T>(path: string, { method = 'GET', query, body, signal }: RequestOptions = {}): Promise<T> {
+  const headers = headersFor('application/json')
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
   const res = await fetch(buildUrl(path, query), {
@@ -53,13 +68,8 @@ async function request<T>(path: string, { method = 'GET', query, body, signal }:
     signal,
   })
 
+  await checkResponse(res, path)
   const data = res.status === 204 ? null : await res.json().catch(() => null)
-
-  if (!res.ok) {
-    // Server error shape: { error: { code, message } } — see docs/API.md
-    const err = data?.error
-    throw new ApiError(res.status, err?.code ?? 'HTTP_ERROR', err?.message ?? res.statusText)
-  }
   return data as T
 }
 
@@ -68,6 +78,20 @@ export const api = {
   post: <T>(path: string, body?: unknown) => request<T>(`/api${path}`, { method: 'POST', body }),
   patch: <T>(path: string, body?: unknown) => request<T>(`/api${path}`, { method: 'PATCH', body }),
   delete: <T>(path: string) => request<T>(`/api${path}`, { method: 'DELETE' }),
+  upload: async <T>(path: string, file: File): Promise<T> => {
+    const fullPath = `/api${path}`
+    const body = new FormData(); body.append('file', file)
+    const res = await fetch(fullPath, { method: 'POST', headers: headersFor('application/json'), body })
+    await checkResponse(res, fullPath)
+    return await res.json() as T
+  },
+  stream: async (path: string, signal: AbortSignal): Promise<ReadableStream<Uint8Array>> => {
+    const fullPath = `/api${path}`
+    const res = await fetch(fullPath, { headers: headersFor('text/event-stream'), signal, cache: 'no-store' })
+    await checkResponse(res, fullPath)
+    if (!res.body || !res.headers.get('content-type')?.toLowerCase().startsWith('text/event-stream')) throw new Error('Dòng sự kiện không hợp lệ.')
+    return res.body
+  },
 
   health: (signal?: AbortSignal) => request<{ status: string; db: string }>('/health', { signal }),
 }

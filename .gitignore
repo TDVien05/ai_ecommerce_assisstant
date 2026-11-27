@@ -1,10 +1,25 @@
 node_modules/
 dist/
-.env
-.env.*
-!.env.example
 *.log
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Biến môi trường và bí mật: không bao giờ commit. Chỉ .env.example được theo dõi.
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials/
+.credentials/
+secrets/
+*credentials*.json
+service-account*.json
+
+# Dữ liệu mẫu chỉ lưu trên máy phát triển.
+client/src/lib/mockServer/*.local.ts

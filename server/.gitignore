@@ -1,0 +1,17 @@
+node_modules/
+*.log
+
+# Biến môi trường và bí mật
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials/
+.credentials/
+secrets/
+*credentials*.json
+service-account*.json
