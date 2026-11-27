@@ -12,6 +12,8 @@ const schema = z.object({
 
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(8),
+  DEMO_EMAIL: optional,
+  DEMO_PASSWORD: optional,
 
   // Meta Messenger (required from M1)
   FB_APP_SECRET: optional,
