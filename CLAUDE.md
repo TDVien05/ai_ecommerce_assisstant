@@ -1,32 +1,34 @@
-# CLAUDE.md — Quy ước dự án
-Mọi agent phải đọc `AGENTS.md` trước khi làm việc; khi làm giao diện, đọc thêm `docs/design-system/AGENTS.md`.
+# CLAUDE.md — Project conventions
 
-Đọc `README.md` và `docs/` trước khi code. Khi code và docs mâu thuẫn, hỏi lại thay vì tự đoán.
+Read `README.md` and `docs/` before writing code. When the code and the docs disagree, ask instead of guessing.
 
 ## Stack
 - Backend: Node.js 18+, Express 5, ES Modules (`"type": "module"`), PostgreSQL.
-- Frontend: React + Vite + TypeScript, Tailwind v4, shadcn/ui. Import theo alias `@/`.
+- Frontend: React + Vite + TypeScript, Tailwind v4, shadcn/ui. Import via the `@/` alias.
 
-## Quy tắc backend
-- Cấu trúc theo lớp: `routes/` (chỉ parse request + gọi service) → `services/` (business logic) → `db/`.
-- Validate mọi input (body, query, tool input của AI) bằng `zod`.
-- Express 5 tự bắt lỗi từ async handler, nên không cần bọc try/catch ở từng route. Ném lỗi có `status` + `code`, để `errorHandler` trả JSON.
-- Webhook: verify chữ ký/API key **trước** khi parse hay xử lý. Route Messenger cần giữ raw body.
-- Tiền: số nguyên VND (`BIGINT` trong DB, `number` trong JS). Không dùng float.
-- Thao tác đổi trạng thái đơn + ghi sổ + trừ tồn kho phải nằm trong **một DB transaction**.
-- Không log token, app secret, API key, hay SĐT/địa chỉ đầy đủ của khách.
-- Không hardcode secret. Mọi config lấy từ `process.env` qua `src/config/env.js` (validate bằng zod khi khởi động).
+## Backend rules
+- Layered structure: `routes/` → `controllers/` → `services/` → `db/` (details in `docs/ARCHITECTURE.md`, section "Backend layering").
+  - `routes/`: only declare the path + middleware chain (verify, body parser, `validate`) and point to a controller. No inline handlers.
+  - `controllers/`: read `req` (already validated), call a service, pick the status code and send `res`. No business logic, no access to `db/`.
+  - `services/`: business logic and transactions. Knows nothing about `req`/`res`.
+  - Naming: `routes/<name>.js` ↔ `controllers/<name>.controller.js` ↔ `services/<name>.service.js`.
+- Validate every input (body, query, AI tool input) with `zod`.
+- Express 5 catches errors from async handlers, so don't wrap each route in try/catch. Throw errors with `status` + `code` and let `errorHandler` return JSON.
+- Webhooks: verify the signature/API key **before** parsing or processing. The Messenger route must keep the raw body.
+- Money: integer VND (`BIGINT` in the DB, `number` in JS). Never use floats.
+- Changing an order's status + writing the ledger + decrementing stock must happen in **one DB transaction**.
+- Never log tokens, app secrets, API keys, or customers' full phone numbers/addresses.
+- Never hardcode secrets. All config comes from `process.env` via `src/config/env.js` (validated with zod at startup).
 
-## Quy tắc AI
-- LLM không được tự tính giá hay xác nhận thanh toán. Xem `docs/AI_AGENT.md`.
-- Không thêm tool nào cho phép LLM đổi đơn sang `PAID`.
+## AI rules
+- The LLM must never calculate prices or confirm payments itself. See `docs/AI_AGENT.md`.
+- Never add a tool that lets the LLM move an order to `PAID`.
 
-## Quy tắc frontend
-- Ưu tiên component shadcn có sẵn (`npx shadcn@latest add <name>`) trước khi tự viết.
-- Gọi API qua một client duy nhất `src/lib/api.ts`.
-- Format tiền: `new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })`.
-- Giao diện phải theo design system: đọc `docs/design-system/AGENTS.md` trước khi làm UI. Chỉ dùng token màu của theme và component trong `src/components/flowy/`; giao diện trắng đen, bo góc tối đa 2px, màu chỉ cho rủi ro/trạng thái/tiền tăng giảm. Xem mẫu ở `/design-system`.
+## Frontend rules
+- Prefer existing shadcn components (`npx shadcn@latest add <name>`) over writing your own.
+- Call the API through a single client, `src/lib/api.ts`.
+- Money formatting: `new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })`.
 
 ## Git
 - Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`…
-- Mỗi PR gắn với một milestone trong `docs/ROADMAP.md`.
+- Every PR is tied to a milestone in `docs/ROADMAP.md`.
