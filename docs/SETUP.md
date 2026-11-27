@@ -60,6 +60,16 @@ BANK_ACCOUNT_NUMBER=
 BANK_ACCOUNT_NAME=
 ```
 
+### Quy tắc bảo mật
+
+Repo này công khai.
+
+1. Tạo file thật từ file mẫu rồi điền giá trị: `server/.env`, `client/.env`, và `.env` ở gốc (chỉ cho Docker Compose). Danh sách biến đầy đủ nằm trong các file `.env.example`.
+2. Không commit `.env`, khóa, chứng chỉ hoặc file thông tin đăng nhập. `.gitignore` đã chặn; không dùng `git add -f` với các file này.
+3. Mã máy chủ đọc cấu hình qua `server/src/config/env.js`. Biến `VITE_*` hiển thị công khai trên trình duyệt nên không được chứa bí mật.
+4. Bản triển khai đặt biến trong phần cấu hình của dịch vụ, không đưa file `.env` lên. Khi `NODE_ENV=production`, máy chủ không khởi động nếu `JWT_SECRET` trống, ngắn hơn 32 ký tự hoặc là giá trị mẫu.
+5. Nếu lỡ đẩy một khóa lên repo, thu hồi và tạo khóa mới ngay. Xóa commit là chưa đủ.
+
 ## 4. Cấu hình Facebook App
 1. Tạo app tại https://developers.facebook.com, thêm sản phẩm **Messenger**.
 2. Kết nối Page → tạo **Page access token** → `FB_PAGE_ACCESS_TOKEN`.

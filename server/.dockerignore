@@ -5,3 +5,14 @@ npm-debug.log
 !.env.example
 Dockerfile
 .dockerignore
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/credentials
+**/.credentials
+**/secrets
+**/*credentials*.json
+**/service-account*.json

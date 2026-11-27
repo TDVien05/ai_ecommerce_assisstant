@@ -31,6 +31,16 @@ const schema = z.object({
   BANK_CODE: z.string().default('MB'),
   BANK_ACCOUNT_NUMBER: optional,
   BANK_ACCOUNT_NAME: optional,
+}).superRefine(({ NODE_ENV, JWT_SECRET }, ctx) => {
+  // Production must not run with a short or sample signing key (the repo is public).
+  if (NODE_ENV !== 'production') return
+  if (JWT_SECRET.trim().length < 32 || /change-?me/i.test(JWT_SECRET)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['JWT_SECRET'],
+      message: 'In production, use a random value of at least 32 characters, not a sample value',
+    })
+  }
 })
 
 const parsed = schema.safeParse(process.env)
