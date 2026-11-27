@@ -14,6 +14,7 @@ export const mockOrders: OrdersApi = {
   async updateStatus(id, { status }) {
     const order = store.orders.find((item) => item.id === id)
     if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'Không tìm thấy đơn hàng.')
+    if (status === 'SHIPPING' && store.heldOrders.has(id)) throw new ApiError(409, 'ORDER_HELD', 'Đơn đang được giữ để kiểm tra.')
     const allowed: Partial<Record<OrderStatus, OrderTransition>> = { AWAITING_PAYMENT: 'CANCELLED', PAID: 'SHIPPING', SHIPPING: 'COMPLETED' }
     if (allowed[order.status] !== status) throw new ApiError(409, 'INVALID_TRANSITION', 'Không thể chuyển trạng thái đơn hàng.')
     order.status = status

@@ -3,6 +3,7 @@ import { TransactionsPanel } from '@/features/transactions/TransactionsPanel'
 import { OrdersPage } from '@/features/orders/OrdersPage'
 import { LedgerPanel } from '@/features/ledger/LedgerPanel'
 import { ReportsPage } from '@/features/reports/ReportsPage'
+import { AlertsPage } from '@/features/alerts/AlertsPage'
 
 /** Trang chức năng. "Sổ thu chi" có danh sách giao dịch; phần còn lại chưa nối dữ liệu. */
 export function FeaturePage({ id, title, about }: { id: string; title: string; about: string }) {
@@ -27,6 +28,8 @@ export function FeaturePage({ id, title, about }: { id: string; title: string; a
           <OrdersPage />
         ) : id === 'reports' ? (
           <ReportsPage />
+        ) : id === 'fraud' ? (
+          <AlertsPage />
         ) : (
           <Empty about={about} />
         )}

@@ -14,7 +14,7 @@ export function OrderDialog({ id, onClose, onChanged }: { id: string; onClose: (
   async function change(status: OrderTransition) {
     setSaving(true); setError('')
     try { await ordersApi.updateStatus(id, { status }); onChanged(); onClose() }
-    catch { setError('Không đổi được trạng thái. Bạn tải lại và thử lại nhé.'); setSaving(false) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Không đổi được trạng thái. Bạn tải lại và thử lại nhé.'); setSaving(false) }
   }
   return <Dialog open onOpenChange={(open) => !open && onClose()}><DialogContent showCloseButton={false} className="max-h-[85dvh] overflow-y-auto rounded-none shadow-overlay sm:max-w-md">
     <DialogHeader><DialogTitle>Chi tiết đơn hàng</DialogTitle></DialogHeader>
