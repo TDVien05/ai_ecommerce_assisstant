@@ -28,13 +28,14 @@ function DemoApp() {
   if (!state) return null
 
   const thread = state.threads.find((t) => t.id === threadId)
-  const feature = FEATURES.find((f) => f.id === featureId)
+  const feature = FEATURES.find((f) => f.id === featureId) ?? (featureId === 'settings' ? { id: 'settings', label: 'Cài đặt cửa hàng', about: 'Thông tin cửa hàng và tài khoản nhận tiền.' } : undefined)
   if (!atHub && !thread && !feature) return <Navigate to="/app" replace />
 
   const conversationId = thread?.id ?? HUB
   const go = (id: string) => {
     if (id === HUB) navigate('/app')
     else if (FEATURES.some((f) => f.id === id)) navigate(`/pages/${id}`)
+    else if (id === 'settings') navigate('/pages/settings')
     else navigate(`/threads/${id}`)
   }
 
@@ -85,7 +86,7 @@ function EmptyApp() {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
   const featureId = useMatch('/pages/:id')?.params.id
-  const feature = FEATURES.find((item) => item.id === featureId)
+  const feature = FEATURES.find((item) => item.id === featureId) ?? (featureId === 'settings' ? { id: 'settings', label: 'Cài đặt cửa hàng', about: 'Thông tin cửa hàng và tài khoản nhận tiền.' } : undefined)
   const go = (id: string) => navigate(id === HUB ? '/app' : `/pages/${id}`)
   return <AppShell shopName={session?.shop.name ?? ''} hubPending={0} threads={[]} features={FEATURES} activeId={feature?.id ?? HUB} onNavigate={go}
     topbar={<><b className="font-semibold">{feature?.label ?? 'Chat trung tâm'}</b><span className="flex-1" /><ThemeToggle /><Button variant="ghost" onClick={() => { logout(); window.location.assign('/') }}>Đăng xuất</Button></>}>
