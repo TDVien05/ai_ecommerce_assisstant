@@ -80,9 +80,38 @@ Gửi ảnh QR: `message.attachment = { type: "image", payload: { url, is_reusab
 |---|---|---|
 | GET | `/api/payments?match_status=` | giao dịch SePay, lọc `UNDERPAID` / `NO_ORDER` để xử lý tay |
 | POST | `/api/payments/:id/assign` | `{ orderId }`: gán tay giao dịch cho đơn |
-| DELETE | `/api/payments/:id/assign` | đề xuất, chưa chốt: hoàn tác gán tay |
+| DELETE | `/api/payments/:id/assign` | hoàn tác gán tay (cần server làm, xem dưới) |
 
-Dạng JSON giao diện đang dùng (đề xuất) nằm trong `client/src/lib/payments/types.ts`.
+Dạng JSON giao diện đang dùng (đề xuất) nằm trong `client/src/lib/payments/types.ts`. `GET /api/payments` trả `{ items: Payment[] }`; danh sách đơn để gán (`GET /api/orders?status=AWAITING_PAYMENT`) cần `{ items: [{ id, paymentCode, customerName, total }] }`.
+
+#### `DELETE /api/payments/:id/assign` (hoàn tác gán tay)
+
+- Request: không có body. `:id` là id của `payment_transactions`.
+- Server đặt `order_id = null`, `match_status = NO_ORDER`.
+- Response `200`:
+
+```json
+{
+  "payment": {
+    "id": "p2",
+    "gateway": "Vietcombank",
+    "accountNumber": "1017588888",
+    "code": null,
+    "content": "NGUYEN THI HOA chuyen tien ao",
+    "referenceCode": "FT24012345678",
+    "transferType": "in",
+    "transferAmount": 320000,
+    "transactionDate": "2026-11-27T05:03:00.000Z",
+    "orderId": null,
+    "orderCode": null,
+    "shortfall": null,
+    "matchStatus": "NO_ORDER"
+  }
+}
+```
+
+- Lỗi: `404 PAYMENT_NOT_FOUND`; `409 PAYMENT_NOT_UNASSIGNABLE` khi giao dịch không phải do gán tay (khớp tự động từ webhook) hoặc đơn đã thay đổi theo giao dịch này và không thể trả lại.
+- Cần chốt khi làm server: gán tay đủ tiền có đổi trạng thái đơn và ghi sổ không. Nếu có, hoàn tác phải trả lại cả hai trong cùng một DB transaction, hoặc từ chối bằng `409`. Server cũng cần lưu giao dịch nào là gán tay.
 
 ### Tài chính
 | Method | Path | Mô tả |

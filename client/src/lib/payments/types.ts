@@ -35,6 +35,6 @@ export interface PaymentsApi {
   /** Đơn đang chờ thanh toán, để gán tay. */
   pendingOrders(): Promise<{ items: PendingOrder[] }>
   assign(paymentId: string, body: { orderId: string }): Promise<AssignResponse>
-  /** Hoàn tác việc gán tay. Chưa có trong docs/API.md, đang đề xuất. */
+  /** Hoàn tác việc gán tay. Server chưa làm, xem docs/API.md. */
   unassign(paymentId: string): Promise<{ payment: Payment }>
 }
