@@ -2,14 +2,17 @@ import { useState } from 'react'
 import { History, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   AgentStep,
   AppShell,
+  BarChart,
   AssistantMessage,
   ChatFeed,
   ChatFooter,
   Composer,
   DayDivider,
+  Money,
   OrderStatusBadge,
   ProactiveNotice,
   ResultCard,
@@ -121,6 +124,10 @@ function HubChat({ open }: { open: (id: string) => void }) {
               { label: 'Lãi tạm tính', value: 11_450_000, total: true },
             ]}
           />
+          <p>Ví dụ biểu đồ doanh thu (dữ liệu mẫu):</p>
+          <BarChart points={[{ label: '25/11', value: 250000 }, { label: '26/11', value: 400000 }]} />
+          <Table><TableHeader><TableRow><TableHead>Ngày</TableHead><TableHead>Doanh thu</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell>25/11</TableCell><TableCell><Money value={250000} /></TableCell></TableRow><TableRow><TableCell>26/11</TableCell><TableCell><Money value={400000} /></TableCell></TableRow></TableBody></Table>
+          <p className="text-xs text-muted-foreground">Nguồn: dữ liệu mẫu.</p>
         </AssistantMessage>
         <AssistantMessage live />
       </ChatFeed>

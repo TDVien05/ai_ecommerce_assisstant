@@ -4,6 +4,7 @@ import { OrdersPage } from '@/features/orders/OrdersPage'
 import { LedgerPanel } from '@/features/ledger/LedgerPanel'
 import { TemplatesPage } from '@/features/ledgerTemplates/TemplatesPage'
 import { ThresholdCard } from '@/features/ledgerTemplates/ThresholdCard'
+import { ReportsPage } from '@/features/reports/ReportsPage'
 
 /** Trang chức năng. "Sổ thu chi" có danh sách giao dịch; phần còn lại chưa nối dữ liệu. */
 export function FeaturePage({ id, title, about }: { id: string; title: string; about: string }) {
@@ -31,6 +32,8 @@ export function FeaturePage({ id, title, about }: { id: string; title: string; a
           </>
         ) : id === 'orders' ? (
           <OrdersPage />
+        ) : id === 'reports' ? (
+          <ReportsPage />
         ) : (
           <Empty about={about} />
         )}
