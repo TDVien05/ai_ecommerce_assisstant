@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { authRouter } from './auth.js'
+import { demoRouter } from './demo.js'
 import { devRouter } from './dev.js'
 import { requireAuth } from '../middlewares/requireAuth.js'
 
@@ -12,3 +13,4 @@ apiRouter.use(requireAuth)
 
 // Everything below requires the shop owner's JWT; req.auth = { userId, shopId }.
 apiRouter.use('/dev', devRouter)
+apiRouter.use('/demo', demoRouter)

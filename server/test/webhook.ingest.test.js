@@ -18,12 +18,14 @@ const { createApp } = await import('../src/app.js')
 
 after(async () => { await pool.end() })
 
-const bank = '1017588888'
 const pageId = `page-${Date.now()}`
+let account = '1000000000'
 
 async function seedShop(extra = {}) {
+  // Receiving accounts must be unique per test: the seeded template shop also owns one.
+  account = `10${String(Date.now()).slice(-7)}${Math.floor(Math.random() * 10)}`
   return createShop(`webhook-${Date.now()}-${Math.random()}`, {
-    bank_account_number: bank,
+    bank_account_number: account,
     bank_code: 'MB',
     fb_page_id: pageId,
     ...extra,
@@ -33,7 +35,7 @@ async function seedShop(extra = {}) {
 const paymentPayload = (overrides = {}) => ({
   id: Date.now() + Math.floor(Math.random() * 1000),
   gateway: 'MB',
-  accountNumber: bank,
+  accountNumber: account,
   code: 'DHABC123',
   content: 'DHABC123 chuyen tien',
   transferType: 'in',
@@ -176,7 +178,7 @@ test('fraud: mã thanh toán đã đối soát trước đó → HIGH', async (t
   try {
     const first = paymentPayload({ code: 'DHREUSE01' })
     await payments.insert(shop.id, {
-      sepayId: Number(first.id), accountNumber: bank, code: 'DHREUSE01',
+      sepayId: Number(first.id), accountNumber: account, code: 'DHREUSE01',
       transferType: 'in', transferAmount: 250000, matchStatus: 'MATCHED', raw: first,
     })
 

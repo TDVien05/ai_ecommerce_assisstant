@@ -226,6 +226,11 @@ ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_conversation_id_fkey;
 ALTER TABLE messages ADD CONSTRAINT messages_conversation_id_fkey
   FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
 
+-- Order lines keep the name/price snapshot, so a deleted product only clears the reference.
+ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_product_id_fkey;
+ALTER TABLE order_items ADD CONSTRAINT order_items_product_id_fkey
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
+
 ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_order_id_fkey;
 ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_order_id_fkey
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL;
