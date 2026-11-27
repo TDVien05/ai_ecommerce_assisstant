@@ -56,3 +56,32 @@ Server tự viết các câu SQL đứng sau tool. LLM không sinh SQL. LLM ch�
 5. "Mình chuyển rồi nha" + ảnh, nhưng chưa có webhook → AI không xác nhận.
 6. Webhook khớp → khách nhận tin xác nhận.
 7. Khách chửi hoặc đòi hoàn tiền → handover.
+
+## Giao diện chủ shop
+
+Giao diện chat (chat trung tâm và luồng việc) chỉ phụ thuộc interface `FlowyAI` trong `client/src/lib/ai/types.ts`. Hiện chạy bằng bản giả lập `client/src/lib/ai/mock.ts` (không gọi mạng, tải lại trang là về dữ liệu đầu).
+
+### Cách thay bằng AI thật
+
+1. Viết một lớp mới `implements FlowyAI`, gọi server qua `client/src/lib/api.ts`.
+2. Đổi một dòng trong `client/src/lib/ai/index.ts`.
+
+### Hợp đồng
+
+| Hàm | Ý nghĩa |
+|---|---|
+| `subscribe(listener)` | Dòng sự kiện từ AI (server có thể dùng SSE hoặc WebSocket). Sự kiện đầu tiên là `snapshot`; sau đó là `message`, `thread`, `typing`. Tin chủ động của AI cũng đi qua đây. |
+| `send(conversationId, text, files)` | Người dùng nhắn. `conversationId` là `hub` hoặc id luồng. Câu trả lời về qua `subscribe`. |
+| `answer(stepId, questionId, option)` | Trả lời câu AI hỏi lại. |
+| `approve(stepId)` / `undo(stepId)` | Duyệt hoặc hoàn tác một thay đổi dữ liệu. |
+| `safeAction(alertId)` | Hành động an toàn trên cảnh báo, ví dụ giữ đơn. |
+| `dismissNotice(noticeId)` | Bỏ qua một tin chủ động. |
+
+AI trả nội dung bằng các khối JSON: `text`, `agentStep`, `resultCard`, `riskAlert`, `threadSummary`, `proactiveNotice`. Lỗi thì reject với câu tiếng Việt nói lỗi gì và cách sửa.
+
+### Quy tắc bản thật phải giữ
+
+- Chat trung tâm nhận `threadSummary` và `proactiveNotice` từ các luồng. Mỗi luồng một `threadSummary`: gửi lại cùng `message.id` để cập nhật, không thêm thẻ mới.
+- Mọi thay đổi dữ liệu đi qua `agentStep` chờ duyệt và hoàn tác được.
+- Số tiền là số nguyên VND do server tính, kèm `source` và `how`.
+- Không có hàm hay hành động nào chuyển đơn sang `PAID`.
