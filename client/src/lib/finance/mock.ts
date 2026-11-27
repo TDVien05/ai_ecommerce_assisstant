@@ -1,5 +1,5 @@
 import { ApiError } from '@/lib/api'
-import { respond, store } from '@/lib/mockServer/store'
+import { notifyLedger, respond, store } from '@/lib/mockServer/store'
 import type { CreateLedgerEntry, LedgerEntry, LedgerType } from './types'
 
 export const mockFinance = {
@@ -13,6 +13,7 @@ export const mockFinance = {
     if (!Number.isSafeInteger(body.amount) || body.amount <= 0 || !Number.isFinite(Date.parse(body.occurredAt))) throw new ApiError(400, 'BAD_REQUEST', 'Kiểm tra số tiền và ngày ghi sổ.')
     const entry: LedgerEntry = { ...body, id: crypto.randomUUID(), orderId: null, orderCode: null, manual: true }
     store.entries.push(entry)
+    notifyLedger()
     return respond({ entry, message: body.type === 'INCOME' ? 'Đã ghi khoản thu.' : 'Đã ghi khoản chi.' })
   },
   async deleteEntry(id: string) {
@@ -20,6 +21,7 @@ export const mockFinance = {
     if (!entry) throw new ApiError(404, 'ENTRY_NOT_FOUND', 'Không tìm thấy khoản thu chi.')
     if (!entry.manual) throw new ApiError(409, 'ENTRY_NOT_MANUAL', 'Không thể xóa khoản thu chi tự động.')
     store.entries = store.entries.filter((item) => item.id !== id)
+    notifyLedger()
     return respond({ message: 'Đã xóa khoản thu chi.' })
   },
   async summary(query: { from?: string; to?: string } = {}) {

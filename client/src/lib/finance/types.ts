@@ -10,11 +10,18 @@
  */
 export type LedgerType = 'INCOME' | 'EXPENSE'
 export type LedgerCategory = 'SALES' | 'SHIPPING' | 'ADS' | 'INVENTORY' | 'OTHER'
+export type LedgerKind = 'BUSINESS_REVENUE' | 'PERSONAL' | 'EXPENSE' | 'TRANSFER'
+export type LedgerChannel = 'CASH' | 'BANK' | 'EWALLET'
 /** Tiền là số nguyên VND do server tính; thời gian theo ISO 8601. */
 export type LedgerEntry = {
   id: string
   type: LedgerType
+  kind: LedgerKind
+  channel: LedgerChannel
   category: LedgerCategory
+  documentRef: string | null
+  documentDate: string | null
+  industry: string | null
   amount: number
   orderId: string | null
   orderCode: string | null
@@ -22,7 +29,7 @@ export type LedgerEntry = {
   occurredAt: string
   manual: boolean
 }
-export type CreateLedgerEntry = { type: LedgerType; category: LedgerCategory; amount: number; note: string; occurredAt: string }
+export type CreateLedgerEntry = { type: LedgerType; kind: LedgerKind; channel: LedgerChannel; category: LedgerCategory; documentRef: string | null; documentDate: string | null; industry: string | null; amount: number; note: string; occurredAt: string }
 export type LedgerResponse = { items: LedgerEntry[]; totals: { income: number; expense: number; net: number }; updatedAt: string }
 export type FinanceSummary = { revenue: number; cost: number; grossProfit: number; expenses: number; netProfit: number; orderCount: number; aov: number }
 export type TimePoint = { date: string; revenue: number }
