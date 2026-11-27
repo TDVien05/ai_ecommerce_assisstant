@@ -56,3 +56,47 @@ Server tự viết các câu SQL đứng sau tool. LLM không sinh SQL. LLM ch�
 5. "Mình chuyển rồi nha" + ảnh, nhưng chưa có webhook → AI không xác nhận.
 6. Webhook khớp → khách nhận tin xác nhận.
 7. Khách chửi hoặc đòi hoàn tiền → handover.
+
+## Giao diện chủ shop
+
+Giao diện chat (chat trung tâm và luồng việc) chỉ phụ thuộc interface `FlowyAI` trong `client/src/lib/ai/types.ts`. Hiện chạy bằng bản giả lập `client/src/lib/ai/mock.ts` (không gọi mạng, tải lại trang là về dữ liệu đầu).
+
+### Cách thay bằng AI thật
+
+1. Viết một lớp mới `implements FlowyAI`, gọi server qua `client/src/lib/api.ts`.
+2. Đổi một dòng trong `client/src/lib/ai/index.ts`.
+
+### Hợp đồng
+
+Các đường dẫn dưới đây là đề xuất cho server, chưa cài đặt. Body và response là JSON, trừ upload. Lỗi theo dạng chung trong [API.md](API.md).
+
+| Hàm | Method và path | Request | Response |
+|---|---|---|---|
+| `subscribe(listener)` | `GET /api/assistant/stream` (SSE) | không | dòng sự kiện, xem bảng dưới |
+| `upload(file)` | `POST /api/assistant/files` | multipart, trường `file` | `{ fileId, name }` |
+| `send(request)` | `POST /api/assistant/messages` | `{ conversationId, text, attachments: [{ fileId, name }] }` | `204`; câu trả lời về qua stream |
+| `answer(request)` | `POST /api/assistant/steps/:stepId/answers` | `{ questionId, option }` | `204` |
+| `approve(stepId)` | `POST /api/assistant/steps/:stepId/approve` | không | `{ message }` |
+| `undo(stepId)` | `POST /api/assistant/steps/:stepId/undo` | không | `204` |
+| `safeAction(alertId)` | `POST /api/assistant/alerts/:alertId/safe-action` | không | `204` |
+| `dismissNotice(noticeId)` | `POST /api/assistant/notices/:noticeId/dismiss` | không | `204` |
+
+`conversationId` là `hub` (chat trung tâm) hoặc id luồng.
+
+| Sự kiện | Dữ liệu | Ghi chú |
+|---|---|---|
+| `snapshot` | `{ snapshot: { shopName, threads, conversations, typing } }` | luôn là sự kiện đầu tiên, gửi lại khi kết nối lại |
+| `message` | `{ conversationId, message }` | trùng `message.id` thì thay tin cũ |
+| `thread` | `{ thread }` | trùng `thread.id` thì thay luồng cũ |
+| `typing` | `{ conversationId, value }` | AI đang soạn |
+
+Tin AI tự gửi cũng đi qua stream. Lưu ý: `EventSource` không gửi được header `Authorization: Bearer` mà `api.ts` dùng, nên bản thật cần đọc stream bằng `fetch` hoặc truyền token cách khác. `api.ts` cũng cần thêm hàm gửi multipart.
+
+AI trả nội dung bằng các khối JSON: `text`, `agentStep`, `resultCard`, `riskAlert`, `threadSummary`, `proactiveNotice`. Lỗi thì reject với câu tiếng Việt nói lỗi gì và cách sửa.
+
+### Quy tắc bản thật phải giữ
+
+- Chat trung tâm nhận `threadSummary` và `proactiveNotice` từ các luồng. Mỗi luồng một `threadSummary`: gửi lại cùng `message.id` để cập nhật, không thêm thẻ mới.
+- Mọi thay đổi dữ liệu đi qua `agentStep` chờ duyệt và hoàn tác được.
+- Số tiền là số nguyên VND do server tính, kèm `source` và `how`.
+- Không có hàm hay hành động nào chuyển đơn sang `PAID`.
