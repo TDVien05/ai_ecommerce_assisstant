@@ -4,7 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from './useAuth'
-import { PublicShell } from './PublicPages'
+import { AuthLayout } from './PublicPages'
 
 export default function LoginPage() {
   const { session, loading, login, demo } = useAuth()
@@ -24,10 +24,9 @@ export default function LoginPage() {
     finally { setSubmitting(false) }
   }
   async function enterDemo() { setError(''); setSubmitting(true); try { await demo(); navigate(destination, { replace: true }) } catch (err) { setError(err instanceof Error ? err.message : 'Không thể mở tài khoản demo.') } finally { setSubmitting(false) } }
-  return <PublicShell><main className="flex min-h-[70vh] items-center justify-center bg-background p-6 text-foreground">
-    <div className="w-full max-w-sm border border-border p-6">
-      <p className="text-sm font-semibold">Flowy</p>
-      <h1 className="mt-6 text-2xl font-semibold">Đăng nhập</h1>
+  return <AuthLayout>
+    <div className="w-full max-w-sm">
+      <h1 className="text-[22px] font-semibold">Đăng nhập</h1>
       <p className="mt-2 text-sm text-muted-foreground">Đăng nhập để tiếp tục quản lý cửa hàng.</p>
       <form className="mt-6 space-y-4" onSubmit={submit}>
         <div className="space-y-2"><label htmlFor="email">Email</label><Input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
@@ -39,5 +38,5 @@ export default function LoginPage() {
       <Button variant="outline" className="mt-3 w-full" onClick={enterDemo} disabled={submitting || loading}>Vào bằng tài khoản demo</Button>
       <p className="mt-4 text-sm">Chưa có tài khoản? <Link className="underline" to="/register">Đăng ký</Link></p>
     </div>
-  </main></PublicShell>
+  </AuthLayout>
 }
