@@ -68,7 +68,7 @@ export function Composer({
           placeholder={files.length ? `${files.length} file đính kèm. Thêm lời nhắn...` : placeholder}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
               send()
             }
