@@ -15,13 +15,14 @@ function totalRow(section: BookSection, cols: ExportColumn[], label: string): Ex
 }
 function rows(book: LedgerBook, cols: ExportColumn[]): ExportRow[] {
   const output: ExportRow[] = []
+  const balanceColumn = cols.reduce((last, column, index) => column.value === 'money' ? index : last, -1)
   for (const section of book.sections) {
     if (section.title) output.push({ cells: [section.title, ...cols.slice(1).map(() => null)], bold: true, group: true })
-    if (book.template.code === 'S2e-HKD') output.push({ cells: ['Số dư đầu kỳ (chưa có dữ liệu)', ...cols.slice(1).map(() => null)] })
+    if (book.template.code === 'S2e-HKD') output.push({ cells: ['Số dư đầu kỳ', ...cols.slice(1).map((_column, i) => i + 1 === balanceColumn ? section.openingBalance : null)] })
     for (const row of section.rows) output.push({ cells: cols.map((column) => value(row, column)) })
     if (!section.rows.length) output.push({ cells: ['Chưa có dữ liệu', ...cols.slice(1).map(() => null)] })
     if (book.template.columns.some((column) => column.total)) output.push({ cells: totalRow(section, cols, 'Tổng cộng'), bold: true })
-    if (book.template.code === 'S2e-HKD') output.push({ cells: ['Số dư cuối kỳ (chưa có dữ liệu)', ...cols.slice(1).map(() => null)] })
+    if (book.template.code === 'S2e-HKD') output.push({ cells: ['Số dư cuối kỳ', ...cols.slice(1).map((_column, i) => i + 1 === balanceColumn ? section.closingBalance : null)] })
     if (book.template.code === 'S2a-HKD' || book.template.code === 'S2b-HKD') {
       output.push({ cells: ['Thuế GTGT (chưa có dữ liệu)', ...cols.slice(1).map(() => null)] })
       if (book.template.code === 'S2a-HKD') output.push({ cells: ['Thuế TNCN (chưa có dữ liệu)', ...cols.slice(1).map(() => null)] })

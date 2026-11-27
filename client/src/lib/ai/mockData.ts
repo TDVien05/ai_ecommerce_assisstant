@@ -41,25 +41,6 @@ export function ledgerStep(stepId: string): Extract<Block, { type: 'agentStep' }
   }
 }
 
-export function profitResult(): Block {
-  return {
-    type: 'resultCard',
-    source: 'sổ thu chi (dữ liệu mẫu)',
-    updatedAt: clock(),
-    metrics: [
-      { label: 'Doanh thu tuần', value: 41_300_000, delta: '▲ 8% so với tuần trước', tone: 'good' },
-      { label: 'Chi phí', value: 29_850_000, delta: '▲ 14% do nhập hàng', tone: 'bad' },
-      { label: 'Lãi tạm tính', value: 11_450_000, delta: 'chưa gồm các dòng chờ duyệt' },
-    ],
-    how: [
-      { label: 'Doanh thu (86 đơn đã thanh toán)', value: 41_300_000 },
-      { label: 'Nhập hàng', value: -24_600_000 },
-      { label: 'Phí ship và khác', value: -5_250_000 },
-      { label: 'Lãi tạm tính', value: 11_450_000, total: true },
-    ],
-  }
-}
-
 export function initialSnapshot(): Snapshot {
   const day = today()
   return {

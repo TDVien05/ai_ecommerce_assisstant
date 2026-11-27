@@ -2,6 +2,8 @@ import type { OrderDetail, OrderStatus } from '@/lib/orders/types'
 import type { Payment } from '@/lib/payments/types'
 import type { LedgerEntry } from '@/lib/finance/types'
 import type { Alert } from '@/lib/alerts/types'
+import { demoLedger } from './demoData'
+import { readManualLedger } from './manualLedger'
 
 const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString()
 function order(id: string, paymentCode: string, customerName: string, total: number, status: OrderStatus): OrderDetail {
@@ -17,6 +19,7 @@ export const store: { orders: OrderDetail[]; payments: Payment[]; entries: Ledge
   entries: [
     { id: 'entry-p1', type: 'INCOME', kind: 'BUSINESS_REVENUE', channel: 'BANK', category: 'SALES', documentRef: null, documentDate: null, industry: null, amount: 250000, orderId: 'o1', orderCode: 'DH8F3K2A', note: null, occurredAt: ago(12), manual: false },
     { id: 'entry-p6', type: 'INCOME', kind: 'BUSINESS_REVENUE', channel: 'BANK', category: 'SALES', documentRef: null, documentDate: null, industry: null, amount: 690000, orderId: 'o3', orderCode: 'DH2RTV9X', note: null, occurredAt: ago(1500), manual: false },
+    ...demoLedger(),
   ],
   // Giá vốn giả lập cho từng đơn, chỉ dùng bởi máy chủ mock.
   orderCosts: { o1: 150000, o2: 200000, o3: 410000, o4: 190000, o5: 330000, o6: 280000 },
@@ -27,6 +30,8 @@ export const store: { orders: OrderDetail[]; payments: Payment[]; entries: Ledge
   heldOrders: new Set(),
   manualAssignments: new Map(),
 }
+
+export function syncManualLedger() { store.entries = [...store.entries.filter((entry) => !entry.manual), ...readManualLedger()] }
 
 export function respond<T>(data: T): Promise<T> {
   const copy = structuredClone(data)

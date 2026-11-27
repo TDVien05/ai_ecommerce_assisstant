@@ -1,5 +1,6 @@
 // AI giả lập chạy trong trình duyệt. Không gọi mạng, tải lại trang là về dữ liệu đầu.
-import { clock, initialSnapshot, ledgerStep, profitResult, say, text, today } from './mockData'
+import { clock, initialSnapshot, ledgerStep, say, text, today } from './mockData'
+import { mockFinance } from '@/lib/finance/mock'
 import { applyEvent } from './reduce'
 import {
   HUB,
@@ -54,7 +55,8 @@ export class MockFlowyAI implements FlowyAI {
       return this.openLedgerThread()
     }
     if (q.includes('lãi') || q.includes('doanh thu')) {
-      return this.reply(conversationId, text('Số tạm tính trong tuần:'), profitResult())
+      try { return this.reply(conversationId, text('Số tạm tính trong 7 ngày:'), await weeklyResult()) }
+      catch { return this.reply(conversationId, text('Mình chưa tải được báo cáo mẫu. Bạn thử lại nhé.')) }
     }
     if (q.includes('chưa thanh toán')) {
       return this.reply(conversationId, text('Đơn #1042 đang chờ thanh toán. Ngân hàng chưa báo tiền vào.'))
@@ -121,9 +123,11 @@ export class MockFlowyAI implements FlowyAI {
   private start() {
     if (this.started) return
     this.started = true
-    setTimeout(() => {
-      this.post('t-week', say('m-week-done', text('Báo cáo tuần đã xong.'), profitResult()))
-      this.setThread('t-week', 'done', 'Báo cáo tuần đã xong. Mở luồng để xem số liệu và cách tính.')
+    setTimeout(async () => {
+      try {
+        this.post('t-week', say('m-week-done', text('Báo cáo 7 ngày đã xong.'), await weeklyResult()))
+        this.setThread('t-week', 'done', 'Báo cáo 7 ngày đã xong. Mở luồng để xem số liệu và cách tính.')
+      } catch { this.post('t-week', say('m-week-error', text('Mình chưa tải được báo cáo mẫu. Bạn thử lại nhé.'))) }
     }, REPORT_DELAY)
     setTimeout(() => this.raiseSuspiciousOrder(), NOTICE_DELAY)
   }
@@ -244,4 +248,12 @@ export class MockFlowyAI implements FlowyAI {
     this.seq += 1
     return `${prefix}-${this.seq}`
   }
+}
+
+async function weeklyResult(): Promise<Block> {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  const summary = await mockFinance.summary({ from: start.toISOString(), to: end.toISOString() })
+  return { type: 'resultCard', source: 'sổ thu chi và đơn hàng (dữ liệu mẫu)', updatedAt: clock(), metrics: [{ label: 'Doanh thu 7 ngày', value: summary.revenue }, { label: 'Chi phí', value: summary.expenses }, { label: 'Lãi tạm tính', value: summary.netProfit }], how: [{ label: 'Doanh thu', value: summary.revenue }, { label: 'Giá vốn', value: -summary.cost }, { label: 'Chi phí', value: -summary.expenses }, { label: 'Lãi tạm tính', value: summary.netProfit, total: true }] }
 }
