@@ -98,7 +98,7 @@ export function PaymentDialog({
               </button>
             ))}
             <p className="m-0 text-xs text-muted-foreground">
-              Chỉ gán khi bạn chắc khoản tiền này là của đơn đó. Máy chủ so số tiền và cập nhật đối soát.
+              Chỉ gán khi bạn chắc khoản tiền này là của đơn đó. Đủ tiền thì đơn chuyển sang Đã duyệt và ghi một khoản thu vào sổ. Thiếu tiền thì đơn vẫn chờ thanh toán.
             </p>
           </div>
         )}

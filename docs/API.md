@@ -110,8 +110,19 @@ Dạng JSON giao diện đang dùng (đề xuất) nằm trong `client/src/lib/p
 }
 ```
 
-- Lỗi: `404 PAYMENT_NOT_FOUND`; `409 PAYMENT_NOT_UNASSIGNABLE` khi giao dịch không phải do gán tay (khớp tự động từ webhook) hoặc đơn đã thay đổi theo giao dịch này và không thể trả lại.
-- Cần chốt khi làm server: gán tay đủ tiền có đổi trạng thái đơn và ghi sổ không. Nếu có, hoàn tác phải trả lại cả hai trong cùng một DB transaction, hoặc từ chối bằng `409`. Server cũng cần lưu giao dịch nào là gán tay.
+- Lỗi: `404 PAYMENT_NOT_FOUND`; `409 PAYMENT_NOT_UNASSIGNABLE` khi giao dịch không phải do gán tay (khớp tự động từ webhook) hoặc đơn đã đi tiếp sau `PAID` (giao hàng, hoàn tiền).
+
+#### Gán tay và hoàn tác đổi gì
+
+| Trường hợp | `POST .../assign` | `DELETE .../assign` |
+|---|---|---|
+| Đủ tiền (`transferAmount >= total`) | Giống luồng webhook: đơn `AWAITING_PAYMENT` → `PAID` (giao diện ghi "Đã duyệt"), ghi một bút toán thu `INCOME/SALES` vào `ledger_entries`, ghi nhật ký hoàn tác. `match_status = MATCHED` | Đơn trở về `AWAITING_PAYMENT` (xóa `paid_at`), xóa bút toán đó |
+| Thiếu tiền | Không đổi trạng thái đơn, không ghi sổ, chỉ ghi nhận thanh toán một phần. `match_status = UNDERPAID` | Gỡ giao dịch khỏi đơn |
+
+- Mỗi lần gán hoặc hoàn tác chạy trong một DB transaction.
+- Luồng webhook cũng trừ tồn kho khi đơn sang `PAID` ([PAYMENT_ANTI_SCAM.md](PAYMENT_ANTI_SCAM.md)), nên gán đủ tiền trừ tồn kho và hoàn tác cộng lại.
+- Nhật ký hoàn tác chưa có bảng trong [DATABASE.md](DATABASE.md); cần lưu ít nhất giao dịch, đơn, bút toán và thời điểm gán.
+- Chuyển `PAID` → `AWAITING_PAYMENT` chỉ xảy ra khi hoàn tác gán tay. AI không có công cụ nào gọi hai API này.
 
 ### Tài chính
 | Method | Path | Mô tả |
