@@ -50,7 +50,11 @@ Gửi ảnh QR: `message.attachment = { type: "image", payload: { url, is_reusab
 | Method | Path | Mô tả |
 |---|---|---|
 | POST | `/api/auth/login` | `{ email, password }` → `{ token }` |
+| POST | `/api/auth/register` | `{ ownerName, shopName, email, password, acceptedTerms: true }` → `201 { token }`; email đã dùng → `409 EMAIL_EXISTS` |
+| POST | `/api/auth/demo` | Không cần body → `{ token }` của tài khoản demo cấu hình ở máy chủ |
 | GET | `/api/auth/me` | thông tin shop hiện tại |
+
+Đăng ký và demo có giới hạn tần suất. `GET /api/auth/me` trả `user` (bao gồm `ownerName`, có thể null) và `shop` (bao gồm `isDemo`). Mật khẩu demo không được gửi tới trình duyệt.
 
 ### Sản phẩm
 | Method | Path | Mô tả |

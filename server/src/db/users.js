@@ -5,6 +5,6 @@ export async function findByEmail(email) {
   return rows[0] ?? null
 }
 export async function findWithShop(id) {
-  const { rows } = await pool.query('SELECT users.id, users.email, shops.id AS shop_id, shops.name AS shop_name FROM users JOIN shops ON shops.id = users.shop_id WHERE users.id = $1', [id])
+  const { rows } = await pool.query('SELECT users.id, users.email, users.owner_name, shops.id AS shop_id, shops.name AS shop_name FROM users JOIN shops ON shops.id = users.shop_id WHERE users.id = $1', [id])
   return rows[0] ?? null
 }
