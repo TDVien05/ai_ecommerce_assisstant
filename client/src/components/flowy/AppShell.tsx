@@ -60,7 +60,7 @@ export function AppShell(props: AppShellProps) {
             ))}
           </SidebarGroup>
         </nav>
-        <div className="hidden items-center gap-2.5 border-t px-3.5 py-2.5 md:flex">
+        <button type="button" onClick={() => onNavigate('settings')} aria-current={activeId === 'settings' ? 'page' : undefined} className="hidden w-full items-center gap-2.5 border-t px-3.5 py-2.5 text-left hover:bg-sidebar-accent md:flex">
           <span className="grid size-7 place-items-center border bg-muted text-xs font-semibold">
             {shopName.slice(0, 2).toUpperCase()}
           </span>
@@ -68,7 +68,7 @@ export function AppShell(props: AppShellProps) {
             <b className="font-semibold">{shopName}</b>
             <small className="block text-xs text-muted-foreground">Cài đặt cửa hàng</small>
           </div>
-        </div>
+        </button>
       </aside>
       <main className="flex min-h-0 min-w-0 flex-col">
         <div className="flex h-11 shrink-0 items-center gap-2 border-b px-5">{props.topbar}</div>

@@ -20,13 +20,14 @@ export default function AppPage() {
   if (!state) return null
 
   const thread = state.threads.find((t) => t.id === threadId)
-  const feature = FEATURES.find((f) => f.id === featureId)
+  const feature = FEATURES.find((f) => f.id === featureId) ?? (featureId === 'settings' ? { id: 'settings', label: 'Cài đặt cửa hàng', about: 'Thông tin cửa hàng và tài khoản nhận tiền.' } : undefined)
   if (!atHub && !thread && !feature) return <Navigate to="/" replace />
 
   const conversationId = thread?.id ?? HUB
   const go = (id: string) => {
     if (id === HUB) navigate('/')
     else if (FEATURES.some((f) => f.id === id)) navigate(`/pages/${id}`)
+    else if (id === 'settings') navigate('/pages/settings')
     else navigate(`/threads/${id}`)
   }
 
