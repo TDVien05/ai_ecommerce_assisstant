@@ -56,6 +56,10 @@ async function request<T>(path: string, { method = 'GET', query, body, signal }:
   const data = res.status === 204 ? null : await res.json().catch(() => null)
 
   if (!res.ok) {
+    if (res.status === 401 && path.startsWith('/api/') && path !== '/api/auth/login') {
+      authToken.clear()
+      window.location.assign('/login')
+    }
     // Server error shape: { error: { code, message } } — see docs/API.md
     const err = data?.error
     throw new ApiError(res.status, err?.code ?? 'HTTP_ERROR', err?.message ?? res.statusText)

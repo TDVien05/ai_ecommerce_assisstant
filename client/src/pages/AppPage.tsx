@@ -8,10 +8,12 @@ import { FeaturePage } from '@/features/app/FeaturePage'
 import { FEATURES } from '@/features/app/features'
 import { useFlowy } from '@/features/app/useFlowy'
 import { HUB } from '@/lib/ai'
+import { useAuth } from '@/features/auth/useAuth'
 
 /** Màn hình chính: "/" chat trung tâm, "/threads/:id" luồng việc, "/pages/:id" trang chức năng. */
 export default function AppPage() {
   const state = useFlowy()
+  const { session, logout } = useAuth()
   const navigate = useNavigate()
   const threadId = useMatch('/threads/:id')?.params.id
   const featureId = useMatch('/pages/:id')?.params.id
@@ -32,7 +34,7 @@ export default function AppPage() {
 
   return (
     <AppShell
-      shopName={state.shopName}
+      shopName={session?.shop.name ?? state.shopName}
       hubPending={state.threads.filter((t) => t.status === 'alert' || t.status === 'waiting').length}
       threads={state.threads}
       features={FEATURES}
@@ -53,6 +55,7 @@ export default function AppPage() {
             </Button>
           )}
           <ThemeToggle />
+          <Button variant="ghost" onClick={logout}>Đăng xuất</Button>
         </>
       }
     >
