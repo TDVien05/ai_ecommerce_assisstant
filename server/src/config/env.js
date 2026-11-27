@@ -9,6 +9,7 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  SERVE_CLIENT_DIR: optional,
 
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(8),
