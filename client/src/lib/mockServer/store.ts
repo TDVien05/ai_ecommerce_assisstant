@@ -14,8 +14,8 @@ export const store: { orders: OrderDetail[]; payments: Payment[]; entries: Ledge
   orders: [order('o1', 'DH8F3K2A', 'An', 250000, 'PAID'), order('o2', 'DH5MNP7Q', 'Bình', 350000, 'AWAITING_PAYMENT'), order('o3', 'DH2RTV9X', 'Chi', 690000, 'PAID'), order('o4', 'DH7KQW3E', 'Hoa', 320000, 'AWAITING_PAYMENT'), order('o5', 'DH4HJU8M', 'Minh', 550000, 'AWAITING_PAYMENT'), order('o6', 'DH9PLC2T', 'Thu', 480000, 'AWAITING_PAYMENT')],
   payments: [payment('p1', 12, 'in', 250000, 'DH8F3K2A chuyen tien', 'MATCHED', { code: 'DH8F3K2A', orderId: 'o1', orderCode: 'DH8F3K2A' }), payment('p2', 47, 'in', 320000, 'NGUYEN THI HOA chuyen tien ao', 'NO_ORDER'), payment('p3', 80, 'in', 200000, 'DH5MNP7Q thanh toan', 'UNDERPAID', { code: 'DH5MNP7Q', orderId: 'o2', orderCode: 'DH5MNP7Q', shortfall: 150000 }), payment('p4', 135, 'out', 350000, 'CK NGUYEN VAN B', 'IGNORED'), payment('p5', 260, 'in', 480000, 'Tra tien vay thang 11', 'NO_ORDER'), payment('p6', 1500, 'in', 690000, 'DH2RTV9X', 'MATCHED', { code: 'DH2RTV9X', orderId: 'o3', orderCode: 'DH2RTV9X' }), payment('p7', 1630, 'out', 120000, 'GRAB*A2F', 'IGNORED')],
   entries: [
-    { id: 'entry-p1', type: 'INCOME', category: 'SALES', amount: 250000, orderId: 'o1', orderCode: 'DH8F3K2A', note: null, occurredAt: ago(12), manual: false },
-    { id: 'entry-p6', type: 'INCOME', category: 'SALES', amount: 690000, orderId: 'o3', orderCode: 'DH2RTV9X', note: null, occurredAt: ago(1500), manual: false },
+    { id: 'entry-p1', type: 'INCOME', kind: 'BUSINESS_REVENUE', channel: 'BANK', category: 'SALES', documentRef: null, documentDate: null, industry: null, amount: 250000, orderId: 'o1', orderCode: 'DH8F3K2A', note: null, occurredAt: ago(12), manual: false },
+    { id: 'entry-p6', type: 'INCOME', kind: 'BUSINESS_REVENUE', channel: 'BANK', category: 'SALES', documentRef: null, documentDate: null, industry: null, amount: 690000, orderId: 'o3', orderCode: 'DH2RTV9X', note: null, occurredAt: ago(1500), manual: false },
   ],
   manualAssignments: new Map(),
 }
@@ -24,3 +24,7 @@ export function respond<T>(data: T): Promise<T> {
   const copy = structuredClone(data)
   return new Promise((resolve) => setTimeout(() => resolve(copy), 250))
 }
+
+const ledgerListeners = new Set<() => void>()
+export function subscribeLedger(listener: () => void) { ledgerListeners.add(listener); return () => { ledgerListeners.delete(listener) } }
+export function notifyLedger() { ledgerListeners.forEach((listener) => listener()) }

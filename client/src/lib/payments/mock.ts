@@ -1,7 +1,7 @@
 // Máy chủ giả lập: đối soát và tính tiền tập trung tại kho chung.
 import { ApiError } from '@/lib/api'
 import { formatVND } from '@/lib/format'
-import { respond, store } from '@/lib/mockServer/store'
+import { notifyLedger, respond, store } from '@/lib/mockServer/store'
 import type { MatchStatus, Payment, PaymentsApi } from './types'
 
 export class MockPaymentsApi implements PaymentsApi {
@@ -23,7 +23,8 @@ export class MockPaymentsApi implements PaymentsApi {
       order.status = 'PAID'
       order.paidAt = new Date().toISOString()
       entryId = `entry-${paymentId}`
-      store.entries.push({ id: entryId, type: 'INCOME', category: 'SALES', amount: current.transferAmount, orderId, orderCode: order.paymentCode, note: null, occurredAt: order.paidAt, manual: false })
+      store.entries.push({ id: entryId, type: 'INCOME', kind: 'BUSINESS_REVENUE', channel: 'BANK', category: 'SALES', documentRef: null, documentDate: null, industry: null, amount: current.transferAmount, orderId, orderCode: order.paymentCode, note: null, occurredAt: order.paidAt, manual: false })
+      notifyLedger()
     }
     Object.assign(current, { orderId, orderCode: order.paymentCode, matchStatus: shortfall ? 'UNDERPAID' : 'MATCHED', shortfall: shortfall || null })
     store.manualAssignments.set(paymentId, { orderId, entryId })
@@ -37,6 +38,7 @@ export class MockPaymentsApi implements PaymentsApi {
     if (assignment.entryId) {
       order.status = 'AWAITING_PAYMENT'; order.paidAt = null
       store.entries = store.entries.filter((entry) => entry.id !== assignment.entryId)
+      notifyLedger()
     }
     store.manualAssignments.delete(paymentId)
     Object.assign(current, { orderId: null, orderCode: null, shortfall: null, matchStatus: 'NO_ORDER' })

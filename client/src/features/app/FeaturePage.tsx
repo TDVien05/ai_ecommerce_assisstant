@@ -2,6 +2,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TransactionsPanel } from '@/features/transactions/TransactionsPanel'
 import { OrdersPage } from '@/features/orders/OrdersPage'
 import { LedgerPanel } from '@/features/ledger/LedgerPanel'
+import { TemplatesPage } from '@/features/ledgerTemplates/TemplatesPage'
+import { ThresholdCard } from '@/features/ledgerTemplates/ThresholdCard'
 
 /** Trang chức năng. "Sổ thu chi" có danh sách giao dịch; phần còn lại chưa nối dữ liệu. */
 export function FeaturePage({ id, title, about }: { id: string; title: string; about: string }) {
@@ -10,10 +12,13 @@ export function FeaturePage({ id, title, about }: { id: string; title: string; a
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-5 py-8">
         <h1 className="m-0 text-[22px] leading-7 font-semibold tracking-tight">{title}</h1>
         {id === 'ledger' ? (
+          <>
+          <ThresholdCard />
           <Tabs defaultValue="payments" className="gap-4">
             <TabsList variant="line">
               <TabsTrigger value="payments">Giao dịch ngân hàng</TabsTrigger>
               <TabsTrigger value="entries">Thu chi</TabsTrigger>
+              <TabsTrigger value="templates">Mẫu sổ</TabsTrigger>
             </TabsList>
             <TabsContent value="payments">
               <TransactionsPanel />
@@ -21,7 +26,9 @@ export function FeaturePage({ id, title, about }: { id: string; title: string; a
             <TabsContent value="entries">
               <LedgerPanel />
             </TabsContent>
+            <TabsContent value="templates"><TemplatesPage /></TabsContent>
           </Tabs>
+          </>
         ) : id === 'orders' ? (
           <OrdersPage />
         ) : (

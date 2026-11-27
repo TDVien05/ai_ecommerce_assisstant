@@ -1,0 +1,3 @@
+import { description, doc, docDate } from '../columns'
+import type { Template } from '../types'
+export default { code: 'S2c-HKD', name: 'Sổ chi tiết doanh thu, chi phí', appliesTo: 'Tham khảo cho hộ xác định TNCN theo thu nhập.', needsReview: true, filter: 'income-expense', columns: [doc, docDate, description, { key: 'revenue', label: 'Doanh thu', value: 'money', source: 'doanh thu kinh doanh', total: true }, { key: 'expense', label: 'Khoản chi', value: 'money', source: 'khoản chi kinh doanh', total: true }, { key: 'difference', label: 'Chênh lệch', value: 'money', source: 'tổng kỳ', formula: 'doanh thu trừ khoản chi', total: true }], note: 'Khoản chi chưa được xác nhận là chi phí hợp lý; cần đối chiếu hồ sơ và cơ quan thuế.' } satisfies Template
