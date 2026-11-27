@@ -22,7 +22,7 @@ export type LedgerEntry = {
   occurredAt: string
   manual: boolean
 }
-export type CreateLedgerEntry = { type: 'EXPENSE'; category: LedgerCategory; amount: number; note: string; occurredAt: string }
+export type CreateLedgerEntry = { type: LedgerType; category: LedgerCategory; amount: number; note: string; occurredAt: string }
 export type LedgerResponse = { items: LedgerEntry[]; totals: { income: number; expense: number; net: number }; updatedAt: string }
 export type FinanceSummary = { revenue: number; cost: number; grossProfit: number; expenses: number; netProfit: number; orderCount: number; aov: number }
 export type TimePoint = { date: string; revenue: number }
