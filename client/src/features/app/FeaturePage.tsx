@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TransactionsPanel } from '@/features/transactions/TransactionsPanel'
+import { OrdersPage } from '@/features/orders/OrdersPage'
 
 /** Trang chức năng. "Sổ thu chi" có danh sách giao dịch; phần còn lại chưa nối dữ liệu. */
 export function FeaturePage({ id, title, about }: { id: string; title: string; about: string }) {
@@ -20,6 +21,8 @@ export function FeaturePage({ id, title, about }: { id: string; title: string; a
               <Empty about={about} />
             </TabsContent>
           </Tabs>
+        ) : id === 'orders' ? (
+          <OrdersPage />
         ) : (
           <Empty about={about} />
         )}

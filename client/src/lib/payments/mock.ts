@@ -1,124 +1,50 @@
-// Máy chủ giả lập cho trang giao dịch. Việc đối soát và tính tiền ở đây đóng vai server.
+// Máy chủ giả lập: đối soát và tính tiền tập trung tại kho chung.
 import { ApiError } from '@/lib/api'
 import { formatVND } from '@/lib/format'
-import type { MatchStatus, Payment, PaymentsApi, PendingOrder } from './types'
-
-const DELAY = 250
-
-/** Mốc giờ cách hiện tại `minutes` phút. */
-const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString()
-
-function payment(
-  id: string,
-  minutes: number,
-  transferType: Payment['transferType'],
-  transferAmount: number,
-  content: string,
-  matchStatus: MatchStatus,
-  extra: Partial<Payment> = {},
-): Payment {
-  return {
-    id,
-    gateway: 'Vietcombank',
-    accountNumber: '1017588888',
-    code: null,
-    content,
-    referenceCode: `FT-MAU-${id.toUpperCase()}`,
-    transferType,
-    transferAmount,
-    transactionDate: ago(minutes),
-    orderId: null,
-    orderCode: null,
-    shortfall: null,
-    matchStatus,
-    ...extra,
-  }
-}
+import { respond, store } from '@/lib/mockServer/store'
+import type { MatchStatus, Payment, PaymentsApi } from './types'
 
 export class MockPaymentsApi implements PaymentsApi {
-  private payments: Payment[] = [
-    payment('p1', 12, 'in', 250_000, 'DH8F3K2A chuyen tien', 'MATCHED', {
-      code: 'DH8F3K2A',
-      orderId: 'o1',
-      orderCode: 'DH8F3K2A',
-    }),
-    payment('p2', 47, 'in', 320_000, 'NGUYEN THI HOA chuyen tien ao', 'NO_ORDER'),
-    payment('p3', 80, 'in', 200_000, 'DH5MNP7Q thanh toan', 'UNDERPAID', {
-      code: 'DH5MNP7Q',
-      orderId: 'o2',
-      orderCode: 'DH5MNP7Q',
-      shortfall: 150_000,
-    }),
-    payment('p4', 135, 'out', 350_000, 'CK NGUYEN VAN B', 'IGNORED'),
-    payment('p5', 260, 'in', 480_000, 'Tra tien vay thang 11', 'NO_ORDER'),
-    payment('p6', 1500, 'in', 690_000, 'DH2RTV9X', 'MATCHED', {
-      code: 'DH2RTV9X',
-      orderId: 'o3',
-      orderCode: 'DH2RTV9X',
-    }),
-    payment('p7', 1630, 'out', 120_000, 'GRAB*A2F', 'IGNORED'),
-  ]
-
-  private orders: PendingOrder[] = [
-    { id: 'o4', paymentCode: 'DH7KQW3E', customerName: 'Hoa', total: 320_000 },
-    { id: 'o5', paymentCode: 'DH4HJU8M', customerName: 'Minh', total: 550_000 },
-    { id: 'o6', paymentCode: 'DH9PLC2T', customerName: 'Thu', total: 480_000 },
-  ]
-
   async list(query: { match_status?: MatchStatus } = {}) {
-    const items = this.payments.filter((p) => !query.match_status || p.matchStatus === query.match_status)
-    return this.respond({ items })
+    return respond({ items: store.payments.filter((p) => !query.match_status || p.matchStatus === query.match_status) })
   }
-
   async pendingOrders() {
-    const taken = new Set(this.payments.map((p) => p.orderId))
-    return this.respond({ items: this.orders.filter((o) => !taken.has(o.id)) })
+    const taken = new Set(store.payments.map((p) => p.orderId))
+    return respond({ items: store.orders.filter((o) => o.status === 'AWAITING_PAYMENT' && !taken.has(o.id)).map(({ id, paymentCode, customerName, total }) => ({ id, paymentCode, customerName, total })) })
   }
-
   async assign(paymentId: string, { orderId }: { orderId: string }) {
     const current = this.find(paymentId)
-    const order = this.orders.find((o) => o.id === orderId)
-    if (current.matchStatus !== 'NO_ORDER' || current.transferType !== 'in') {
-      throw new ApiError(409, 'PAYMENT_NOT_ASSIGNABLE', 'Chỉ gán được giao dịch tiền vào chưa có đơn.')
+    const order = store.orders.find((o) => o.id === orderId)
+    if (current.matchStatus !== 'NO_ORDER' || current.transferType !== 'in') throw new ApiError(409, 'PAYMENT_NOT_ASSIGNABLE', 'Chỉ gán được giao dịch tiền vào chưa có đơn.')
+    if (!order || order.status !== 'AWAITING_PAYMENT' || store.payments.some((p) => p.orderId === orderId)) throw new ApiError(409, 'ORDER_NOT_PENDING', 'Đơn này không còn chờ thanh toán. Bạn tải lại trang nhé.')
+    const shortfall = Math.max(0, order.total - current.transferAmount)
+    let entryId: string | null = null
+    if (shortfall === 0) {
+      order.status = 'PAID'
+      order.paidAt = new Date().toISOString()
+      entryId = `entry-${paymentId}`
+      store.entries.push({ id: entryId, type: 'INCOME', category: 'SALES', amount: current.transferAmount, orderId, orderCode: order.paymentCode, note: null, occurredAt: order.paidAt, manual: false })
     }
-    if (!order || this.payments.some((p) => p.orderId === orderId)) {
-      throw new ApiError(409, 'ORDER_NOT_PENDING', 'Đơn này không còn chờ thanh toán. Bạn tải lại trang nhé.')
-    }
-    const shortfall = order.total - current.transferAmount
-    const updated = this.save({
-      ...current,
-      orderId,
-      orderCode: order.paymentCode,
-      matchStatus: shortfall > 0 ? 'UNDERPAID' : 'MATCHED',
-      shortfall: shortfall > 0 ? shortfall : null,
-    })
-    return this.respond({
-      payment: updated,
-      message: `Đã gán giao dịch ${formatVND(current.transferAmount)} vào đơn ${order.paymentCode}.`,
-    })
+    Object.assign(current, { orderId, orderCode: order.paymentCode, matchStatus: shortfall ? 'UNDERPAID' : 'MATCHED', shortfall: shortfall || null })
+    store.manualAssignments.set(paymentId, { orderId, entryId })
+    return respond({ payment: current, message: `Đã gán giao dịch ${formatVND(current.transferAmount)} vào đơn ${order.paymentCode}.` })
   }
-
   async unassign(paymentId: string) {
     const current = this.find(paymentId)
-    return this.respond({
-      payment: this.save({ ...current, orderId: null, orderCode: null, shortfall: null, matchStatus: 'NO_ORDER' }),
-    })
+    const assignment = store.manualAssignments.get(paymentId)
+    const order = store.orders.find((o) => o.id === assignment?.orderId)
+    if (!assignment || !order || (assignment.entryId && order.status !== 'PAID')) throw new ApiError(409, 'PAYMENT_NOT_UNASSIGNABLE', 'Không thể hoàn tác giao dịch này.')
+    if (assignment.entryId) {
+      order.status = 'AWAITING_PAYMENT'; order.paidAt = null
+      store.entries = store.entries.filter((entry) => entry.id !== assignment.entryId)
+    }
+    store.manualAssignments.delete(paymentId)
+    Object.assign(current, { orderId: null, orderCode: null, shortfall: null, matchStatus: 'NO_ORDER' })
+    return respond({ payment: current })
   }
-
-  private find(id: string) {
-    const found = this.payments.find((p) => p.id === id)
+  private find(id: string): Payment {
+    const found = store.payments.find((p) => p.id === id)
     if (!found) throw new ApiError(404, 'PAYMENT_NOT_FOUND', 'Không tìm thấy giao dịch.')
     return found
-  }
-
-  private save(next: Payment) {
-    this.payments = this.payments.map((p) => (p.id === next.id ? next : p))
-    return next
-  }
-
-  /** Trả bản sao sau một khoảng trễ, như gọi mạng. */
-  private respond<T>(data: T): Promise<T> {
-    const copy = JSON.parse(JSON.stringify(data)) as T
-    return new Promise((resolve) => setTimeout(() => resolve(copy), DELAY))
   }
 }
