@@ -80,6 +80,9 @@ Gửi ảnh QR: `message.attachment = { type: "image", payload: { url, is_reusab
 |---|---|---|
 | GET | `/api/payments?match_status=` | giao dịch SePay, lọc `UNDERPAID` / `NO_ORDER` để xử lý tay |
 | POST | `/api/payments/:id/assign` | `{ orderId }`: gán tay giao dịch cho đơn |
+| DELETE | `/api/payments/:id/assign` | đề xuất, chưa chốt: hoàn tác gán tay |
+
+Dạng JSON giao diện đang dùng (đề xuất) nằm trong `client/src/lib/payments/types.ts`.
 
 ### Tài chính
 | Method | Path | Mô tả |
