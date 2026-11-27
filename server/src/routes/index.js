@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { authRouter } from './auth.js'
+import { devRouter } from './dev.js'
 import { requireAuth } from '../middlewares/requireAuth.js'
 
 // Dashboard REST API, mounted at /api. See docs/API.md section 3.
@@ -8,3 +9,6 @@ import { requireAuth } from '../middlewares/requireAuth.js'
 export const apiRouter = Router()
 apiRouter.use('/auth', authRouter)
 apiRouter.use(requireAuth)
+
+// Everything below requires the shop owner's JWT; req.auth = { userId, shopId }.
+apiRouter.use('/dev', devRouter)

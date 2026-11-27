@@ -20,6 +20,30 @@ export async function findByIdWithToken(shopId, db = pool) {
   return rows[0] ?? null
 }
 
+/** Messenger webhooks only carry the Page id; demo shops share the template's Page id. */
+export async function findByPageId(fbPageId, db = pool) {
+  const { rows } = await db.query(
+    `SELECT id, name, fb_page_id, bank_code, bank_account_number, bank_account_name,
+            is_demo, demo_expires_at
+       FROM shops WHERE fb_page_id = $1 AND NOT is_demo
+      ORDER BY created_at LIMIT 1`,
+    [fbPageId],
+  )
+  return rows[0] ?? null
+}
+
+/** SePay webhooks only carry the receiving account number. */
+export async function findByBankAccount(accountNumber, db = pool) {
+  if (!accountNumber) return null
+  const { rows } = await db.query(
+    `SELECT id, name, bank_code, bank_account_number, is_demo
+       FROM shops WHERE bank_account_number = $1 AND NOT is_demo
+      ORDER BY created_at LIMIT 1`,
+    [accountNumber],
+  )
+  return rows[0] ?? null
+}
+
 export async function updateSettings(shopId, patch, db = pool) {
   requireShopId(shopId)
   const allowed = ['name', 'fb_page_id', 'fb_page_token', 'bank_code', 'bank_account_number', 'bank_account_name']

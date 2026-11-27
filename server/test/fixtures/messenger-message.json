@@ -1,0 +1,20 @@
+{
+  "object": "page",
+  "entry": [
+    {
+      "id": "1234567890",
+      "time": 1795795200000,
+      "messaging": [
+        {
+          "sender": { "id": "2987654321" },
+          "recipient": { "id": "1234567890" },
+          "timestamp": 1795795200000,
+          "message": {
+            "mid": "m_AG5Hz2Uq7tuwNEhXfYYKj8mJEM_QPpz5jdCKhaL1F1g",
+            "text": "Áo thun trắng còn size M không shop?"
+          }
+        }
+      ]
+    }
+  ]
+}

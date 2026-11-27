@@ -55,6 +55,19 @@ export async function findByPaymentCode(shopId, paymentCode, db = pool) {
   return rows[0] ?? null
 }
 
+/**
+ * Cross-shop lookup for webhook intake only: SePay gives us a code but not the shop.
+ * Returns the shop that owns the order, or null.
+ */
+export async function findShopByPaymentCode(paymentCode, db = pool) {
+  if (!paymentCode) return null
+  const { rows } = await db.query(
+    'SELECT shop_id, id, status, total FROM orders WHERE payment_code = $1',
+    [paymentCode],
+  )
+  return rows[0] ?? null
+}
+
 /** Create the order and its items in one transaction. */
 export async function create(shopId, order, items) {
   requireShopId(shopId)
