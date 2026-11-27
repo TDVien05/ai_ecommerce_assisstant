@@ -4,7 +4,7 @@ import type { ChatLine, Conversation, ConversationsApi } from './types'
 const now = () => new Date().toISOString()
 const conversations: Conversation[] = [{ id: 'c1', customerName: 'Khách mẫu Lan', aiPaused: false, lastMessage: 'Cửa hàng còn mẫu này không?', updatedAt: now() }, { id: 'c2', customerName: 'Khách mẫu Minh', aiPaused: true, lastMessage: 'Cảm ơn cửa hàng.', updatedAt: now() }]
 const lines: Record<string, ChatLine[]> = {
-  c1: [{ id: 'm1', role: 'user', content: 'Cửa hàng còn mẫu này không?', createdAt: now() }],
+  c1: [{ id: 'm1a', role: 'user', content: 'Chào cửa hàng, mình muốn xem áo thun.', createdAt: now() }, { id: 'm1b', role: 'assistant', content: 'Chào bạn, mình có thể giúp bạn xem các mẫu áo.', createdAt: now() }, { id: 'm1', role: 'user', content: 'Cửa hàng còn mẫu này không?', createdAt: now() }],
   c2: [{ id: 'm2', role: 'user', content: 'Cảm ơn cửa hàng.', createdAt: now() }],
 }
 const reply = <T>(data: T): Promise<T> => Promise.resolve(structuredClone(data))

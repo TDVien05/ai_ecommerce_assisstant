@@ -11,7 +11,7 @@ export function MessengerPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  function load() { conversationsApi.list().then((result) => { setItems(result.items); setError('') }).catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không tải được hội thoại.')) }
+  function load() { conversationsApi.list().then((result) => { setItems(result.items); setSelected((previous) => previous ?? result.items[0]?.id ?? null); setError('') }).catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không tải được hội thoại.')) }
   useEffect(() => { load() }, [])
   useEffect(() => {
     if (!selected) return
