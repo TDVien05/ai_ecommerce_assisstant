@@ -1,3 +1,6 @@
 import { mockAlerts } from './mock'
-export const alertsApi = mockAlerts
+import { httpAlerts } from './http'
+import { isReal } from '@/lib/realApi'
+import type { AlertsApi } from './types'
+export const alertsApi: AlertsApi = isReal('alerts') ? httpAlerts : mockAlerts
 export * from './types'

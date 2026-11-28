@@ -1,4 +1,5 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID, createHash } from 'node:crypto'
+import { logger } from '../../lib/logger.js'
 import { withTransaction } from '../../db/pool.js'
 import { HttpError } from '../../lib/httpError.js'
 import * as threads from '../../db/assistant.threads.js'
@@ -30,11 +31,16 @@ export async function startStatement(auth,{text,attachments}) {
   if (attachments.length!==1) throw new HttpError(400,'INVALID_FILE','Mỗi lần chỉ nhập một tệp CSV.')
   const file=await getFile(auth.shopId,attachments[0].fileId)
   if (file.name!==attachments[0].name) throw new HttpError(404,'FILE_NOT_FOUND','Không tìm thấy tệp sao kê.')
-  const id=randomUUID(), hubUser={id:randomUUID(),role:'user',text,files:[file.name],attachmentIds:[file.id]}
+  const id=randomUUID(), hubUser={id:randomUUID(),role:'user',text,files:[file.name],attachmentIds:[file.id],threadId:id}
+  const digest=createHash('sha256').update(file.content).digest('hex')
   const threadUser={id:randomUUID(),role:'user',text,files:[file.name]}
   const created=await withTransaction(async (client) => {
-    await threads.lockFileImport(auth.shopId,file.id,client)
-    if (await threads.usedFile(auth.shopId,file.id,client)) throw new HttpError(409,'DUPLICATE_FILE','Tệp này đã được nhập hoặc đang chờ duyệt.')
+    await threads.lockFileImport(auth.shopId,digest,client)
+    const previous=await threads.activeFileImport(auth.shopId,file.content,client)
+    if (previous) {
+      const state=previous.state==='done' ? 'đã duyệt' : previous.status==='waiting' ? 'chờ duyệt' : 'đang xử lý'
+      throw new HttpError(409,'DUPLICATE_FILE',`Tệp này ${state}. Hãy mở luồng ${previous.id} để xem.`,{threadId:previous.id,state})
+    }
     await threads.createThread(auth.shopId,{id,title,status:'running',scope},client)
     await store.insertMessage(auth.shopId,'hub',hubUser,client)
     await store.insertMessage(auth.shopId,id,threadUser,client)
@@ -64,10 +70,12 @@ export async function startStatement(auth,{text,attachments}) {
       })
       events.publish(auth.shopId,{type:'message',conversationId:id,message:reply}); publishUpdate(auth.shopId,update)
     } catch (error) {
-      const message=error instanceof HttpError ? error.message : 'Không đọc được sao kê. Bạn kiểm tra tệp rồi thử lại.'
-      const reply={id:randomUUID(),role:'assistant',blocks:[{type:'text',text:message}]}
-      const update=await withTransaction(async (client) => { await store.insertMessage(auth.shopId,id,reply,client); return updateThread(auth.shopId,id,'done','Không đọc được sao kê; mở luồng để xem chi tiết.',client) })
-      events.publish(auth.shopId,{type:'message',conversationId:id,message:reply}); publishUpdate(auth.shopId,update)
+      try {
+        const message=error instanceof HttpError ? error.message : 'Không đọc được sao kê. Bạn kiểm tra tệp rồi thử lại.'
+        const reply={id:randomUUID(),role:'assistant',blocks:[{type:'text',text:message}]}
+        const update=await withTransaction(async (client) => { await store.insertMessage(auth.shopId,id,reply,client); return updateThread(auth.shopId,id,'done','Không đọc được sao kê; mở luồng để xem chi tiết.',client) })
+        events.publish(auth.shopId,{type:'message',conversationId:id,message:reply}); publishUpdate(auth.shopId,update)
+      } catch (saveError) { logger.error({code:saveError?.code},'Không lưu được lỗi xử lý sao kê') }
     } finally { events.release(auth.shopId,id); events.publish(auth.shopId,{type:'typing',conversationId:id,value:false}) }
   })
 }

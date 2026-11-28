@@ -106,3 +106,7 @@ The implemented finance types are defined in `client/src/lib/finance/types.ts`. 
 - Messenger Webhooks: https://developers.facebook.com/docs/messenger-platform/webhooks
 - Messenger Quick Start (Send API, page access token): https://developers.facebook.com/documentation/business-messaging/messenger-platform/getting-started/quick-start
 - SePay Webhook: https://developer.sepay.vn/en/sepay-webhooks/tich-hop-webhook
+
+### Cảnh báo trợ lý
+
+`GET /api/alerts?status=OPEN|HELD|DISMISSED` trả `{ items: Alert[] }`. `POST /api/alerts/:id/hold` và `/dismiss` trả `{ alert }`; chỉ đổi trạng thái cảnh báo, trả 404 nếu khác cửa hàng và 409 nếu đã xử lý. `POST /api/assistant/alerts/:id/safe-action` chuyển cảnh báo sang HELD. `POST /api/assistant/notices/:id/dismiss` chỉ tắt thông báo trong chat; không đổi trạng thái cảnh báo hoặc đơn.

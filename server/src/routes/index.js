@@ -4,6 +4,7 @@ import { requireAuth } from '../middlewares/requireAuth.js'
 import { assistantRouter } from './assistant.js'
 import { financeRouter } from './finance.js'
 import { ordersRouter } from './orders.js'
+import { alertsRouter } from './alerts.js'
 
 // Dashboard REST API, mounted at /api. See docs/API.md section 3.
 // Add feature routers here as milestones land: auth, products, orders, conversations, payments, finance.
@@ -14,3 +15,4 @@ apiRouter.use(requireAuth)
 apiRouter.use('/assistant', assistantRouter)
 apiRouter.use('/finance', financeRouter)
 apiRouter.use('/orders', ordersRouter)
+apiRouter.use('/alerts', alertsRouter)

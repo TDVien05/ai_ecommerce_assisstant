@@ -8,6 +8,7 @@ export function useFlowy() {
   useEffect(() => ai.subscribe((event) => {
     if (event.type === 'snapshot') setConnection('connected')
     dispatch(event)
+    if (event.type === 'snapshot' || event.type === 'thread' || event.type === 'message') window.dispatchEvent(new Event('flowy:alerts-changed'))
     if (event.type === 'snapshot' || (event.type === 'message' && event.message.role === 'assistant' && event.message.blocks.some((block) => block.type === 'agentStep' && (block.state === 'done' || block.state === 'undone')))) {
       window.dispatchEvent(new Event('flowy:ledger-changed'))
       window.dispatchEvent(new Event('flowy:orders-changed'))
