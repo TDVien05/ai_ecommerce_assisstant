@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { AssistantMessage, ChatFeed, ChatFooter, Composer, DayDivider, ThreadScope, UserMessage } from '@/components/flowy'
 import { ai, HUB, type ConversationId, type Message } from '@/lib/ai'
-import { run } from './actions'
+import { ApiError } from '@/lib/api'
 import { BlockView } from './BlockView'
 
 type ChatViewProps = {
@@ -20,6 +21,9 @@ const todayLabel = `Hôm nay, ${now.getDate()}/${now.getMonth() + 1}`
 export function ChatView({ conversationId, messages, typing, scope, onOpenThread }: ChatViewProps) {
   const hub = conversationId === HUB
   const endRef = useRef<HTMLDivElement>(null)
+  const [pending, setPending] = useState<{ lastAssistantId: string | undefined } | null>(null)
+  const lastAssistantId = [...messages].reverse().find((message) => message.role === 'assistant')?.id
+  const waiting = pending !== null && pending.lastAssistantId === lastAssistantId
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
@@ -49,15 +53,21 @@ export function ChatView({ conversationId, messages, typing, scope, onOpenThread
         {/* key: mỗi hội thoại có bản nháp riêng */}
         <Composer
           key={conversationId}
+          disabled={typing || waiting}
           placeholder={hub ? undefined : 'Nhắn trong luồng này...'}
           suggestions={hub ? ['Lãi tuần này?', 'Đơn nào chưa thanh toán?', 'Nhập sao kê'] : undefined}
-          onSubmit={(text, files) =>
-            run(
-              Promise.all(files.map((f) => ai.upload(f))).then((attachments) =>
-                ai.send({ conversationId, text, attachments }),
-              ),
-            )
-          }
+          onSubmit={async (text, files) => {
+            setPending({ lastAssistantId })
+            try {
+              const attachments = await Promise.all(files.map((f) => ai.upload(f)))
+              await ai.send({ conversationId, text, attachments })
+              return true
+            } catch (error) {
+              setPending(null)
+              toast.error(error instanceof ApiError && error.code === 'ASSISTANT_BUSY' ? 'Hội thoại đang trả lời. Bạn chờ một chút rồi gửi lại nhé.' : error instanceof Error ? error.message : 'Không gửi được. Bạn thử lại nhé.')
+              return false
+            }
+          }}
         />
       </ChatFooter>
     </>

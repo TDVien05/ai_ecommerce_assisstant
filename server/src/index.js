@@ -2,7 +2,7 @@ import { env } from './config/env.js'
 import { createApp } from './app.js'
 import { pool } from './db/pool.js'
 import { logger } from './lib/logger.js'
-import { recover } from './services/assistant.service.js'
+import { recover, interruptActive } from './services/assistant.service.js'
 import { closeAllStreams } from './services/assistant/events.js'
 
 try { await recover() } catch (err) { logger.error({ err }, 'Assistant recovery failed') }
@@ -15,7 +15,9 @@ const server = app.listen(env.PORT, () => {
 const shutdown = (signal) => {
   logger.info(`${signal} received, shutting down`)
   closeAllStreams()
-  server.close(() => pool.end().finally(() => process.exit(0)))
+  const closing = new Promise((resolve) => server.close(resolve))
+  Promise.all([closing, interruptActive().catch((err) => logger.error({ err }, 'Assistant shutdown recovery failed'))])
+    .then(() => pool.end()).finally(() => process.exit(0))
   setTimeout(() => process.exit(1), 10_000).unref()
 }
 

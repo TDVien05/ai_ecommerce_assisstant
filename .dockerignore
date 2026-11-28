@@ -7,3 +7,4 @@
 **/*.key
 **/credentials
 client/src/lib/mockServer/*.local.ts
+**/*.local.js

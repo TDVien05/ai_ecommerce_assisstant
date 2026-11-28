@@ -1,4 +1,4 @@
-import { AgentStep, ProactiveNotice, ResultCard, RiskAlert, ThreadSummary } from '@/components/flowy'
+import { AgentStep, AssistantText, ProactiveNotice, ResultCard, RiskAlert, ThreadSummary } from '@/components/flowy'
 import { ai, type Block } from '@/lib/ai'
 import { approve, run } from './actions'
 
@@ -6,7 +6,7 @@ import { approve, run } from './actions'
 export function BlockView({ block, onOpenThread }: { block: Block; onOpenThread: (id: string) => void }) {
   switch (block.type) {
     case 'text':
-      return <p>{block.text}</p>
+      return <AssistantText text={block.text} />
     case 'agentStep':
       return (
         <AgentStep

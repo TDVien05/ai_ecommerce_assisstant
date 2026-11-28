@@ -8,6 +8,7 @@ import {
   AppShell,
   BarChart,
   AssistantMessage,
+  AssistantText,
   ChatFeed,
   ChatFooter,
   Composer,
@@ -108,6 +109,7 @@ function HubChat({ open }: { open: (id: string) => void }) {
         </AssistantMessage>
         <UserMessage>Lãi tuần này bao nhiêu?</UserMessage>
         <AssistantMessage>
+          <AssistantText text={'Mình đã kiểm tra:\n- **Sổ thu chi** đã sẵn sàng\n- Bạn có thể gửi yêu cầu tiếp theo'} />
           <p>Mình đang làm báo cáo tuần 47 trong một luồng riêng, xong sẽ báo lại ở đây. Số tạm tính đến 21:42:</p>
           <ResultCard
             source="sổ thu chi"

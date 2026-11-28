@@ -23,6 +23,7 @@ service-account*.json
 
 # Dữ liệu mẫu chỉ lưu trên máy phát triển.
 client/src/lib/mockServer/*.local.ts
+server/src/db/*.local.js
 
 task-vien.md
 
