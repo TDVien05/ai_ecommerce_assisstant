@@ -7,5 +7,6 @@ export async function threshold(req, res) { res.json(await books.getThreshold(re
 export async function create(req, res) { res.status(201).json(await finance.createEntry(req.auth.shopId, req.body)) }
 export async function remove(req, res) { res.json(await finance.deleteEntry(req.auth.shopId, req.params.id)) }
 export async function summary(req, res) { res.json(await finance.getSummary(req.auth.shopId, req.validatedQuery)) }
+export async function report(req, res) { res.json(await finance.getPartialReport(req.auth.shopId, req.validatedQuery)) }
 export async function timeseries(req, res) { res.json(await finance.getTimeseries(req.auth.shopId, req.validatedQuery)) }
 export async function topProducts(req, res) { res.json(await finance.getTopProducts(req.auth.shopId, req.validatedQuery)) }

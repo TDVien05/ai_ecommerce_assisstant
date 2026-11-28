@@ -150,6 +150,8 @@ The assistant's `repositories/assistant/queryData.js` is a shared executor for t
 
 The assistant's `changeResources.js` and `changeOrder.js` are transaction-scoped executors for the approved-change workflow. Their table and field lists are fixed in server code, their queries require a shop id, and they are not general-purpose SQL interfaces. The service performs validation, locking and conflict checks; these helpers do not open transactions.
 
+`reportSnapshot.js` sets a repeatable-read, read-only snapshot on the caller's transaction. Partial report queries, including both periods in a comparison, use this snapshot so their figures are consistent.
+
 - **Where a query goes:** in the repository of the table it reads or writes. A query that joins other tables (for example a report on `ledger_entries` that joins `orders`) goes with its main table.
 - **Signature:** `shopId` first (tenant-scoped repositories check it with `requireShopId` from `repositories/guard.js`), then the input, then an optional `client` from `withTransaction` so the call can join a transaction.
 - **A repository never imports `db/pool.js` or `db/dataSource.js`.** It gets everything from `config/database.js`, the same way a `model/` file elsewhere calls `getCollection(...)` from `config/database`: SQL repositories call `query(text, params, client)`, TypeORM repositories call `getRepository(Model)`.

@@ -34,6 +34,7 @@ export type LedgerResponse = { items: LedgerEntry[]; totals: { income: number; e
 export type FinanceSummary = { revenue: number; cost: number; grossProfit: number; expenses: number; netProfit: number; orderCount: number; aov: number }
 export type TimePoint = { date: string; revenue: number }
 export type TopProduct = { productId: string; name: string; quantity: number; revenue: number }
+export type PartialReport = { revenue:number; expenses:number; cost:number|null; grossProfit:number|null; netProfit:number|null; totalCount:number; classifiedCount:number; unknownCount:number; missingCostCount:number; cashIn:number; cashOut:number; points:TimePoint[]; products:TopProduct[]; updatedAt:string }
 type Period = { from?: string; to?: string }
 export interface FinanceApi {
   ledger(query?: Period & { type?: LedgerType }): Promise<LedgerResponse>

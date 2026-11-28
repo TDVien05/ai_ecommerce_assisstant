@@ -91,6 +91,14 @@ export function BlockView({ block, onOpenThread }: { block: Block; onOpenThread:
   switch (block.type) {
     case 'text':
       return <AssistantText text={block.text} />
+    case 'pageLink': {
+      const allowed=['ledger','orders','reports','fraud','messenger','sources','settings']
+      if(!allowed.includes(block.page)) return null
+      const query=new URLSearchParams(block.filters).toString()
+      return <Button variant="outline" render={<Link to={`/pages/${block.page}${query ? `?${query}` : ''}`} />}>{block.label}</Button>
+    }
+    case 'legalNotice':
+      return <FlowyBlock><BlockBody><p>Số liệu chỉ gồm doanh thu đã ghi trong sổ và không đủ để xác định doanh thu của toàn hộ.</p><p>Nếu thuộc trường hợp quy định và doanh thu lũy kế vượt ngưỡng, thời hạn đăng ký hóa đơn điện tử có thể được tính từ cuối kỳ tính thuế. Hãy liên hệ cơ quan thuế để xác định nghĩa vụ và thời hạn áp dụng.</p><a className="underline underline-offset-4" href="https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/14/469455-1778231931_v1_1778720623_signed.pdf" target="_blank" rel="noreferrer">Khoản 2 Điều 1 Nghị định 141/2026/NĐ-CP · Công báo</a></BlockBody></FlowyBlock>
     case 'agentStep':
       if (block.requiresPassword) return <SensitiveStep block={block} />
       if (block.messageDraft) return <MessageDraftStep block={block} />

@@ -39,6 +39,8 @@ export type Metric = {
 
 export type Block =
   | { type: 'text'; text: string }
+  | { type: 'pageLink'; page: 'ledger' | 'orders' | 'reports' | 'fraud' | 'messenger' | 'sources' | 'settings'; label: string; filters: Record<string,string> }
+  | { type: 'legalNotice' }
   | { type: 'dataTable'; columns: import('@/components/flowy').DataColumn[]; rows: import('@/components/flowy').DataValue[][]; source: string; updatedAt: string; how: string }
   | { type: 'ledgerExport'; code: import('@/lib/ledgerTemplates').TemplateCode; name: string; from: string; to: string; warnings: string[] }
   | {

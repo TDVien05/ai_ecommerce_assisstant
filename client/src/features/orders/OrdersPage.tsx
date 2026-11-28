@@ -8,14 +8,17 @@ import { OrderDialog } from './OrderDialog'
 import { StatusBadge } from './statusLabel'
 import { statusLabels } from './statusLabels'
 import { isReal } from '@/lib/realApi'
+import { useLocation } from 'react-router-dom'
 
 const filters: Array<OrderStatus | 'ALL'> = ['ALL', 'AWAITING_PAYMENT', 'PAID', 'SHIPPING', 'COMPLETED', 'CANCELLED']
 export function OrdersPage() {
+  const {search}=useLocation()
   const [orders, setOrders] = useState<Order[] | null>(null)
   const [filter, setFilter] = useState<OrderStatus | 'ALL'>('ALL')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState('')
+  useEffect(()=>{const params=new URLSearchParams(search), status=params.get('status');setFilter(filters.includes(status as OrderStatus) ? status as OrderStatus : 'ALL');setQuery(params.get('q')?.slice(0,100) ?? '')},[search])
   const requestId = useRef(0)
   const load = useCallback(() => { const id = ++requestId.current; setError(''); ordersApi.list().then(({ items }) => { if (id === requestId.current) setOrders(items) }).catch(() => { if (id === requestId.current) setError('Không tải được đơn hàng. Bạn thử lại nhé.') }) }, [])
   useEffect(() => { let active = true; const pending = requestId; queueMicrotask(() => { if (active) load() }); window.addEventListener('flowy:orders-changed',load); return () => { active = false; pending.current++; window.removeEventListener('flowy:orders-changed',load) } }, [load])
