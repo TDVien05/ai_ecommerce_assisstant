@@ -9,6 +9,10 @@ export function applyEvent(state: Snapshot | null, event: AIEvent): Snapshot | n
   if (event.type === 'snapshot') return event.snapshot
   if (!state) return state
   switch (event.type) {
+    case 'proactive':
+      return event.proactive.revision > (state.proactive?.revision ?? 0)
+        ? { ...state, proactive: event.proactive }
+        : state
     case 'message': {
       const list = state.conversations[event.conversationId] ?? []
       return {

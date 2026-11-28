@@ -74,6 +74,7 @@ function DemoApp() {
           key={conversationId}
           conversationId={conversationId}
           messages={state.conversations[conversationId] ?? []}
+          notices={state.proactive?.notices}
           typing={state.typing.includes(conversationId)}
           connected={connection === 'connected'}
           scope={thread?.scope}

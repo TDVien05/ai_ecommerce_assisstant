@@ -6,6 +6,7 @@ import { AiUsage } from './ai/AiUsage.js'
 import { AssistantAlert } from './alerts/AssistantAlert.js'
 import { AssistantThread } from './assistant/AssistantThread.js'
 import { AssistantMessage } from './assistant/AssistantMessage.js'
+import { AssistantProactiveState } from './assistant/AssistantProactiveState.js'
 import { AssistantStep } from './assistant/AssistantStep.js'
 import { AssistantActionLog } from './assistant/AssistantActionLog.js'
 import { AssistantFile } from './assistant/AssistantFile.js'
@@ -34,6 +35,7 @@ export {
   AssistantAlert,
   AssistantFile,
   AssistantMessage,
+  AssistantProactiveState,
   AssistantStep,
   AssistantThread,
   Blocklist,
@@ -63,6 +65,7 @@ export const entities = [
   AssistantAlert,
   AssistantFile,
   AssistantMessage,
+  AssistantProactiveState,
   AssistantStep,
   AssistantThread,
   Blocklist,

@@ -5,7 +5,7 @@ export async function loadSnapshot(shopId) {
   const shop = await query('SELECT name FROM shops WHERE id = $1', [shopId])
   if (!shop.rowCount) return null
   const threads = await query('SELECT id, title, status, scope, updated_at FROM assistant_threads WHERE shop_id = $1 ORDER BY updated_at, id', [shopId])
-  const messages = await query('SELECT conversation_id, body FROM assistant_messages WHERE shop_id = $1 ORDER BY seq', [shopId])
+  const messages = await query("SELECT conversation_id, body FROM assistant_messages WHERE shop_id = $1 AND conversation_id <> 'proactive' ORDER BY seq", [shopId])
   return { shopName: shop.rows[0].name, threads: threads.rows, messages: messages.rows }
 }
 

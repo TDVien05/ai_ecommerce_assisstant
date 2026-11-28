@@ -7,6 +7,7 @@ import * as orderRepo from '../../repositories/orders/order.repository.js'
 import * as threadRepo from '../../repositories/assistant/assistantThread.repository.js'
 import { insertMessage } from '../../repositories/assistant/assistantMessage.repository.js'
 import { publish } from '../assistant/events.js'
+import { requestProactiveScan } from '../assistant/proactive.service.js'
 import { formatTime } from '../assistant/view.js'
 import { appError } from '../../errors/index.js'
 const inputSchema=z.object({eventKey:z.string().trim().min(1).max(200),level:z.enum(['mid','high']),title:z.string().trim().min(1).max(200),reasons:z.array(z.string().trim().min(1).max(500)).min(1).max(10),orderId:z.string().uuid().nullable().optional()}).strict()
@@ -15,7 +16,10 @@ const missing=()=>appError('ALERT_NOT_FOUND', 'Không tìm thấy cảnh báo.')
 const conflict=()=>appError('ALERT_CLOSED', 'Cảnh báo đã được xử lý.')
 const toView=(row)=>({id:row.id,level:row.level,title:row.title,reasons:row.reasons,orderId:row.order_id,orderCode:row.order_code,detectedAt:new Date(row.detected_at).toISOString(),status:row.status})
 function alertId(shopId,eventKey) { const h=createHash('sha256').update(JSON.stringify([shopId,eventKey])).digest('hex'); return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-a${h.slice(17,20)}-${h.slice(20,32)}` }
-export function publishAlert(shopId,events) { for(const event of events??[]) publish(shopId,event) }
+export function publishAlert(shopId, events) {
+  for (const event of events ?? []) publish(shopId, event)
+  if (events?.some((event) => event.type === 'thread' && event.thread.status === 'alert')) requestProactiveScan(shopId, { force: true })
+}
 export async function createAlert(shopId,input,{client}={}) {
   const parsed=inputSchema.safeParse(input); if(!parsed.success || !z.string().uuid().safeParse(shopId).success) throw invalid()
   const create=async (dbClient)=>{

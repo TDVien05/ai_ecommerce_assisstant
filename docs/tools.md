@@ -138,6 +138,12 @@ Proposes 1 to 20 changes for the owner to approve (`tools/change.js` and the `ch
 
 Basic mode (`fallback.js`) matches keywords to one read tool: `get_summary`, `list_ledger`, `list_orders` or `get_order`. It proposes no changes. The server logs the reason and provider status without message content or keys.
 
+## Proactive notices
+
+When the shop owner opens the central chat, the server checks for elevated weekly spending, high-risk open orders or recent high-risk checks, overdue unpaid orders, unclassified entries in the current month, and recorded year-to-date revenue nearing the reference threshold. The same scan runs after approved changes or undo and periodically for recently active shops. Expense comparisons use classified expenses from the current calendar week and the prior four weeks, with at least two prior weeks containing expenses. Existing alert messages take precedence over new notices for the same order.
+
+The server supplies the evidence, amounts and links, keeps up to five active notices, and remembers dismissals. The model can add optional wording from counts and totals in a separate daily allowance. A notice opens a relevant page and leaves business data unchanged. [HTTP and SSE contracts](ai-interface.md#thông-báo-chủ-động).
+
 ## Current gaps
 
 - `guard.js` is a temporary adapter: it refuses requests to confirm payment or match transactions, and wraps untrusted data. It is not a full prompt-injection defence.

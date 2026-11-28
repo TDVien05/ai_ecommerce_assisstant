@@ -124,8 +124,13 @@ const viewColumns = `o.id,o.payment_code,o.status,o.subtotal,o.shipping_fee,o.to
 
 const viewFrom = `FROM orders o LEFT JOIN customers c ON c.id=o.customer_id AND c.shop_id=o.shop_id`
 
-export async function listOrders(shopId, status, client, { from = null, to = null } = {}) {
-  const { rows } = await query(`SELECT ${viewColumns} ${viewFrom} WHERE o.shop_id=$1 AND ($2::text IS NULL OR o.status=$2) AND ($3::timestamptz IS NULL OR o.created_at >= $3) AND ($4::timestamptz IS NULL OR o.created_at < $4) ORDER BY o.created_at DESC,o.id LIMIT 100`, [shopId,status ?? null,from,to], client)
+export async function listOrders(shopId, status, client, { from = null, to = null, overdue = false, code = null } = {}) {
+  const { rows } = await query(`SELECT ${viewColumns} ${viewFrom}
+    WHERE o.shop_id = $1 AND ($2::text IS NULL OR o.status = $2)
+      AND ($3::timestamptz IS NULL OR o.created_at >= $3) AND ($4::timestamptz IS NULL OR o.created_at < $4)
+      AND (NOT $5::boolean OR (o.status = 'AWAITING_PAYMENT' AND o.expires_at <= now()))
+      AND ($6::text IS NULL OR o.payment_code = $6)
+    ORDER BY o.created_at DESC, o.id LIMIT 100`, [shopId, status ?? null, from, to, overdue, code], client)
   return rows
 }
 

@@ -117,6 +117,9 @@ export class MockFlowyAI implements FlowyAI {
     if (thread) this.emit({ type: 'thread', thread: { ...thread, status: 'done', updatedAt: clock() } })
   }
 
+  async refreshProactive() {}
+  async dismissProactive(noticeId: string) { await this.dismissNotice(noticeId) }
+
   /** Hai việc AI tự làm khi mở app: xong báo cáo tuần, rồi phát hiện một đơn khả nghi. */
   private start() {
     if (this.started) return

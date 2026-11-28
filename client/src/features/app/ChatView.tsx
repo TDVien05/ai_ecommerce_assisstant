@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { AssistantMessage, ChatFeed, ChatFooter, Composer, DayDivider, ThreadScope, UserMessage } from '@/components/flowy'
-import { ai, HUB, type ConversationId, type Message } from '@/lib/ai'
+import { ai, HUB, type ConversationId, type Message, type ProactiveNoticeBlock } from '@/lib/ai'
 import { ApiError } from '@/lib/api'
 import { BlockView } from './BlockView'
 
 type ChatViewProps = {
   conversationId: ConversationId
   messages: Message[]
+  notices?: ProactiveNoticeBlock[]
   typing: boolean
   connected: boolean
   /** Dòng phạm vi, chỉ có trong luồng việc. */
@@ -19,22 +20,45 @@ const now = new Date()
 const todayLabel = `Hôm nay, ${now.getDate()}/${now.getMonth() + 1}`
 
 /** Khung chat của chat trung tâm hoặc một luồng việc. */
-export function ChatView({ conversationId, messages, typing, connected, scope, onOpenThread }: ChatViewProps) {
+export function ChatView({ conversationId, messages, notices, typing, connected, scope, onOpenThread }: ChatViewProps) {
   const hub = conversationId === HUB
   const endRef = useRef<HTMLDivElement>(null)
+  const noticesRef = useRef<HTMLElement>(null)
+  const seenNotices = useRef(false)
+  const openedAtLength = useRef(messages.length)
+  const lastScroll = useRef<{ length: number; typing: boolean } | null>(null)
   const [pending, setPending] = useState<{ lastAssistantId: string | undefined } | null>(null)
   const lastAssistantId = [...messages].reverse().find((message) => message.role === 'assistant')?.id
   const waiting = pending !== null && pending.lastAssistantId === lastAssistantId
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages.length, typing])
+    const previous = lastScroll.current
+    lastScroll.current = { length: messages.length, typing }
+    if (!hub || (!previous && !noticesRef.current) || (previous && (previous.length !== messages.length || previous.typing !== typing))) {
+      endRef.current?.scrollIntoView({ block: 'end' })
+    }
+  }, [hub, messages.length, typing])
+
+  useEffect(() => {
+    if (!hub || seenNotices.current || !notices?.length) return
+    seenNotices.current = true
+    if (!typing && messages.length === openedAtLength.current) noticesRef.current?.scrollIntoView({ block: 'start' })
+  }, [hub, messages.length, notices?.length, typing])
+
+  useEffect(() => {
+    if (hub && connected) void ai.refreshProactive().catch(() => {})
+  }, [hub, connected])
 
   return (
     <>
       <ChatFeed>
         {!connected && <p role="status" className="m-0 border border-border p-3 text-muted-foreground">Mất kết nối chat. Mình đang thử kết nối lại.</p>}
         {scope ? <ThreadScope>{scope}</ThreadScope> : <DayDivider>{todayLabel}</DayDivider>}
+        {hub && notices && notices.length > 0 && (
+          <section ref={noticesRef} aria-label="Thông báo chủ động" className="flex flex-col gap-3">
+            {notices.map((notice) => <BlockView key={notice.noticeId} block={notice} onOpenThread={onOpenThread} />)}
+          </section>
+        )}
         {messages.map((m) =>
           m.role === 'user' ? (
             <UserMessage key={m.id} files={m.files}>

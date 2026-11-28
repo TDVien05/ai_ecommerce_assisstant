@@ -17,7 +17,7 @@ export class HttpFlowyAI implements FlowyAI {
             if (!payload || typeof payload !== 'object') return
             const value = payload as Record<string, unknown>
             const type = frame.event === 'message' && typeof value.type === 'string' ? value.type : frame.event
-            if (!['snapshot', 'message', 'thread', 'typing'].includes(type)) return
+            if (!['snapshot', 'message', 'thread', 'typing', 'proactive'].includes(type)) return
             if (type === 'snapshot') { attempt = 0; onConnection?.('connected') }
             listener({ ...value, type } as AIEvent)
           } catch { /* Bỏ qua khung không hợp lệ; kết nối tiếp tục. */ }
@@ -41,4 +41,6 @@ export class HttpFlowyAI implements FlowyAI {
   undo(stepId: string, password?: string): Promise<void> { return api.post(`/assistant/steps/${encodeURIComponent(stepId)}/undo`, password ? {password} : {}) }
   safeAction(alertId: string): Promise<void> { return api.post(`/assistant/alerts/${encodeURIComponent(alertId)}/safe-action`) }
   dismissNotice(noticeId: string): Promise<void> { return api.post(`/assistant/notices/${encodeURIComponent(noticeId)}/dismiss`) }
+  refreshProactive(): Promise<void> { return api.post('/assistant/proactive/refresh') }
+  dismissProactive(noticeId: string): Promise<void> { return api.post(`/assistant/proactive/${encodeURIComponent(noticeId)}/dismiss`) }
 }

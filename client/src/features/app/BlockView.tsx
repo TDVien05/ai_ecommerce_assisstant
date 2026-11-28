@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AgentStep, AssistantText, Block as FlowyBlock, BlockHeader, BlockBody, BlockFooter, DataTable, ProactiveNotice, ResultCard, RiskAlert, ThreadSummary } from '@/components/flowy'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,16 @@ import { approve, run } from './actions'
 
 type BankSettings = { bankCode: string | null; bankAccountNumber: string | null; bankAccountName: string | null }
 type SensitiveDetails = { before: BankSettings; after: BankSettings }
+
+function LegalNotice() {
+  return <FlowyBlock><BlockBody><p>Số liệu chỉ gồm doanh thu đã ghi trong sổ và không đủ để xác định doanh thu của toàn hộ.</p><p>Nếu thuộc trường hợp quy định và doanh thu lũy kế vượt ngưỡng, thời hạn đăng ký hóa đơn điện tử có thể được tính từ cuối kỳ tính thuế. Hãy liên hệ cơ quan thuế để xác định nghĩa vụ và thời hạn áp dụng.</p><a className="underline underline-offset-4" href="https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/14/469455-1778231931_v1_1778720623_signed.pdf" target="_blank" rel="noreferrer">Khoản 2 Điều 1 Nghị định 141/2026/NĐ-CP · Công báo</a></BlockBody></FlowyBlock>
+}
+
+function pageUrl({ page, filters }: Pick<Extract<Block, { type: 'pageLink' }>, 'page' | 'filters'>) {
+  if (!['ledger', 'orders', 'reports', 'fraud', 'messenger', 'sources', 'settings'].includes(page)) return null
+  const query = new URLSearchParams(filters).toString()
+  return `/pages/${page}${query ? `?${query}` : ''}`
+}
 
 function SensitiveStep({ block }: { block: Extract<Block, { type: 'agentStep' }> }) {
   const [details, setDetails] = useState<SensitiveDetails | null>(null)
@@ -75,6 +85,7 @@ function MessageDraftStep({ block }: { block: Extract<Block, { type: 'agentStep'
 
 /** Đổi một khối dữ liệu của AI thành component Flowy tương ứng. */
 export function BlockView({ block, onOpenThread }: { block: Block; onOpenThread: (id: string) => void }) {
+  const navigate = useNavigate()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   async function download(format: 'pdf' | 'xlsx') {
@@ -92,13 +103,11 @@ export function BlockView({ block, onOpenThread }: { block: Block; onOpenThread:
     case 'text':
       return <AssistantText text={block.text} />
     case 'pageLink': {
-      const allowed=['ledger','orders','reports','fraud','messenger','sources','settings']
-      if(!allowed.includes(block.page)) return null
-      const query=new URLSearchParams(block.filters).toString()
-      return <Button variant="outline" render={<Link to={`/pages/${block.page}${query ? `?${query}` : ''}`} />}>{block.label}</Button>
+      const to = pageUrl(block)
+      return to ? <Button variant="outline" render={<Link to={to} />}>{block.label}</Button> : null
     }
     case 'legalNotice':
-      return <FlowyBlock><BlockBody><p>Số liệu chỉ gồm doanh thu đã ghi trong sổ và không đủ để xác định doanh thu của toàn hộ.</p><p>Nếu thuộc trường hợp quy định và doanh thu lũy kế vượt ngưỡng, thời hạn đăng ký hóa đơn điện tử có thể được tính từ cuối kỳ tính thuế. Hãy liên hệ cơ quan thuế để xác định nghĩa vụ và thời hạn áp dụng.</p><a className="underline underline-offset-4" href="https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/14/469455-1778231931_v1_1778720623_signed.pdf" target="_blank" rel="noreferrer">Khoản 2 Điều 1 Nghị định 141/2026/NĐ-CP · Công báo</a></BlockBody></FlowyBlock>
+      return <LegalNotice />
     case 'agentStep':
       if (block.requiresPassword) return <SensitiveStep block={block} />
       if (block.messageDraft) return <MessageDraftStep block={block} />
@@ -143,16 +152,25 @@ export function BlockView({ block, onOpenThread }: { block: Block; onOpenThread:
           onOpen={() => onOpenThread(block.threadId)}
         />
       )
-    case 'proactiveNotice':
+    case 'proactiveNotice': {
+      const target = block.target && pageUrl(block.target)
       return (
         <ProactiveNotice
           headline={block.headline}
           detail={block.detail}
           risk={block.risk}
           actionLabel={block.actionLabel}
-          onOpenThread={() => onOpenThread(block.threadId)}
-          onDismiss={() => run(ai.dismissNotice(block.noticeId))}
-        />
+          onOpenThread={() => {
+            if (target) navigate(target)
+            else if (block.threadId) onOpenThread(block.threadId)
+          }}
+          onDismiss={() => run(block.target ? ai.dismissProactive(block.noticeId) : ai.dismissNotice(block.noticeId))}
+        >
+          {block.target && block.wording && <p>{block.wording}</p>}
+          {block.target && block.result && <ResultCard {...block.result} />}
+          {block.target && block.legal && <LegalNotice />}
+        </ProactiveNotice>
       )
+    }
   }
 }

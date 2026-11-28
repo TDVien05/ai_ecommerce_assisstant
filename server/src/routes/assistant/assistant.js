@@ -18,3 +18,5 @@ assistantRouter.post('/steps/:id/undo', validator.approval, controller.undo)
 
 assistantRouter.post('/alerts/:id/safe-action', alertValidator.alertId, alertController.safeAction)
 assistantRouter.post('/notices/:id/dismiss', alertValidator.alertId, alertController.dismissNotice)
+assistantRouter.post('/proactive/refresh', controller.refreshProactive)
+assistantRouter.post('/proactive/:id/dismiss', alertValidator.alertId, controller.dismissProactiveNotice)
