@@ -9,6 +9,7 @@ type ChatViewProps = {
   conversationId: ConversationId
   messages: Message[]
   typing: boolean
+  connected: boolean
   /** Dòng phạm vi, chỉ có trong luồng việc. */
   scope?: string
   onOpenThread: (id: string) => void
@@ -18,7 +19,7 @@ const now = new Date()
 const todayLabel = `Hôm nay, ${now.getDate()}/${now.getMonth() + 1}`
 
 /** Khung chat của chat trung tâm hoặc một luồng việc. */
-export function ChatView({ conversationId, messages, typing, scope, onOpenThread }: ChatViewProps) {
+export function ChatView({ conversationId, messages, typing, connected, scope, onOpenThread }: ChatViewProps) {
   const hub = conversationId === HUB
   const endRef = useRef<HTMLDivElement>(null)
   const [pending, setPending] = useState<{ lastAssistantId: string | undefined } | null>(null)
@@ -32,6 +33,7 @@ export function ChatView({ conversationId, messages, typing, scope, onOpenThread
   return (
     <>
       <ChatFeed>
+        {!connected && <p role="status" className="m-0 border border-border p-3 text-muted-foreground">Mất kết nối chat. Mình đang thử kết nối lại.</p>}
         {scope ? <ThreadScope>{scope}</ThreadScope> : <DayDivider>{todayLabel}</DayDivider>}
         {messages.map((m) =>
           m.role === 'user' ? (
@@ -53,7 +55,7 @@ export function ChatView({ conversationId, messages, typing, scope, onOpenThread
         {/* key: mỗi hội thoại có bản nháp riêng */}
         <Composer
           key={conversationId}
-          disabled={typing || waiting}
+          disabled={!connected || typing || waiting}
           placeholder={hub ? undefined : 'Nhắn trong luồng này...'}
           suggestions={hub ? ['Lãi tuần này?', 'Đơn nào chưa thanh toán?', 'Nhập sao kê'] : undefined}
           onSubmit={async (text, files) => {
