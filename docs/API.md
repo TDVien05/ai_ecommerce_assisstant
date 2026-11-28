@@ -58,7 +58,7 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 
 ### Assistant (planned)
 
-`GET /api/assistant/stream` provides a JWT-protected SSE stream with a snapshot first and heartbeats every 20 seconds. `POST /api/assistant/messages` accepts `{ conversationId, text, attachments }`, persists the message and returns `204`; the assistant can call read-only ledger tools. A busy conversation returns `409 ASSISTANT_BUSY`, and another shop's thread or attachment returns `404`. Quota, rule fallback and guardrails are temporary adapters, and the other assistant endpoints remain unimplemented. The complete contract is in [ai-interface.md](ai-interface.md).
+`GET /api/assistant/stream` provides a JWT-protected SSE stream with a snapshot first and heartbeats every 20 seconds. `POST /api/assistant/messages` accepts `{ conversationId, text, attachments }`, persists the message and returns `204`. Ledger write tools create proposals; they do not change the ledger until approval. `POST /api/assistant/steps/:id/answers` accepts `{ questionId, option }` and returns `204`; `POST /api/assistant/steps/:id/approve` returns `{ message }`; `POST /api/assistant/steps/:id/undo` returns `204`. The latter three never call the model. Repeated approval or undo returns `409 STEP_CONFLICT`; another shop's resources return `404`. Quota, rule fallback and guardrails are temporary adapters; upload and alert endpoints remain unimplemented. See [ai-interface.md](ai-interface.md).
 
 ### Products
 | Method | Path | Description |
@@ -96,8 +96,11 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 | GET | `/api/finance/timeseries?from=&to=&interval=day` | revenue by day/week |
 | GET | `/api/finance/top-products?from=&to=&limit=5` | best-selling products |
 | GET | `/api/finance/ledger` | income/expense ledger |
-| POST | `/api/finance/ledger` | add a manual expense `{ type: "EXPENSE", category, amount, note, occurredAt }` |
+| POST | `/api/finance/ledger` | create a manual `INCOME` or `EXPENSE` entry with `{ type, kind, channel, category, amount, documentRef, documentDate, industry, note, occurredAt }` → `201 { entry, message }` |
+| DELETE | `/api/finance/ledger/:id` | delete a manual entry → `{ message }`; automatic entry → `409 ENTRY_NOT_MANUAL` |
 | POST | `/api/finance/ask` | `{ question }` → `{ answer, data }` (AI finance assistant) |
+
+The implemented finance types are defined in `client/src/lib/finance/types.ts`. `GET /ledger` returns `{ items, totals: { income, expense, net }, updatedAt }`; `from` is inclusive, `to` exclusive and dates include a timezone. Legacy entries can have `kind` or `channel` set to `null` when unknown. `GET /summary`, `/timeseries` and `/top-products` return `409 FINANCE_INCOMPLETE` if the period has no ledger data or contains unclassified entries; summary also requires known order costs. These cases are not represented as zero. Other finance endpoints remain proposals.
 
 ## References
 - Messenger Webhooks: https://developers.facebook.com/docs/messenger-platform/webhooks

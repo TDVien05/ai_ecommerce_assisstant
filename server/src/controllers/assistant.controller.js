@@ -1,5 +1,6 @@
 import * as assistant from '../services/assistant.service.js'
 import { trackStream } from '../services/assistant/events.js'
+import * as approval from '../services/assistant/approval.js'
 
 export async function stream(req, res) {
   let ready = false
@@ -31,3 +32,7 @@ export async function send(req, res) {
   await assistant.sendMessage(req.auth, req.body)
   res.sendStatus(204)
 }
+
+export async function answer(req, res) { await approval.answer(req.auth, req.params.id, req.body); res.sendStatus(204) }
+export async function approve(req, res) { res.json(await approval.approve(req.auth, req.params.id)) }
+export async function undo(req, res) { await approval.undo(req.auth, req.params.id); res.sendStatus(204) }

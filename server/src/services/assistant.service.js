@@ -30,7 +30,10 @@ export async function sendMessage({ shopId, userId }, { conversationId, text, at
         const ctx = { shopId, userId, runId: randomUUID() }
         const blocks = await runAgent({ text, history, ctx })
         const reply = { id: randomUUID(), role: 'assistant', blocks }
-        await store.insertMessage(shopId, conversationId, reply)
+        await withTransaction(async (client) => {
+          await store.insertMessage(shopId, conversationId, reply, client)
+          if (ctx.pendingStep) await store.createStep(shopId, conversationId, reply.id, ctx.pendingStep, client)
+        })
         events.publish(shopId, { type: 'message', conversationId, message: reply })
       } catch (err) {
         logger.error({ err }, 'Assistant reply failed')

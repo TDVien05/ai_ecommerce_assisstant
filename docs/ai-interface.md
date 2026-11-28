@@ -1,6 +1,6 @@
 # Hợp đồng giao diện trợ lý và lớp AI
 
-Tài liệu này mô tả lớp AI hiện có và hợp đồng giữa máy chủ, agent và giao diện. Chat lưu DB, SSE và công cụ đọc sổ đã có; hạn mức, chế độ luật và lớp bảo vệ là bản tạm, các endpoint khác vẫn là **dự kiến**. Kiểu JSON là nguồn chuẩn tại `client/src/lib/ai/types.ts`; cách gọi nằm ở `client/src/lib/ai/http.ts`. Backend tuân thủ `routes → controllers → services → db` theo [ARCHITECTURE.md](ARCHITECTURE.md).
+Tài liệu này mô tả lớp AI hiện có và hợp đồng giữa máy chủ, agent và giao diện. Chat lưu DB, SSE và công cụ đọc/đề xuất ghi sổ đã có; hạn mức, chế độ luật và lớp bảo vệ là bản tạm, các endpoint khác vẫn là **dự kiến**. Kiểu JSON là nguồn chuẩn tại `client/src/lib/ai/types.ts`; cách gọi nằm ở `client/src/lib/ai/http.ts`. Backend tuân thủ `routes → controllers → services → db` theo [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Lớp AI hiện có
 
@@ -55,7 +55,7 @@ Thứ tự một lượt: (1) `checkInput`; nếu `refuse`, trả `message` thà
 
 ## HTTP (dự kiến)
 
-Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗi theo dạng `{ "error": { "code": "...", "message": "..." } }`. `GET /stream` và `POST /messages` đã triển khai với công cụ đọc sổ; các endpoint còn lại chưa triển khai. Các kiểu `Attachment`, `Message`, `Thread`, `Snapshot` và `Block` lấy chính xác từ `types.ts`.
+Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗi theo dạng `{ "error": { "code": "...", "message": "..." } }`. `GET /stream`, `POST /messages` và các endpoint `steps` đã triển khai; upload và các endpoint cảnh báo, thông báo chưa triển khai. Công cụ ghi chỉ tạo đề xuất, việc duyệt và hoàn tác chạy trong giao dịch DB. Các kiểu `Attachment`, `Message`, `Thread`, `Snapshot` và `Block` lấy chính xác từ `types.ts`.
 
 | Phương thức và đường dẫn | Yêu cầu | Thành công |
 |---|---|---|

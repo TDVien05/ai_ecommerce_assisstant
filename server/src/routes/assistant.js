@@ -13,3 +13,6 @@ const message = z.object({
 export const assistantRouter = Router()
 assistantRouter.get('/stream', controller.stream)
 assistantRouter.post('/messages', validate(message, 'body', 'Tin nhắn không hợp lệ.'), controller.send)
+assistantRouter.post('/steps/:id/answers', validate(z.object({ questionId: z.string().min(1).max(100), option: z.string().min(1).max(100) }).strict()), controller.answer)
+assistantRouter.post('/steps/:id/approve', controller.approve)
+assistantRouter.post('/steps/:id/undo', controller.undo)

@@ -1,6 +1,8 @@
 import { loadPrompt, runToolLoop, isAiUnavailable } from '../ai/index.js'
 import { createRegistry } from './registry.js'
 import { tools as financeTools } from './tools/finance.read.js'
+import { writeTools } from './tools/finance.write.js'
+import { makeStep } from './steps.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
 import { consumeAgentRun, classifyByRules } from './fallback.js'
 import { formatTime } from './view.js'
@@ -39,12 +41,20 @@ export async function runAgent({ text, history, ctx }) {
     return [{ type: 'text', text: output.text }]
   }
   const results = []
+  const actions = []
   const registry = createRegistry()
   for (const tool of financeTools) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
     const data = await tool.run(input, toolCtx)
     const guarded = await guardData(JSON.stringify(data), { source: 'tool_output', channel, ctx })
     results.push({ name: tool.name, data })
+    return guarded.content
+  } })
+  for (const tool of writeTools) registry.register({ ...tool, run: async (input, toolCtx) => {
+    assertToolAllowed(tool, { channel })
+    const proposal = await tool.propose(input, toolCtx)
+    actions.push(proposal)
+    const guarded = await guardData(JSON.stringify({ pending: true }), { source: 'tool_output', channel, ctx })
     return guarded.content
   } })
   const messages = [{ role: 'system', content: loadPrompt('agent', { shop_name: 'cửa hàng', today: today() }) }]
@@ -59,9 +69,14 @@ export async function runAgent({ text, history, ctx }) {
     await consumeAgentRun(ctx.shopId)
     const response = await runToolLoop({ role: 'agent', messages, tools: registry.list(), ctx })
     const summary = resultBlocks(results)
+    if (actions.length) {
+      const view = makeStep(actions)
+      ctx.pendingStep = { view, actions }
+      summary.push(view)
+    }
     // Numeric answers must come from server-generated blocks, not model prose.
     const unsafeNumbers = /\d|(?:không|một|hai|ba|bốn|tư|năm|sáu|bảy|tám|chín|mười|trăm|nghìn|ngàn|triệu|tỷ)\s+(?:đồng|nghìn|ngàn|triệu|tỷ)/i
-    const prose = summary.length ? 'Đây là kết quả từ dữ liệu cửa hàng.' : (response.text && !unsafeNumbers.test(response.text) ? response.text : 'Tôi chưa có kết quả công cụ để trả lời. Vui lòng cung cấp thêm thông tin.')
+    const prose = actions.length ? 'Tôi đã chuẩn bị đề xuất; vui lòng kiểm tra trước khi duyệt.' : summary.length ? 'Đây là kết quả từ dữ liệu cửa hàng.' : (response.text && !unsafeNumbers.test(response.text) ? response.text : 'Tôi chưa có kết quả công cụ để trả lời. Vui lòng cung cấp thêm thông tin.')
     const output = await checkOutput({ text: prose, channel, ctx })
     return [{ type: 'text', text: output.text }, ...summary]
   } catch (error) {
