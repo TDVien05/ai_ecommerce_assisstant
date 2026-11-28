@@ -1,5 +1,7 @@
 # AI Agent
 
+The tools the owner's chat assistant can call today are listed in [tools.md](tools.md).
+
 ## Principles
 - The LLM **only decides what to say and which tool to call**. Prices, stock, totals and payment status always come from the DB through tools; the LLM never calculates or makes them up.
 - The LLM **has no tool to mark an order as paid**. Only the SePay webhook can do that.
