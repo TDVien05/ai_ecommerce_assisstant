@@ -103,3 +103,13 @@ The frontend (Vercel) and the API (Railway) run on different domains, so two var
 - shadcn/ui Vite: https://ui.shadcn.com/docs/installation/vite
 - Messenger Quick Start: https://developers.facebook.com/documentation/business-messaging/messenger-platform/getting-started/quick-start
 - SePay Webhook: https://developer.sepay.vn/en/sepay-webhooks/tich-hop-webhook
+
+## Kiểm thử đầu cuối trong Docker
+
+Chạy một lệnh sau từ thư mục gốc để xây dựng và thực hiện hai vòng kiểm thử bằng trình duyệt và AI giả lập:
+
+```sh
+docker compose -f docker-compose.e2e.yml up --build --abort-on-container-exit --exit-code-from e2e
+```
+
+Dự án Compose dùng mạng riêng, không mở cổng và cơ sở dữ liệu tạm trong bộ nhớ. Tài khoản, đơn, cảnh báo và giao dịch được tạo trong lần chạy; không nạp khóa hay dữ liệu thật. Nếu lỗi, ảnh được ghi vào `.e2e-artifacts/`. Sau khi chạy, dọn container và volume của dự án thử bằng `docker compose -f docker-compose.e2e.yml down -v`.
