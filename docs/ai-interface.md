@@ -1,6 +1,6 @@
 # Hợp đồng giao diện trợ lý và lớp AI
 
-Tài liệu này mô tả lớp AI hiện có và hợp đồng giữa máy chủ, agent và giao diện. Chat lưu DB, SSE và công cụ đọc/đề xuất ghi sổ đã có; hạn mức, chế độ luật và lớp bảo vệ là bản tạm, các endpoint khác vẫn là **dự kiến**. Kiểu JSON là nguồn chuẩn tại `client/src/lib/ai/types.ts`; cách gọi nằm ở `client/src/lib/ai/http.ts`. Backend tuân thủ `routes → controllers → services → db` theo [ARCHITECTURE.md](ARCHITECTURE.md).
+Tài liệu này mô tả lớp AI hiện có và hợp đồng giữa máy chủ, agent và giao diện. Chat lưu DB, SSE và công cụ đọc/đề xuất ghi sổ đã có; hạn mức trong bộ nhớ, chế độ luật và lớp bảo vệ là bản tạm. Kiểu JSON là nguồn chuẩn tại `client/src/lib/ai/types.ts`; cách gọi nằm ở `client/src/lib/ai/http.ts`. Backend tuân thủ `routes → controllers → services → db` theo [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Lớp AI hiện có
 
@@ -15,8 +15,8 @@ Vòng lặp hiện xác thực đối số bằng Zod rồi trực tiếp gọi 
 
 ### Các hàm cần bổ sung, chưa có người nhận
 
-- `consumeAgentRun(shopId)`: kiểm tra và ghi nhận một lượt theo hạn mức; hết hạn mức ném `HttpError(429, 'AI_DAILY_LIMIT', message)`. Một lượt là một tin chủ cửa hàng thực sự gọi mô hình; từ chối đầu vào, duyệt, trả lời câu hỏi, hoàn tác và xử lý chỉ bằng luật không tính lượt.
-- `classifyByRules(text)` trả `{ tool, input }` hoặc `null`, chỉ chọn công cụ đọc. Khi gặp `AI_UNAVAILABLE`, agent dùng kết quả này để đọc dữ liệu; nếu không khớp, trả thông báo rõ ràng. Hai hàm này và luồng dự phòng đều chưa có.
+- `reserveAgentRun(shopId)` giới hạn số yêu cầu `messages` được chấp nhận cho từng cửa hàng theo ngày Việt Nam; sao kê cũng tính một lượt. Trả `429 AI_DAILY_LIMIT` khi hết. Bộ đếm trong bộ nhớ từng tiến trình, đặt lại sau khởi động; cần bộ đếm bền vững cho sản xuất. Duyệt, trả lời câu hỏi và hoàn tác không tính lượt.
+- `classifyByRules(text)` trả `{ tool, input }` hoặc `null`, chỉ chọn công cụ đọc. Khi gặp `AI_UNAVAILABLE`, agent dùng kết quả này để đọc dữ liệu; nếu không khớp, trả thông báo rõ ràng. Bộ luật dự phòng hiện là adapter tạm.
 
 ### Các service dự kiến do Viên cung cấp
 
@@ -51,11 +51,11 @@ Hợp đồng dự kiến tại `server/src/services/guardrail.service.js`:
 - `assertToolAllowed(tool, { channel })` ném `HttpError(403, 'TOOL_NOT_ALLOWED', message)` nếu công cụ không được phép trên kênh.
 - `checkOutput({ text, channel, ctx })` → `{ text, redacted, signals }`.
 
-Thứ tự một lượt: (1) `checkInput`; nếu `refuse`, trả `message` thành khối `text`, không gọi mô hình và không tính lượt; (2) nếu `allow`, agent kiểm tra hạn mức và xử lý; (3) trước mỗi công cụ gọi `assertToolAllowed`, dữ liệu ngoài qua `guardData`; nội dung tệp và tin khách còn phải qua `wrapUntrusted` và không đặt trong system prompt; (4) chạy `checkOutput` trước khi lưu văn bản trả lời và phát sự kiện. Agent vẫn chịu trách nhiệm cưỡng chế cấp công cụ và bước duyệt, không dựa riêng vào guardrail.
+Thứ tự một lượt: (1) `checkInput`; nếu `refuse`, trả `message` thành khối `text` và không gọi mô hình; yêu cầu được chấp nhận vẫn tính hạn mức tạm; (2) nếu `allow`, agent xử lý sau khi hạn mức đã được kiểm tra tại điểm nhận yêu cầu; (3) trước mỗi công cụ gọi `assertToolAllowed`, dữ liệu ngoài qua `guardData`; nội dung tệp và tin khách còn phải qua `wrapUntrusted` và không đặt trong system prompt; (4) chạy `checkOutput` trước khi lưu văn bản trả lời và phát sự kiện. Agent vẫn chịu trách nhiệm cưỡng chế cấp công cụ và bước duyệt, không dựa riêng vào guardrail.
 
 ## HTTP (dự kiến)
 
-Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗi theo dạng `{ "error": { "code": "...", "message": "..." } }`. `GET /stream`, `POST /messages` và các endpoint `steps` đã triển khai; upload và các endpoint cảnh báo, thông báo chưa triển khai. Công cụ ghi chỉ tạo đề xuất, việc duyệt và hoàn tác chạy trong giao dịch DB. Các kiểu `Attachment`, `Message`, `Thread`, `Snapshot` và `Block` lấy chính xác từ `types.ts`.
+Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗi theo dạng `{ "error": { "code": "...", "message": "..." } }`. `GET /stream`, `POST /messages`, upload CSV và các endpoint `steps`, cảnh báo, thông báo đã triển khai. Công cụ ghi chỉ tạo đề xuất, việc duyệt và hoàn tác chạy trong giao dịch DB. Các kiểu `Attachment`, `Message`, `Thread`, `Snapshot` và `Block` lấy chính xác từ `types.ts`.
 
 | Phương thức và đường dẫn | Yêu cầu | Thành công |
 |---|---|---|

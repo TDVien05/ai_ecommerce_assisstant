@@ -6,7 +6,7 @@
 - Provider-agnostic: `ai.service` reads `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` from env and uses the chat-completions format with `tools`.
 - History sent to the LLM: roughly the last 20 messages + a summary of the customer's known details (name, phone, address).
 
-## System prompt (draft)
+## Messenger system prompt (draft; đang phát triển)
 
 ```
 You are a sales assistant for the shop "{shop_name}" on Facebook Messenger.
@@ -20,7 +20,7 @@ You are a sales assistant for the shop "{shop_name}" on Facebook Messenger.
 - Complaints, refund requests, or out-of-scope questions: call handover_to_human.
 ```
 
-## Tools
+## Messenger tools (dự kiến)
 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
@@ -31,16 +31,13 @@ You are a sales assistant for the shop "{shop_name}" on Facebook Messenger.
 | `cancel_order` | `{ paymentCode }` | `{ status }` | Only allowed while `AWAITING_PAYMENT` |
 | `handover_to_human` | `{ reason }` | `{ ok }` | Sets `ai_paused=true` + notifies the shop owner |
 
-### Finance assistant (for the shop owner, endpoint `/api/finance/ask`)
+### Trợ lý dành cho chủ cửa hàng
 
-| Tool | Input |
-|---|---|
-| `get_summary` | `{ from, to }` |
-| `get_timeseries` | `{ from, to, interval }` |
-| `get_top_products` | `{ from, to, limit }` |
-| `list_expenses` | `{ from, to, category? }` |
+Trợ lý nhận tin tại `POST /api/assistant/messages` và gửi kết quả qua SSE. Công cụ hiện có: `get_summary`, `list_ledger`, `list_orders`, `get_order`, đề xuất `add_ledger_entries`, `delete_manual_entry`, `update_order_status` và đổi tên cửa hàng. Giao dịch chưa đối soát và thay đổi thông tin ngân hàng chưa hỗ trợ.
 
-The server writes the SQL behind each tool. The LLM never generates SQL. It only interprets the data the tools return, and every number in its answer must come from tool output.
+Thay đổi dữ liệu chỉ được thực hiện sau khi người dùng duyệt và có thể hoàn tác nếu dữ liệu chưa thay đổi tiếp. Không có công cụ xác nhận thanh toán. Bộ đọc CSV tạm nhận ngày, mô tả và số tiền; dòng nghi ngờ hoặc phân loại không chắc phải được người dùng chọn.
+
+Giới hạn mặc định là 50 yêu cầu được chấp nhận mỗi cửa hàng mỗi ngày (`AI_DAILY_RUN_LIMIT`), tính cả nhập sao kê. Bộ đếm lưu trong bộ nhớ từng tiến trình, đặt lại sau khởi động, chưa thay thế giới hạn chi phí tại nhà cung cấp hoặc bộ đếm bền vững. Chế độ luật dự phòng và lớp bảo vệ đầy đủ đang phát triển.
 
 ## Guardrails
 - Validate tool input against a schema (e.g. zod) before running it. Invalid input → return the error to the LLM so it can ask the customer again.
