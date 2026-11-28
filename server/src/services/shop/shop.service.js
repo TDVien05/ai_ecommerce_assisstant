@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { pool, withTransaction } from '../../db/pool.js'
-import { findShop, saveShop } from '../../db/shop/shop.js'
-import { badRequest, HttpError } from '../../lib/httpError.js'
+import { withTransaction } from '../../repositories/database.js'
+import { findShop, saveShop } from '../../repositories/shop/shop.repository.js'
+import { appError, badRequest } from '../../errors/index.js'
 
 const textOrNull = (max) => z.string().trim().min(1).max(max).nullable()
 const patchSchema = z.object({
@@ -22,10 +22,10 @@ function validateShopId(shopId) {
   if (!z.string().uuid().safeParse(shopId).success) throw badRequest('Cửa hàng không hợp lệ.')
 }
 
-export async function getShopSettings(shopId, { client = pool } = {}) {
+export async function getShopSettings(shopId, { client } = {}) {
   validateShopId(shopId)
   const row = await findShop(shopId, { client })
-  if (!row) throw new HttpError(404, 'SHOP_NOT_FOUND', 'Không tìm thấy cửa hàng.')
+  if (!row) throw appError('SHOP_NOT_FOUND', 'Không tìm thấy cửa hàng.')
   return toSettings(row)
 }
 
@@ -37,7 +37,7 @@ export async function updateShopSettings(shopId, patch, { client } = {}) {
   if (!parsed.success) throw badRequest('Thông tin cửa hàng không hợp lệ.')
   const update = async (db) => {
     const row = await findShop(shopId, { client: db, lock: true })
-    if (!row) throw new HttpError(404, 'SHOP_NOT_FOUND', 'Không tìm thấy cửa hàng.')
+    if (!row) throw appError('SHOP_NOT_FOUND', 'Không tìm thấy cửa hàng.')
     const before = toSettings(row)
     const after = toSettings(await saveShop(shopId, { ...before, ...parsed.data }, db))
     return { before, after }

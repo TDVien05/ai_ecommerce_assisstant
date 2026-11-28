@@ -16,6 +16,8 @@ const schema = z.object({
   PUBLIC_BASE_URL: optional,
 
   DATABASE_URL: z.string().min(1),
+  // Most DB connections one server process holds; SQL and TypeORM share this one pool.
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   JWT_SECRET: z.string().min(8),
   DEMO_EMAIL: optional,
   DEMO_PASSWORD: optional,

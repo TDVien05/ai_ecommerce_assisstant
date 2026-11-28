@@ -85,11 +85,16 @@ docker compose down
 ├── client/                 Giao diện React, component và các lớp API
 ├── server/                 Express API, dịch vụ, xác thực và migration
 │   └── src/
+│       ├── app.js          Điểm khởi động: đăng ký middleware, router và chạy máy chủ
 │       ├── controllers/    Xử lý yêu cầu và phản hồi, chia thư mục theo tính năng
-│       ├── db/             Kết nối, migration và truy cập dữ liệu theo tính năng
-│       ├── middlewares/    Xác thực, kiểm tra dữ liệu và xử lý lỗi
+│       ├── db/             Kết nối PostgreSQL, transaction, migration và seed
+│       ├── errors/         Lớp lỗi, bảng mã lỗi và trạng thái HTTP, chuyển mọi lỗi về một dạng
+│       ├── middlewares/    Xác thực, chữ ký webhook, giới hạn tần suất và xử lý lỗi
+│       ├── models/         Model TypeORM cho từng bảng, chia thư mục theo tính năng
+│       ├── repositories/   Truy vấn dữ liệu, mỗi bảng một tệp (vd. orders/order.repository.js)
 │       ├── routes/         Định tuyến API và webhook, chia thư mục theo tính năng
-│       └── services/       Nghiệp vụ theo tính năng (ai/, assistant/, auth/, finance/…)
+│       ├── services/       Nghiệp vụ theo tính năng (ai/, assistant/, auth/, finance/…)
+│       └── validators/     Schema zod cho đầu vào của từng route, chia thư mục theo tính năng
 ├── docs/                   Tài liệu kỹ thuật và hệ thống thiết kế
 ├── docker-compose.yml      Môi trường phát triển bằng Docker
 └── Dockerfile              Cấu hình ảnh ứng dụng

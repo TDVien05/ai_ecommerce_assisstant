@@ -6,10 +6,10 @@ import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 
 const { createShop, dropShops, dbAvailable, pool } = await import('../test-support/db.js')
-const products = await import('../src/db/repos/products.js')
-const customers = await import('../src/db/repos/customers.js')
-const ledger = await import('../src/db/repos/ledger.js')
-const todos = await import('../src/db/repos/todos.js')
+const products = await import('../src/repositories/products/product.repository.js')
+const customers = await import('../src/repositories/messenger/customer.repository.js')
+const ledger = await import('../src/repositories/finance/ledgerEntry.repository.js')
+const todos = await import('../src/repositories/shop/todo.repository.js')
 
 after(async () => { await pool.end() })
 

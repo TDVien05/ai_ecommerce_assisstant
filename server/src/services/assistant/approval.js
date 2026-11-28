@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { withTransaction } from '../../db/pool.js'
-import { HttpError } from '../../lib/httpError.js'
+import { withTransaction } from '../../repositories/database.js'
+import { appError } from '../../errors/index.js'
 import * as store from './store.js'
 import { publish } from './events.js'
 import { resolvedActions } from './steps.js'
@@ -9,9 +9,9 @@ import { updateOrderStatus } from './tools/orders.js'
 import { updateShop } from './tools/shop.js'
 import { updateThread, publishUpdate } from './threads.js'
 
-const notFound = () => new HttpError(404, 'STEP_NOT_FOUND', 'Không tìm thấy bước cần duyệt.')
-const conflict = () => new HttpError(409, 'STEP_CONFLICT', 'Bước đã thay đổi hoặc không thể thực hiện.')
-const badInput = () => new HttpError(400, 'BAD_REQUEST', 'Thông tin trả lời không hợp lệ.')
+const notFound = () => appError('STEP_NOT_FOUND', 'Không tìm thấy bước cần duyệt.')
+const conflict = () => appError('STEP_CONFLICT', 'Bước đã thay đổi hoặc không thể thực hiện.')
+const badInput = () => appError('BAD_REQUEST', 'Thông tin trả lời không hợp lệ.')
 const tools = new Map([...writeTools, updateOrderStatus, updateShop].map((tool) => [tool.name, tool]))
 
 async function getLocked(auth, id, client) {

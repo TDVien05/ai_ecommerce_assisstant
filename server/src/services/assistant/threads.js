@@ -1,8 +1,10 @@
 import { randomUUID, createHash } from 'node:crypto'
 import { logger } from '../../lib/logger.js'
-import { withTransaction } from '../../db/pool.js'
-import { HttpError } from '../../lib/httpError.js'
-import * as threads from '../../db/assistant/threads.js'
+import { withTransaction } from '../../repositories/database.js'
+import { appError, HttpError } from '../../errors/index.js'
+import * as threadRepo from '../../repositories/assistant/assistantThread.repository.js'
+import * as messageRepo from '../../repositories/assistant/assistantMessage.repository.js'
+import * as fileRepo from '../../repositories/assistant/assistantFile.repository.js'
 import * as store from './store.js'
 import * as events from './events.js'
 import { formatTime } from './view.js'
@@ -16,10 +18,10 @@ function summary(row,detail) {
   return {id:`summary-${row.id}`,role:'assistant',blocks:[{type:'threadSummary',threadId:row.id,title:row.title,status:row.status === 'running' ? 'waiting' : row.status,updatedAt:formatTime(row.updated_at),summary:detail}]}
 }
 export async function updateThread(shopId,id,status,detail,client) {
-  if (!await threads.getThread(shopId,id,client,true)) return null
-  const row=await threads.setThread(shopId,id,status,client)
+  if (!await threadRepo.getThread(shopId,id,client,true)) return null
+  const row=await threadRepo.setThread(shopId,id,status,client)
   const message=summary(row,detail)
-  await threads.setSummary(shopId,message.id,message,client)
+  await messageRepo.setSummary(shopId,message.id,message,client)
   return {thread:threadView(row),message}
 }
 export function publishUpdate(shopId,update) {
@@ -28,23 +30,23 @@ export function publishUpdate(shopId,update) {
   events.publish(shopId,{type:'message',conversationId:'hub',message:update.message})
 }
 export async function startStatement(auth,{text,attachments}) {
-  if (attachments.length!==1) throw new HttpError(400,'INVALID_FILE','Mỗi lần chỉ nhập một tệp CSV.')
+  if (attachments.length!==1) throw appError('INVALID_FILE', 'Mỗi lần chỉ nhập một tệp CSV.')
   const file=await getFile(auth.shopId,attachments[0].fileId)
-  if (file.name!==attachments[0].name) throw new HttpError(404,'FILE_NOT_FOUND','Không tìm thấy tệp sao kê.')
+  if (file.name!==attachments[0].name) throw appError('FILE_NOT_FOUND', 'Không tìm thấy tệp sao kê.')
   const id=randomUUID(), hubUser={id:randomUUID(),role:'user',text,files:[file.name],attachmentIds:[file.id],threadId:id}
   const digest=createHash('sha256').update(file.content).digest('hex')
   const threadUser={id:randomUUID(),role:'user',text,files:[file.name]}
   const created=await withTransaction(async (client) => {
-    await threads.lockFileImport(auth.shopId,digest,client)
-    const previous=await threads.activeFileImport(auth.shopId,file.content,client)
+    await fileRepo.lockFileImport(auth.shopId,digest,client)
+    const previous=await fileRepo.activeFileImport(auth.shopId,file.content,client)
     if (previous) {
       const state=previous.state==='done' ? 'đã duyệt' : previous.status==='waiting' ? 'chờ duyệt' : 'đang xử lý'
-      throw new HttpError(409,'DUPLICATE_FILE',`Tệp này ${state}. Hãy mở luồng ${previous.id} để xem.`,{threadId:previous.id,state})
+      throw appError('DUPLICATE_FILE', `Tệp này ${state}. Hãy mở luồng ${previous.id} để xem.`, { details: {threadId:previous.id,state} })
     }
-    await threads.createThread(auth.shopId,{id,title,status:'running',scope},client)
+    await threadRepo.createThread(auth.shopId,{id,title,status:'running',scope},client)
     await store.insertMessage(auth.shopId,'hub',hubUser,client)
     await store.insertMessage(auth.shopId,id,threadUser,client)
-    const row=await threads.getThread(auth.shopId,id,client)
+    const row=await threadRepo.getThread(auth.shopId,id,client)
     const msg=summary(row,'Đang đọc sao kê; mở luồng để theo dõi.')
     await store.insertMessage(auth.shopId,'hub',msg,client)
     return {row,msg}

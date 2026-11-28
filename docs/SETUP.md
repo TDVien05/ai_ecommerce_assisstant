@@ -1,7 +1,7 @@
 # Setup
 
 ## Requirements
-- Node.js 18+ (required by Express 5)
+- Node.js 20.19+ or 22.13+ (required by TypeORM 1.x; the Docker image uses Node 22)
 - PostgreSQL (local or Docker)
 - A public HTTPS tunnel so Meta and SePay can reach webhooks on your local machine (ngrok, cloudflared…)
 
@@ -38,6 +38,7 @@ npx shadcn@latest add button card table badge input dialog tabs sonner
 ```env
 PORT=4000
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/sales_assistant
+DB_POOL_MAX=10          # most DB connections one server process holds (one shared pool)
 JWT_SECRET=change-me
 
 # Meta

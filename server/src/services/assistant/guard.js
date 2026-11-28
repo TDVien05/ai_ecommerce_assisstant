@@ -1,5 +1,5 @@
 import { wrapUntrusted } from '../ai/index.js'
-import { HttpError } from '../../lib/httpError.js'
+import { appError } from '../../errors/index.js'
 
 // Temporary adapter; replace with guardrail.service.js when NV-00 is available.
 export const checkInput = async ({ text }) => {
@@ -12,6 +12,6 @@ export const checkInput = async ({ text }) => {
 }
 export const guardData = async (content) => ({ content: wrapUntrusted(content, 'du_lieu'), flagged: false, signals: [] })
 export function assertToolAllowed(tool, { channel }) {
-  if (channel !== 'owner' || (tool.tier !== 'read' && !(['write', 'sensitive'].includes(tool.tier) && typeof tool.propose === 'function'))) throw new HttpError(403, 'TOOL_NOT_ALLOWED', 'Công cụ không được phép.')
+  if (channel !== 'owner' || (tool.tier !== 'read' && !(['write', 'sensitive'].includes(tool.tier) && typeof tool.propose === 'function'))) throw appError('TOOL_NOT_ALLOWED', 'Công cụ không được phép.')
 }
 export const checkOutput = async ({ text }) => ({ text, redacted: false, signals: [] })

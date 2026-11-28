@@ -1,10 +1,11 @@
 import { z } from 'zod'
-import { executeRead } from '../../db/assistant/query-data.js'
-import { HttpError } from '../../lib/httpError.js'
+import { executeRead } from '../../repositories/assistant/queryData.js'
+import { withTransaction } from '../../repositories/database.js'
+import { badRequest, appError } from '../../errors/index.js'
 import { entities } from './query-entities.js'
 import { guardData } from './guard.js'
 
-const bad = (message) => new HttpError(400, 'INVALID_QUERY', message)
+const bad = (message) => badRequest(message)
 const scalar = z.union([z.string().max(500), z.number().finite(), z.boolean()])
 export const querySchema = z.object({
   entity: z.enum(Object.keys(entities)),
@@ -19,7 +20,11 @@ export const querySchema = z.object({
 const operators = { eq: '=', ne: '<>', gt: '>', gte: '>=', lt: '<', lte: '<=', contains: 'ILIKE' }
 const functionNames = { count: 'COUNT', sum: 'SUM', avg: 'AVG', min: 'MIN', max: 'MAX' }
 const metricLabels = { count: 'Số lượng', sum: 'Tổng', avg: 'Trung bình', min: 'Nhỏ nhất', max: 'Lớn nhất' }
-const redact = (value) => value.replace(/(?:\+?\d[\d .()-]{7,}\d)/g, (match) => `${'*'.repeat(Math.max(0, match.length - 4))}${match.slice(-4)}`)
+const redact = (value) => value
+  .replace(/(?:mật khẩu|password|api[_ -]?key|access[_ -]?token|token|secret)\s*[:=]\s*\S+/giu, '[đã ẩn thông tin bảo mật]')
+  .replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/giu, '[đã ẩn email]')
+  .replace(/(?:địa chỉ|số nhà|giao đến|giao tới)\s*[:\-]?[^\n]*/giu, '[đã ẩn địa chỉ]')
+  .replace(/(?:\+?\d[\d .()-]{7,}\d)/g, (match) => `${'*'.repeat(Math.max(0, match.length - 4))}${match.slice(-4)}`)
 const statusLabels = { alerts: { OPEN:'Đang mở', HELD:'Đã giữ', DISMISSED:'Đã bỏ qua' }, orders: { AWAITING_PAYMENT:'Chờ thanh toán', PAID:'Đã thanh toán', SHIPPING:'Đang giao', COMPLETED:'Hoàn tất', CANCELLED:'Đã hủy', EXPIRED:'Hết hạn', REFUNDED:'Đã hoàn tiền' }, payments: { MATCHED:'Đã đối soát', UNDERPAID:'Thiếu tiền', NO_ORDER:'Chưa gắn đơn', IGNORED:'Đã bỏ qua' }, todos: { OPEN:'Đang mở', DONE:'Đã xong', DISMISSED:'Đã bỏ qua' } }
 function safeNumber(value) { const number = Number(value); if (!Number.isSafeInteger(number)) throw bad('Kết quả số vượt giới hạn hỗ trợ.'); return number }
 function fieldFor(entity, name, allowMasked = true) {
@@ -76,8 +81,8 @@ export async function queryData(input, ctx) {
     sort = { position: position + 1, direction: request.sort.direction === 'asc' ? 'ASC' : 'DESC' }
   }
   let rows
-  try { rows = await executeRead({ table: entity.table, scope: entity.scope, where: entity.where, columns, groups, filters, sort, limit: request.limit }, ctx.shopId) }
-  catch (error) { if (error.code === '57014') throw new HttpError(408, 'QUERY_TIMEOUT', 'Truy vấn quá thời gian. Bạn thu hẹp điều kiện nhé.'); if (['22P02','22007','22008'].includes(error.code)) throw bad('Giá trị lọc không hợp lệ.'); throw error }
+  try { rows = await withTransaction((client) => executeRead(ctx.shopId, { table: entity.table, scope: entity.scope, where: entity.where, columns, groups, filters, sort, limit: request.limit }, client)) }
+  catch (error) { if (error.code === '57014') throw appError('DATABASE_TIMEOUT', 'Truy vấn quá thời gian. Bạn thu hẹp điều kiện nhé.'); if (['22P02','22007','22008'].includes(error.code)) throw bad('Giá trị lọc không hợp lệ.'); throw error }
   const data = await Promise.all(rows.map(async (row) => Promise.all(columns.map(async (column, index) => {
     const value = row[`c${index}`]
     if (value === null) return { view: null, model: null }
@@ -87,7 +92,9 @@ export async function queryData(input, ctx) {
     const text = ['id', 'orderId', 'conversationId', 'customerId'].includes(column.key) ? value.slice(0, 500) : redact(value.slice(0, 500))
     if (!column.untrusted) return { view: column.key === 'status' ? statusLabels[request.entity]?.[text] ?? text : text, model: text }
     const checked = await guardData(text, { source: request.entity === 'messages' ? 'customer_message' : 'statement', channel: 'owner', ctx })
-    return { view: text, model: checked.content }
+    // The provisional guard only wraps untrusted text; it cannot guarantee secret/PII removal.
+    // Show the redacted text to the owner, but do not send it to the external model.
+    return { view: checked.flagged ? '[Nội dung cần kiểm tra]' : text, model: '[Nội dung ẩn khỏi mô hình; xem bảng kết quả.]' }
   }))))
   return { source: entity.source, columns: columns.map(({ key, label, kind }) => ({ key, label, kind })), rows: data.map((row) => row.map((cell) => cell.view)), modelRows: data.map((row) => row.map((cell) => cell.model)), limit: request.limit, grouped: groups.length > 0, metrics: request.metrics.map((m) => `${m.op}${m.field ? `_${m.field}` : ''}`) }
 }

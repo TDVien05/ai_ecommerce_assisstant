@@ -1,7 +1,7 @@
 import { ingest } from './webhook.service.js'
-import * as ordersRepo from '../../db/repos/orders.js'
-import * as shopsRepo from '../../db/repos/shops.js'
-import { notFound, badRequest } from '../../lib/httpError.js'
+import * as ordersRepo from '../../repositories/orders/order.repository.js'
+import * as shopsRepo from '../../repositories/shop/shop.repository.js'
+import { notFound, badRequest } from '../../errors/index.js'
 
 /**
  * "Simulate payment" button. Builds exactly the payload SePay would send for this order and

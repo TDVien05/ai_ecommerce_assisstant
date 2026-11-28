@@ -1,4 +1,4 @@
-import { HttpError } from '../../lib/httpError.js'
+import { HttpError } from '../../errors/index.js'
 
 export const AI_UNAVAILABLE = 'AI_UNAVAILABLE'
 

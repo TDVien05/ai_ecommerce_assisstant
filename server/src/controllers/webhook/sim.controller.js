@@ -1,5 +1,5 @@
 import { ingest } from '../../services/webhook/webhook.service.js'
-import { badRequest } from '../../lib/httpError.js'
+import { badRequest } from '../../errors/index.js'
 
 /**
  * POST /webhooks/sim — the in-app "Try the bot" / "Simulate payment" pipe.

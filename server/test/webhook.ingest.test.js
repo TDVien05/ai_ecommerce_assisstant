@@ -10,10 +10,10 @@ import crypto from 'node:crypto'
 
 const { createShop, dropShops, dbAvailable, pool } = await import('../test-support/db.js')
 const webhook = await import('../src/services/webhook/webhook.service.js')
-const blocklist = await import('../src/db/repos/blocklist.js')
-const payments = await import('../src/db/repos/payments.js')
-const customers = await import('../src/db/repos/customers.js')
-const orders = await import('../src/db/repos/orders.js')
+const blocklist = await import('../src/repositories/payments/blocklist.repository.js')
+const payments = await import('../src/repositories/payments/paymentTransaction.repository.js')
+const customers = await import('../src/repositories/messenger/customer.repository.js')
+const orders = await import('../src/repositories/orders/order.repository.js')
 const { createApp } = await import('../src/app.js')
 
 after(async () => { await pool.end() })

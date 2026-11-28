@@ -10,10 +10,12 @@ import { pool, withTransaction } from './pool.js'
  *
  * `npm run seed` is idempotent: the template is marked by its fb_page_id, so a second run
  * does nothing instead of duplicating rows. Each judge session gets a copy of this shop
- * (see db/repos/shops.js + services/demo.service.js).
+ * (see repositories/shop/shop.repository.js + services/demo/demo.service.js).
  */
 
-export const TEMPLATE_PAGE_ID = 'TEMPLATE_LAN_CLOSET'
+// The template's page id lives with the shops queries; re-exported here for the seed's callers.
+import { TEMPLATE_PAGE_ID } from '../repositories/shop/shop.repository.js'
+export { TEMPLATE_PAGE_ID }
 
 const SEED = 20261127
 

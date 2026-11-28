@@ -12,4 +12,4 @@ ENV NODE_ENV=production
 EXPOSE 4000
 
 # docker-compose.yml overrides this with migrate + nodemon for development.
-CMD ["node", "src/index.js"]
+CMD ["node", "src/app.js"]

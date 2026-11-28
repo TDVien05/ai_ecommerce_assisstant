@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import { env } from '../config/env.js'
-import { HttpError, forbidden } from '../lib/httpError.js'
+import { appError, forbidden } from '../errors/index.js'
 import { recordSignatureFailure } from '../services/payments/fraud.service.js'
 
 /**
@@ -10,7 +10,7 @@ import { recordSignatureFailure } from '../services/payments/fraud.service.js'
  * request never reaches a handler.
  */
 export const verifySimSignature = async (req, _res, next) => {
-  if (!env.SIM_WEBHOOK_SECRET) throw new HttpError(503, 'NOT_CONFIGURED', 'Simulator webhook is not configured')
+  if (!env.SIM_WEBHOOK_SECRET) throw appError('NOT_CONFIGURED', 'Simulator webhook is not configured')
 
   const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0)
   const received = Buffer.from(req.get('x-sim-signature') ?? '')
@@ -30,7 +30,7 @@ export const verifySimSignature = async (req, _res, next) => {
   try {
     req.body = JSON.parse(raw.toString('utf8'))
   } catch {
-    throw new HttpError(400, 'INVALID_JSON', 'Malformed JSON body')
+    throw appError('INVALID_JSON', 'Malformed JSON body')
   }
   next()
 }

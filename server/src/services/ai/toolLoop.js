@@ -47,7 +47,7 @@ async function executeToolCall(call, byName, ctx) {
   try {
     return { ok: true, input: parsed.data, output: await tool.run(parsed.data, ctx) }
   } catch (err) {
-    // Business errors (HttpError) are shown to the model; unexpected ones are logged and hidden.
+    // Business errors (AppError) are shown to the model; unexpected ones are logged and hidden.
     if (err.status && err.status < 500) return { ok: false, input: parsed.data, output: { error: err.message, code: err.code } }
     logger.error({ err, tool: name }, 'AI tool failed')
     return { ok: false, input: parsed.data, output: { error: 'Công cụ gặp lỗi nội bộ.' } }

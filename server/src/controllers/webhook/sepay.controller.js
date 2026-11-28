@@ -1,5 +1,5 @@
 import { ingest } from '../../services/webhook/webhook.service.js'
-import { badRequest } from '../../lib/httpError.js'
+import { badRequest } from '../../errors/index.js'
 
 // POST /webhooks/sepay — API key already checked by the route's middleware.
 // The event is stored before answering 200; reconciliation runs right after (setImmediate).

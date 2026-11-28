@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { env } from '../config/env.js'
-import { unauthorized } from '../lib/httpError.js'
+import { unauthorized } from '../errors/index.js'
 
 export function requireAuth(req, _res, next) {
   const match = /^Bearer (\S+)$/.exec(req.get('authorization') ?? '')
