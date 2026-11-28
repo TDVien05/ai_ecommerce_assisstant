@@ -111,6 +111,8 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 | GET | `/api/finance/timeseries?from=&to=&interval=day` | revenue by day/week |
 | GET | `/api/finance/top-products?from=&to=&limit=5` | best-selling products |
 | GET | `/api/finance/ledger` | income/expense ledger |
+| GET | `/api/finance/ledger-book?code=...&from=...&to=...` | real ledger rows and server-computed section totals for the requested book and period; missing fields remain empty |
+| GET | `/api/finance/ledger-threshold` | classified business revenue year-to-date and reference threshold |
 | POST | `/api/finance/ledger` | create a manual `INCOME` or `EXPENSE` entry with `{ type, kind, channel, category, amount, documentRef, documentDate, industry, note, occurredAt }` → `201 { entry, message }` |
 | DELETE | `/api/finance/ledger/:id` | delete a manual entry → `{ message }`; automatic entry → `409 ENTRY_NOT_MANUAL` |
 | POST | `/api/finance/ask` | `{ question }` → `{ answer, data }` (AI finance assistant) |

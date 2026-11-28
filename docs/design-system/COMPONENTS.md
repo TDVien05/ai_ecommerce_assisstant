@@ -47,7 +47,7 @@ Import từ `@/components/flowy`. Ví dụ đầy đủ nằm ở `client/src/pa
 | Component | Dùng khi |
 |---|---|
 | `AgentStep` | Một lần AI làm việc trong luồng: các bước, câu hỏi lại (`questions`), Duyệt, Hoàn tác. `state`: `working`, `waiting`, `done`, `undone`, `failed`. |
-| `ResultCard` | Số liệu tiền, tối đa 3 ô, có nguồn và `how` (Cách tính). |
+| `ResultCard` | Số liệu từ máy chủ, tối đa 3 ô, có nguồn và `how` (Cách tính); `unit: 'count'` cho số lượng, mặc định hiển thị tiền. |
 | `RiskAlert` | Cảnh báo lừa đảo mức `mid` hoặc `high`, danh sách lý do, một hành động an toàn. |
 | `Block*` | Khung chung để tự dựng khối AI mới. |
 

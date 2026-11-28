@@ -32,12 +32,14 @@ export type Metric = {
   label: string
   /** Số nguyên VND, lấy từ server. */
   value: number
+  unit?: 'count'
   delta?: string
   tone?: 'good' | 'bad' | 'neutral'
 }
 
 export type Block =
   | { type: 'text'; text: string }
+  | { type: 'ledgerExport'; code: import('@/lib/ledgerTemplates').TemplateCode; name: string; from: string; to: string; warnings: string[] }
   | {
       /** Thay đổi dữ liệu do AI đề xuất. Chỉ ghi sau khi người dùng duyệt. */
       type: 'agentStep'
@@ -55,7 +57,7 @@ export type Block =
       metrics: Metric[]
       source: string
       updatedAt: string
-      how?: { label: string; value: number; total?: boolean }[]
+      how?: { label: string; value: number; total?: boolean; unit?: 'count' }[]
     }
   | {
       type: 'riskAlert'

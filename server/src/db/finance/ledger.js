@@ -17,3 +17,11 @@ export async function list(shopId, from, to, type) {
     AND ($4::text IS NULL OR type = $4) ORDER BY occurred_at DESC, id LIMIT 101`, [shopId, from, to, type ?? null])
   return rows
 }
+
+export async function activity(shopId, from, to) {
+  const ledger = await pool.query(`SELECT type,count(*)::int AS count,coalesce(sum(amount),0)::text AS amount
+    FROM ledger_entries WHERE shop_id=$1 AND occurred_at >= $2 AND occurred_at < $3 GROUP BY type`, [shopId, from, to])
+  const orders = await pool.query(`SELECT status,count(*)::int AS count,coalesce(sum(total),0)::text AS amount
+    FROM orders WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3 GROUP BY status ORDER BY status`, [shopId, from, to])
+  return { ledger: ledger.rows, orders: orders.rows }
+}
