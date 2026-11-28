@@ -16,4 +16,4 @@ RUN npm ci --omit=dev
 COPY server/src ./src
 COPY --from=client-build /client/dist ./public
 EXPOSE 4000
-CMD ["sh", "-c", "npm run migrate && npm run seed && exec node src/index.js"]
+CMD ["sh", "-c", "npm run migrate && npm run seed && exec node src/app.js"]

@@ -1,4 +1,4 @@
-import { HttpError } from '../lib/httpError.js'
+import { appError } from '../errors/index.js'
 
 const windowMs = 15 * 60 * 1000
 const attempts = new Map()
@@ -8,7 +8,7 @@ export function loginLimiter(req, _res, next) {
   const now = Date.now()
   for (const [key, value] of attempts) if (value.expires <= now) attempts.delete(key)
   const keys = [`ip:${req.ip}`, `email:${req.body.email}`]
-  if (keys.some((key) => (attempts.get(key)?.count ?? 0) >= limit)) return next(new HttpError(429, 'TOO_MANY_ATTEMPTS', 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau 15 phút.'))
+  if (keys.some((key) => (attempts.get(key)?.count ?? 0) >= limit)) return next(appError('TOO_MANY_ATTEMPTS', 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau 15 phút.'))
   // Reserve the attempt before async password verification, including concurrent requests.
   const reserved = keys.map((key) => {
     const entry = attempts.get(key) ?? { count: 0, expires: now + windowMs }

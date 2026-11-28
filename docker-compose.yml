@@ -45,7 +45,7 @@ services:
       - ./server:/app
       - server_node_modules:/app/node_modules # keep the Linux node_modules from the image
     # Apply migrations, then start nodemon. -L (polling) because file events don't cross Windows bind mounts.
-    command: sh -c "npm run migrate && npx nodemon -L --watch src src/index.js"
+    command: sh -c "npm run migrate && npx nodemon -L --watch src src/app.js"
 
   client:
     build: ./client

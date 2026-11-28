@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import * as webhookEventsRepo from '../../db/repos/webhookEvents.js'
-import * as shopsRepo from '../../db/repos/shops.js'
-import * as ordersRepo from '../../db/repos/orders.js'
+import * as webhookEventsRepo from '../../repositories/webhook/webhookEvent.repository.js'
+import * as shopsRepo from '../../repositories/shop/shop.repository.js'
+import * as ordersRepo from '../../repositories/orders/order.repository.js'
 import * as fraud from '../payments/fraud.service.js'
-import { badRequest } from '../../lib/httpError.js'
+import { badRequest } from '../../errors/index.js'
 import { logger } from '../../lib/logger.js'
 
 /**

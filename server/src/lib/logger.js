@@ -18,6 +18,10 @@ export const logger = pino({
     ],
     censor: '[REDACTED]',
   },
+  serializers: {
+    // A failed TypeORM query carries its parameters (e.g. a password hash); log the pg error under it.
+    err: (err) => pino.stdSerializers.err(err?.driverError ?? err),
+  },
   transport:
     env.NODE_ENV === 'development' ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
 })

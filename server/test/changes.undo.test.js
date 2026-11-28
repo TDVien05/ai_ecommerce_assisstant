@@ -6,8 +6,8 @@ import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 
 const { createShop, createAgentRun, dropShops, dbAvailable, pool } = await import('../test-support/db.js')
-const ledger = await import('../src/db/repos/ledger.js')
-const { recordChange, undoRun } = await import('../src/db/repos/changes.js')
+const ledger = await import('../src/repositories/finance/ledgerEntry.repository.js')
+const { recordChange, undoRun } = await import('../src/repositories/agent/change.repository.js')
 
 after(async () => { await pool.end() })
 

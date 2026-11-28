@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { chat, loadPrompt } from '../ai/index.js'
 import { guardData } from './guard.js'
-import { HttpError } from '../../lib/httpError.js'
+import { appError } from '../../errors/index.js'
 
-const invalid = (message) => new HttpError(400,'INVALID_STATEMENT',message)
+const invalid = (message) => appError('INVALID_STATEMENT', message)
 const normalize = (value) => value.toLocaleLowerCase('vi-VN').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]/g,'')
 function csvRows(text, separator) {
   const rows=[]; let row=[], cell='', quote=false
