@@ -86,6 +86,18 @@ curl "http://localhost:4000/webhooks/messenger?hub.mode=subscribe&hub.verify_tok
 3. Webhook integration → Add: URL `https://<tunnel>/webhooks/sepay`, transaction type **Tiền vào** (incoming), authentication **API Key** → `SEPAY_WEBHOOK_API_KEY`, enable "Chỉ gửi khi có mã thanh toán" (only send when a payment code is present).
 4. Use **Test mode** to simulate transactions.
 
+## 6. Production domains
+The frontend (Vercel) and the API (Railway) run on different domains, so two variables must be set:
+
+| Where | Variable | Value |
+|---|---|---|
+| Vercel (Production) | `VITE_API_BASE_URL` | `https://flowy.api.vientruong.site` |
+| Railway (server) | `CORS_ORIGIN` | `https://flowy.vientruong.site` |
+
+- `VITE_API_BASE_URL` is baked in at build time: redeploy the frontend after changing it. Leave it empty in dev (the Vite proxy handles `/api`) and in the single-image Docker build (same origin).
+- `CORS_ORIGIN` accepts a comma-separated list, e.g. `https://flowy.vientruong.site,http://localhost:5173`. Write origins without a trailing path.
+- Auth uses a Bearer token in `localStorage`, so no cookie or `SameSite` settings are involved.
+
 ## References
 - Express installing: https://expressjs.com/en/starter/installing.html
 - shadcn/ui Vite: https://ui.shadcn.com/docs/installation/vite

@@ -1,5 +1,8 @@
 // Single API client for the dashboard. All server calls go through here.
-// In dev, Vite proxies /api and /health to http://localhost:4000.
+// In dev, Vite proxies /api and /health to http://localhost:4000 (same origin, no base URL).
+// In production the API lives on another domain: VITE_API_BASE_URL (see client/.env.production).
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
 
 export class ApiError extends Error {
   status: number
@@ -61,7 +64,7 @@ async function request<T>(path: string, { method = 'GET', query, body, signal }:
   const headers = headersFor('application/json')
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
-  const res = await fetch(buildUrl(path, query), {
+  const res = await fetch(API_BASE_URL + buildUrl(path, query), {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -81,13 +84,13 @@ export const api = {
   upload: async <T>(path: string, file: File): Promise<T> => {
     const fullPath = `/api${path}`
     const body = new FormData(); body.append('file', file)
-    const res = await fetch(fullPath, { method: 'POST', headers: headersFor('application/json'), body })
+    const res = await fetch(API_BASE_URL + fullPath, { method: 'POST', headers: headersFor('application/json'), body })
     await checkResponse(res, fullPath)
     return await res.json() as T
   },
   stream: async (path: string, signal: AbortSignal): Promise<ReadableStream<Uint8Array>> => {
     const fullPath = `/api${path}`
-    const res = await fetch(fullPath, { headers: headersFor('text/event-stream'), signal, cache: 'no-store' })
+    const res = await fetch(API_BASE_URL + fullPath, { headers: headersFor('text/event-stream'), signal, cache: 'no-store' })
     await checkResponse(res, fullPath)
     if (!res.body || !res.headers.get('content-type')?.toLowerCase().startsWith('text/event-stream')) throw new Error('Dòng sự kiện không hợp lệ.')
     return res.body
