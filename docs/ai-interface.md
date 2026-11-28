@@ -100,3 +100,6 @@ Gửi chú thích `: ping` mỗi 20 giây. `message` thêm tin mới hoặc thay
 ### Điểm nối cảnh báo
 
 `createAlert(shopId, { eventKey, level, title, reasons, orderId? }, { client } = {})` trong `services/alerts/alerts.service.js` tạo hoặc tìm lại cảnh báo theo cặp cửa hàng và sự việc; `level` là `mid` hoặc `high`. Kết quả `{ alert, created, events }`. Khi truyền `client` đã trong transaction, bên gọi chỉ được gọi `publishAlert(shopId, events)` sau khi commit; không truyền `client` thì service tự giao dịch và phát sự kiện sau commit. Các cảnh báo cùng `eventKey` trong một cửa hàng không tạo thêm luồng hoặc thông báo. Hàm không phát hiện gian lận và không thay đổi đơn hàng.
+
+
+`propose_change` nhận tối đa 20 thao tác trong `changes`; mỗi thao tác gồm thực thể, hành động, dữ liệu cho phép và mã đối tượng khi sửa hoặc xóa. Máy chủ xác định cửa hàng từ phiên. Đơn chỉ chuyển theo các trạng thái hợp lệ; không có thao tác xác nhận thanh toán. Mọi thay đổi được duyệt trong một giao dịch và có thể hoàn tác nếu dữ liệu chưa đổi tiếp. Đề xuất và nhật ký cũ vẫn được hỗ trợ.

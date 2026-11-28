@@ -5,7 +5,7 @@ import * as ledgerRepo from '../../../repositories/finance/ledgerEntry.repositor
 
 export const kindOptions = { 'Doanh thu kinh doanh': 'BUSINESS_REVENUE', 'Chi phí kinh doanh': 'EXPENSE', 'Tiền cá nhân': 'PERSONAL', 'Chuyển tiền': 'TRANSFER' }
 export const channelOptions = { 'Tiền mặt': 'CASH', 'Ngân hàng': 'BANK', 'Ví điện tử': 'EWALLET' }
-const entry = z.object({
+export const entry = z.object({
   type: z.enum(['INCOME', 'EXPENSE']),
   kind: z.enum(['BUSINESS_REVENUE', 'PERSONAL', 'EXPENSE', 'TRANSFER']).nullable().optional(),
   channel: z.enum(['CASH', 'BANK', 'EWALLET']).nullable().optional(),
