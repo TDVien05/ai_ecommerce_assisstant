@@ -59,7 +59,7 @@ Thứ tự một lượt: (1) `checkInput`; nếu `refuse`, trả `message` thà
 
 ## HTTP (dự kiến)
 
-Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗi theo dạng `{ "error": { "code": "...", "message": "..." } }`. `GET /stream`, `POST /messages`, upload CSV và các endpoint `steps`, cảnh báo, thông báo đã triển khai. Công cụ ghi chỉ tạo đề xuất, việc duyệt và hoàn tác chạy trong giao dịch DB. Các kiểu `Attachment`, `Message`, `Thread`, `Snapshot` và `Block` lấy chính xác từ `types.ts`.
+Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗi theo dạng `{ "error": { "code": "...", "message": "..." } }`. `GET /stream`, `POST /messages`, upload CSV/XLSX và các endpoint `steps`, cảnh báo, thông báo đã triển khai. Công cụ ghi chỉ tạo đề xuất, việc duyệt và hoàn tác chạy trong giao dịch DB. Các kiểu `Attachment`, `Message`, `Thread`, `Snapshot` và `Block` lấy chính xác từ `types.ts`.
 
 | Phương thức và đường dẫn | Yêu cầu | Thành công |
 |---|---|---|
@@ -112,3 +112,5 @@ Sản phẩm, khách hàng, việc cần làm và chế độ AI hội thoại c
 `get_report` trả báo cáo từng phần cho kỳ đã chọn và kỳ so sánh tùy chọn từ cùng một ảnh chụp DB; doanh thu và chi phí chỉ gồm khoản kinh doanh hợp lệ, còn dòng tiền gồm mọi khoản thu/chi. Khi thiếu phân loại, thiếu giá vốn hoặc giá vốn bằng 0 cần xác minh, máy chủ không tính lãi. `ledger_book` cung cấp danh sách, gợi ý, xem trước, tên hộ và doanh thu lũy kế; cột tự đặt chỉ được điền sẵn trên trang Mẫu sổ để người dùng tự thêm, chưa lưu trên máy chủ. `open_page` trả nút và bộ lọc trong danh sách cho phép, không tự điều hướng.
 
 Đổi tài khoản nhận tiền mặc định tắt (`ASSISTANT_SENSITIVE_ENABLED=false`) cho tới khi kiểm thử tổng. Các trường phải có nguyên văn trong tin của chủ cửa hàng; duyệt và hoàn tác yêu cầu nhập lại mật khẩu. Giới hạn thử mật khẩu tạm nằm trong bộ nhớ một tiến trình. Nội dung tin nhắn gửi khách do chủ shop sửa và chọn người nhận; đầu nối `sendCustomerMessage(shopId, conversationId, text)` chưa gửi thật, trả trạng thái chưa kết nối. Chỉ nối gửi thật sau khi có cơ chế gửi bền vững, chống gửi trùng và kiểm thử tổng. Lịch sử chat che dãy số tài khoản trong tin có ngữ cảnh ngân hàng, giữ số tiền kèm đơn vị hoặc dấu phân cách. Bản nháp tin khách từ chối dãy liền từ 9 chữ số không có đơn vị tiền.
+
+`statement` hỗ trợ lịch sử, xem trước, đối chiếu với sổ theo ngày, chiều và số tiền, đề xuất nhập hoặc hoàn tác một lần nhập; đối chiếu chỉ là gợi ý, không gán vào đơn hay sửa giao dịch ngân hàng. CSV UTF-8 và XLSX tối đa 2 MB, 100 dòng dữ liệu; XLSX chỉ đọc trang tính đầu, tối đa 30 cột, giới hạn giải nén 12 MB, từ chối công thức trong trang được đọc và thành phần nhúng. Mô tả và tham chiếu được che các dãy số tài khoản dạng thông dụng, qua `guardData` trước khi hiển thị hoặc phân loại; nội dung tệp tự do không đưa vào kết quả cho mô hình. Việc che theo mẫu không bảo đảm nhận diện mọi cách viết số tài khoản. Tệp gốc vẫn lưu trong cơ sở dữ liệu để kiểm tra trùng và đọc lại.

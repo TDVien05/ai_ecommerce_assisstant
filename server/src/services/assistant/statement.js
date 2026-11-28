@@ -32,7 +32,10 @@ function parseAmount(value) {
 export function parseStatementCsv(buffer) {
   let text; try { text=new TextDecoder('utf-8',{fatal:true}).decode(buffer).replace(/^\uFEFF/,'') } catch { throw invalid('Tệp CSV phải dùng UTF-8.') }
   const first=text.split(/\r?\n/,1)[0]; const separator=(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length ? ';' : ','
-  const records=csvRows(text,separator); if(records.length<2) throw invalid('Tệp cần có tiêu đề và ít nhất một dòng giao dịch.')
+  return parseStatementRows(csvRows(text,separator))
+}
+export function parseStatementRows(records) {
+  if(records.length<2) throw invalid('Tệp cần có tiêu đề và ít nhất một dòng giao dịch.')
   const header=records[0].map(normalize)
   const find=(names)=>header.findIndex((item)=>names.includes(item))
   const date=find(['date','ngay','ngaygd','ngaygiaodich']); const description=find(['description','mota','noidung','noidunggiaodich']); const amount=find(['amount','sotien','sotienvnd']); const reference=find(['reference','magiaodich','masogiaodich','thamchieu'])
@@ -48,9 +51,16 @@ export function parseStatementCsv(buffer) {
   if(!rows.length) throw invalid('Không có dòng giao dịch hợp lệ trong tệp.')
   return { rows, warnings }
 }
+// Bank-account-like digit sequences in imported free text never reach the model,
+// approval card or ledger notes in their original form.
+export function maskStatementText(value) {
+  return value?.replace(/(?<!\d)(?:\d[\s./-]?){6,32}(?!\d)/g,(match)=>{const digits=match.replace(/\D/g,'');return digits.length>=6?`${'*'.repeat(digits.length-4)}${digits.slice(-4)}`:match}) ?? value
+}
+export function safeStatementRows(rows) {return rows.map((row)=>({...row,description:maskStatementText(row.description),reference:maskStatementText(row.reference)}))}
 const classified=z.object({items:z.array(z.object({index:z.number().int(),kind:z.enum(['BUSINESS_REVENUE','PERSONAL','EXPENSE','TRANSFER']),category:z.enum(['SALES','SHIPPING','ADS','INVENTORY','OTHER']),confidence:z.number().min(0).max(1),question:z.string().nullable()}).strict())}).strict()
 const suspicious = (text) => /(?:bỏ qua|ignore|system prompt|hệ thống|xóa toàn bộ|khóa api|api key)/iu.test(text)
 export async function classifyRows(rows,ctx) {
+  rows=safeStatementRows(rows)
   const results=[]
   for(let offset=0;offset<rows.length;offset+=50) {
     const batch=rows.slice(offset,offset+50); const guarded=await Promise.all(batch.map(async (row) => ({row, checked:await guardData(row.description,{source:'statement',channel:'owner',ctx})})))

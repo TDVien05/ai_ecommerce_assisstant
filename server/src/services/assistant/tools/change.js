@@ -10,6 +10,8 @@ import { resourceChange, resourceOperations } from './change-resources.js'
 import { orderChange, orderOperations } from './change-order.js'
 import { bankChange, bankOperation } from './change-bank.js'
 import { messageChange, messageOperation } from './change-message.js'
+import { statementMarker } from './statement-marker.js'
+import { undoStatementImport } from './statement-undo.js'
 const missing = (code) => appError(code)
 
 const date = (value) => new Date(value).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
@@ -39,7 +41,7 @@ editLedger.describe = (action) => {
 }
 
 // Historical tool names remain available for pending steps and existing audit logs.
-export const changeTools = [addLedgerEntries, deleteManualEntry, editLedger, updateOrderStatus, updateShop, changeAlert, resourceChange, orderChange, bankChange, messageChange]
+export const changeTools = [addLedgerEntries, deleteManualEntry, editLedger, updateOrderStatus, updateShop, changeAlert, resourceChange, orderChange, bankChange, messageChange, statementMarker, undoStatementImport]
 export const changeToolByName = new Map(changeTools.map((tool) => [tool.name, tool]))
 const operation = z.union([
   z.object({ entity: z.literal('ledger'), action: z.literal('create'), data: entry }).strict(),

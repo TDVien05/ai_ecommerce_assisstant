@@ -9,6 +9,10 @@ export async function lockStep(shopId, id, client) {
   const { rows } = await query('SELECT * FROM assistant_steps WHERE shop_id = $1 AND id = $2 FOR UPDATE', [shopId, id], client)
   return rows[0] ?? null
 }
+export async function getStep(shopId,id,client) {
+  const {rows}=await query('SELECT * FROM assistant_steps WHERE shop_id=$1 AND id=$2',[shopId,id],client)
+  return rows[0]??null
+}
 
 export async function saveActions(shopId,id,actions,client) {
   await query('UPDATE assistant_steps SET actions=$3 WHERE shop_id=$1 AND id=$2',[shopId,id,JSON.stringify(actions)],client)

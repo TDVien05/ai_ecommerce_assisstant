@@ -5,6 +5,7 @@ import { listOrders, getOrder } from './tools/orders.js'
 import { exportBook, ledgerBook } from './tools/books.js'
 import { reportTool } from './tools/report.js'
 import { pageTool } from './tools/page.js'
+import { statementTool } from './tools/statement.js'
 import { queryTool } from './tools/query.js'
 import { proposeChange } from './tools/change.js'
 import { changeToolByName } from './tools/change.js'
@@ -24,11 +25,22 @@ function formatDayMonth(value) {
 function emptyMessage(data, missingClassification = false) {
   const date = (value) => new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value))
   const situation = missingClassification ? 'Chưa có khoản thu hoặc chi đã phân loại' : 'Chưa có dữ liệu sổ'
-  return `${situation} từ ${date(data.from)} đến trước ${date(data.to)}. Bạn có thể yêu cầu mình ghi một khoản thu chi hoặc đính kèm tệp CSV sao kê.`
+  return `${situation} từ ${date(data.from)} đến trước ${date(data.to)}. Bạn có thể yêu cầu mình ghi một khoản thu chi hoặc đính kèm tệp CSV hoặc XLSX sao kê.`
 }
 
 function resultBlocks(results) {
   return results.flatMap(({ name, data }) => {
+    if(name==='statement') {
+      if(data.action==='history') {
+        const columns=[{key:'name',label:'Tệp',kind:'text'},{key:'fileId',label:'Mã tệp',kind:'text'},{key:'stepId',label:'Mã lần nhập',kind:'text'},{key:'state',label:'Trạng thái',kind:'text'},{key:'created',label:'Thời điểm',kind:'date'}]
+        const states={waiting:'Chờ duyệt',done:'Đã nhập',undone:'Đã hoàn tác',failed:'Lỗi',working:'Đang xử lý'}
+        const imported=data.imports.map((item)=>[item.name,item.fileId,item.stepId,states[item.state]??item.state,item.createdAt])
+        const used=new Set(data.imports.map((item)=>item.fileId))
+        const uploaded=data.files.filter((file)=>!used.has(file.id)).map((file)=>[file.name,file.id,null,'Chưa có lần nhập',file.createdAt])
+        return imported.length||uploaded.length?[{type:'dataTable',columns,rows:[...imported,...uploaded],source:'Lịch sử sao kê của cửa hàng',updatedAt:formatTime(new Date()),how:'Tối đa 100 tệp và 100 lần nhập gần nhất.'}]:[{type:'text',text:'Chưa có tệp sao kê.'}]
+      }
+      return [...data.warnings.map((warning)=>({type:'text',text:warning})),{type:'dataTable',columns:data.columns,rows:data.rows,source:data.source,updatedAt:formatTime(new Date()),how:data.how}]
+    }
     if (name === 'open_page') return [{type:'pageLink',page:data.page,label:data.label,filters:data.filters}]
     if (name === 'get_report') {
       const blocks=[]
@@ -112,6 +124,7 @@ export async function runAgent({ text, history, ctx, signal }) {
   }
   const results = []
   const actions = []
+  let statementPending=false
   const registry = createRegistry()
   for (const tool of [...financeTools, listOrders, getOrder, exportBook, ledgerBook, reportTool, pageTool, queryTool]) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
@@ -123,6 +136,7 @@ export async function runAgent({ text, history, ctx, signal }) {
   } })
   for (const tool of [proposeChange]) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
+    if(statementPending)throw appError('BAD_REQUEST','Sao kê phải được duyệt riêng.')
     const proposal = await tool.propose(input, toolCtx)
     if (actions.length + proposal.length > 20) throw appError('BAD_REQUEST', 'Quá nhiều thay đổi trong một đề xuất.')
     if ([...actions,...proposal].some((action)=>changeToolByName.get(action.tool)?.requiresPassword || changeToolByName.get(action.tool)?.standalone) && (actions.length + proposal.length !== 1)) throw appError('BAD_REQUEST', 'Thao tác này phải được duyệt riêng.')
@@ -130,6 +144,18 @@ export async function runAgent({ text, history, ctx, signal }) {
     const guarded = await guardData(JSON.stringify({ pending: true }), { source: 'tool_output', channel, ctx })
     return guarded.content
   } })
+  registry.register({...statementTool,run:async(input,toolCtx)=>{
+    assertToolAllowed(statementTool,{channel})
+    if(input.action==='import' || input.action==='undo') {
+      if(actions.length || statementPending)throw appError('BAD_REQUEST','Sao kê phải được duyệt riêng.')
+      actions.push(...await statementTool.propose(input,toolCtx));statementPending=true
+      return (await guardData(JSON.stringify({pending:true}),{source:'tool_output',channel,ctx})).content
+    }
+    const data=await statementTool.run(input,toolCtx)
+    const modelData=data.rows?{...data,rows:data.modelRows,modelRows:undefined}:data
+    results.push({name:'statement',data})
+    return (await guardData(JSON.stringify(modelData),{source:'tool_output',channel,ctx})).content
+  }})
   const messages = buildAgentMessages(text, history)
   try {
     const response = await runToolLoop({ role: 'agent', messages, tools: registry.list(), ctx, signal })
