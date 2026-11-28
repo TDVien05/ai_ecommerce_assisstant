@@ -12,7 +12,7 @@ export function makeStep(actions) {
     questions.push(...(result.questions ?? []))
   }
   const ledgerOnly = actions.every((action) => changeToolByName.get(action.tool)?.entity === 'ledger')
-  const entities = [...new Set(actions.map((action) => changeToolByName.get(action.tool).entity))]
+  const entities = [...new Set(actions.map((action) => action.entity ?? changeToolByName.get(action.tool).entity))]
   return { type: 'agentStep', stepId: randomUUID(), title: ledgerOnly ? 'Thay đổi sổ thu chi' : 'Thay đổi dữ liệu', state: 'waiting', entities, steps, ...(questions.length ? { questions } : {}), approveLabel: ledgerOnly ? 'Duyệt và ghi sổ' : 'Duyệt thay đổi', undoNote: 'Hoàn tác sẽ khôi phục trạng thái trước khi duyệt.' }
 }
 

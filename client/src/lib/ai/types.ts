@@ -47,7 +47,7 @@ export type Block =
       stepId: string
       title: string
       state: RunState
-      entities?: ('ledger' | 'orders' | 'alerts' | 'shop')[]
+      entities?: ('ledger' | 'orders' | 'alerts' | 'shop' | 'products' | 'customers' | 'todos' | 'conversations')[]
       steps: { label: string; meta?: string; status: StepStatus }[]
       questions?: Question[]
       approveLabel: string

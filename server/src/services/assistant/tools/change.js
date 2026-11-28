@@ -6,6 +6,8 @@ import { updateOrderStatus } from './orders.js'
 import { updateShop } from './shop.js'
 import { editLedger, patchSchema, column } from './change-ledger.js'
 import { changeAlert } from './change-alert.js'
+import { resourceChange, resourceOperations } from './change-resources.js'
+import { orderChange, orderOperations } from './change-order.js'
 const missing = (code) => appError(code)
 
 const date = (value) => new Date(value).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
@@ -35,7 +37,7 @@ editLedger.describe = (action) => {
 }
 
 // Historical tool names remain available for pending steps and existing audit logs.
-export const changeTools = [addLedgerEntries, deleteManualEntry, editLedger, updateOrderStatus, updateShop, changeAlert]
+export const changeTools = [addLedgerEntries, deleteManualEntry, editLedger, updateOrderStatus, updateShop, changeAlert, resourceChange, orderChange]
 export const changeToolByName = new Map(changeTools.map((tool) => [tool.name, tool]))
 const operation = z.union([
   z.object({ entity: z.literal('ledger'), action: z.literal('create'), data: entry }).strict(),
@@ -44,11 +46,13 @@ const operation = z.union([
   z.object({ entity: z.literal('orders'), action: z.literal('update'), id: z.string().uuid(), data: z.object({ status: z.enum(['SHIPPING', 'COMPLETED', 'CANCELLED']) }).strict() }).strict(),
   z.object({ entity: z.literal('alerts'), action: z.literal('update'), id: z.string().uuid(), data: z.object({ status: z.enum(['HELD', 'DISMISSED']) }).strict() }).strict(),
   z.object({ entity: z.literal('shop'), action: z.literal('update'), data: z.object({ name: z.string().trim().min(1).max(120) }).strict() }).strict(),
+  ...resourceOperations,
+  ...orderOperations,
 ])
 
 export const proposeChange = {
   name: 'propose_change', tier: 'write',
-  description: 'Đề xuất tối đa 20 thay đổi chờ duyệt: ledger create/update/delete, orders update trạng thái, alerts update trạng thái, shop update tên. Dùng id của dữ liệu cửa hàng; không xác nhận thanh toán.',
+  description: 'Đề xuất tối đa 20 thay đổi chờ duyệt: ledger, orders, alerts, shop, products, customers, todos, conversations. Sản phẩm delete là ngừng bán; không xác nhận thanh toán. Dùng id thuộc cửa hàng.',
   schema: z.object({ changes: z.array(operation).min(1).max(20) }).strict(),
   async propose(input, ctx) {
     const actions = [], seen = new Set()
@@ -60,12 +64,14 @@ export const proposeChange = {
       if (change.entity === 'ledger' && change.action === 'create') { tool = addLedgerEntries; args = { entries: [change.data] } }
       else if (change.entity === 'ledger' && change.action === 'update') { tool = editLedger; args = { entryId: change.id, data: change.data } }
       else if (change.entity === 'ledger') { tool = deleteManualEntry; args = { entryId: change.id } }
+      else if (change.entity === 'orders' && (change.action === 'create' || !Object.hasOwn(change.data,'status'))) { tool = orderChange; args = change }
       else if (change.entity === 'orders') {
         const row = await orders.findViewById(ctx.shopId, change.id)
         if (!row) throw missing('ORDER_NOT_FOUND')
         tool = updateOrderStatus; args = { paymentCode: row.payment_code, status: change.data.status }
       } else if (change.entity === 'alerts') { tool = changeAlert; args = { id: change.id, status: change.data.status } }
-      else { tool = updateShop; args = change.data }
+      else if (change.entity === 'shop') { tool = updateShop; args = change.data }
+      else { tool = resourceChange; args = change }
       actions.push(await tool.propose(args, ctx))
     }
     return actions

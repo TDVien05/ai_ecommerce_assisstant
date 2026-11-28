@@ -103,3 +103,5 @@ Gửi chú thích `: ping` mỗi 20 giây. `message` thêm tin mới hoặc thay
 
 
 `propose_change` nhận tối đa 20 thao tác trong `changes`; mỗi thao tác gồm thực thể, hành động, dữ liệu cho phép và mã đối tượng khi sửa hoặc xóa. Máy chủ xác định cửa hàng từ phiên. Đơn chỉ chuyển theo các trạng thái hợp lệ; không có thao tác xác nhận thanh toán. Mọi thay đổi được duyệt trong một giao dịch và có thể hoàn tác nếu dữ liệu chưa đổi tiếp. Đề xuất và nhật ký cũ vẫn được hỗ trợ.
+
+Sản phẩm, khách hàng, việc cần làm và chế độ AI hội thoại cũng có thể được đề xuất thay đổi. Xóa sản phẩm được chuyển thành ngừng bán. Đơn mới chỉ ở trạng thái chờ thanh toán, giá lấy từ sản phẩm của cửa hàng, không trừ tồn kho; nếu giá thay đổi trước khi duyệt, đề xuất bị từ chối. Nhật ký hoàn tác các dữ liệu này được mã hóa; khóa lấy từ `APP_ENCRYPTION_KEY`, hoặc `JWT_SECRET` nếu chưa đặt. Cần giữ khóa ổn định để các thay đổi trước đó còn hoàn tác được.

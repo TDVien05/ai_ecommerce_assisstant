@@ -12,7 +12,7 @@ export function MessengerPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   function load() { conversationsApi.list().then((result) => { setItems(result.items); setError('') }).catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không tải được hội thoại.')) }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(); window.addEventListener('flowy:conversations-changed', load); return () => window.removeEventListener('flowy:conversations-changed', load) }, [])
   useEffect(() => {
     if (!selected) return
     let active = true
