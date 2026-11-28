@@ -2,6 +2,9 @@ import { loadPrompt, runToolLoop, isAiUnavailable } from '../ai/index.js'
 import { createRegistry } from './registry.js'
 import { tools as financeTools } from './tools/finance.read.js'
 import { writeTools } from './tools/finance.write.js'
+import { listOrders, getOrder, updateOrderStatus } from './tools/orders.js'
+import { unmatchedPayments } from './tools/payments.js'
+import { updateShop } from './tools/shop.js'
 import { makeStep } from './steps.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
 import { consumeAgentRun, classifyByRules } from './fallback.js'
@@ -27,6 +30,13 @@ function resultBlocks(results) {
       if (!data.classifiedCount) return [{ type: 'text', text: emptyMessage(data, true) }]
       const source = data.unknownCount ? 'Sổ thu chi; có khoản chưa phân loại, chưa tính vào doanh thu và chi phí' : 'Sổ thu chi; chỉ tính khoản đã phân loại'
       return [{ type: 'resultCard', metrics: [{ label: 'Doanh thu kinh doanh', value: data.revenue }, { label: 'Chi phí đã phân loại', value: data.expenses }, { label: 'Thu trừ chi đã phân loại', value: data.difference }], source, updatedAt: formatTime(new Date()), how: [{ label: 'Doanh thu kinh doanh; không tính khoản chưa phân loại', value: data.revenue }, { label: 'Trừ chi phí đã phân loại', value: data.expenses }, { label: 'Chênh lệch; chưa đủ căn cứ kết luận lợi nhuận', value: data.difference, total: true }] }]
+    }
+    if (name === 'list_unmatched_payments') return [{ type: 'text', text: data.message }]
+    if (name === 'list_orders' || name === 'get_order') {
+      const items = name === 'get_order' ? [data] : data.items
+      if (!items.length) return [{ type: 'text', text: 'Không có đơn hàng phù hợp.' }]
+      const labels = { AWAITING_PAYMENT: 'Chờ thanh toán', PAID: 'Đã thanh toán', SHIPPING: 'Đang giao', COMPLETED: 'Hoàn tất', CANCELLED: 'Đã hủy', EXPIRED: 'Hết hạn', REFUNDED: 'Đã hoàn tiền' }
+      return [{ type: 'resultCard', metrics: items.map((item) => ({ label: `${item.paymentCode} · ${labels[item.status] ?? item.status}`, value: item.total })), source: 'Đơn hàng của cửa hàng; tối đa 100 đơn gần nhất', updatedAt: formatTime(new Date()), how: items.map((item) => ({ label: `${item.paymentCode}: tổng tiền đơn`, value: item.total })) }]
     }
     if (!data.items.length) return [{ type: 'text', text: emptyMessage(data) }]
     return [{
@@ -63,14 +73,14 @@ export async function runAgent({ text, history, ctx, signal }) {
   const results = []
   const actions = []
   const registry = createRegistry()
-  for (const tool of financeTools) registry.register({ ...tool, run: async (input, toolCtx) => {
+  for (const tool of [...financeTools, listOrders, getOrder, unmatchedPayments]) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
     const data = await tool.run(input, toolCtx)
     const guarded = await guardData(JSON.stringify(data), { source: 'tool_output', channel, ctx })
     results.push({ name: tool.name, data })
     return guarded.content
   } })
-  for (const tool of writeTools) registry.register({ ...tool, run: async (input, toolCtx) => {
+  for (const tool of [...writeTools, updateOrderStatus, updateShop]) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
     const proposal = await tool.propose(input, toolCtx)
     actions.push(proposal)
