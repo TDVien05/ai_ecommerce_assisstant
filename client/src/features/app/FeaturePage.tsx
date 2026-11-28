@@ -17,7 +17,7 @@ export function FeaturePage({ id, title, about, allowMock }: { id: string; title
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-5 py-8">
         <h1 className="m-0 text-[22px] leading-7 font-semibold tracking-tight">{title}</h1>
-        {!allowMock && !(isReal('finance') && (id === 'ledger' || id === 'reports')) && !(isReal('orders') && id === 'orders') ? <Empty about={about} /> : id === 'ledger' ? (
+        {!allowMock && !(isReal('finance') && (id === 'ledger' || id === 'reports')) && !(isReal('orders') && id === 'orders') && !(isReal('alerts') && id === 'fraud') ? <Empty about={about} /> : id === 'ledger' ? (
           <>
           {allowMock && !isReal('finance') && <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><ThresholdCard /></>}
           <Tabs defaultValue={isReal('finance') ? 'entries' : 'payments'} className="gap-4">
@@ -40,7 +40,7 @@ export function FeaturePage({ id, title, about, allowMock }: { id: string; title
         ) : id === 'reports' ? (
           <ReportsPage />
         ) : id === 'fraud' ? (
-          <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><AlertsPage /></>
+          <>{!isReal('alerts') && <p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p>}<AlertsPage /></>
         ) : id === 'messenger' ? (
           <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><MessengerPage /></>
         ) : id === 'sources' ? (

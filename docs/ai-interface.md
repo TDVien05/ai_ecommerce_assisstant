@@ -92,3 +92,7 @@ data: {"conversationId":"hub","value":true}
 ```
 
 Gửi chú thích `: ping` mỗi 20 giây. `message` thêm tin mới hoặc thay tin cùng ID; `thread` thêm hoặc thay luồng cùng ID. Khi kết nối lại phải gửi snapshot đầu tiên để đồng bộ; không gửi sự kiện của cửa hàng khác. `updatedAt` của `Thread` là chuỗi hiển thị như `21:40` theo kiểu client, không giả định là ISO.
+
+### Điểm nối cảnh báo
+
+`createAlert(shopId, { eventKey, level, title, reasons, orderId? }, { client } = {})` trong `services/alerts.service.js` tạo hoặc tìm lại cảnh báo theo cặp cửa hàng và sự việc; `level` là `mid` hoặc `high`. Kết quả `{ alert, created, events }`. Khi truyền `client` đã trong transaction, bên gọi chỉ được gọi `publishAlert(shopId, events)` sau khi commit; không truyền `client` thì service tự giao dịch và phát sự kiện sau commit. Các cảnh báo cùng `eventKey` trong một cửa hàng không tạo thêm luồng hoặc thông báo. Hàm không phát hiện gian lận và không thay đổi đơn hàng.
