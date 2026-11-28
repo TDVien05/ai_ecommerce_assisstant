@@ -1,5 +1,6 @@
 import { chromium } from 'playwright'
 import pg from 'pg'
+import Excel from 'exceljs'
 import { readFile, unlink, writeFile } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import assert from 'node:assert/strict'
@@ -32,6 +33,23 @@ try {
     await page.getByRole('button', { name: 'Duyệt và ghi sổ' }).last().click()
     await page.getByText('Đã ghi khoản chi', { exact: false }).last().waitFor()
     assert.equal(await count(data.note), 1)
+    await input.fill('Hôm nay có bao nhiêu giao dịch?'); await input.press('Enter')
+    const expenseCount = page.getByText('Số khoản chi', { exact: true }).nth(cycle - 1)
+    await expenseCount.waitFor()
+    const dbExpenses = Number((await db.query("SELECT count(*) FROM ledger_entries WHERE shop_id=$1 AND type='EXPENSE'", [data.shopId])).rows[0].count)
+    assert.equal((await expenseCount.locator('..').innerText()).split('\n')[1], String(dbExpenses))
+    await input.fill('Xuất sổ chi tiết doanh thu chi phí'); await input.press('Enter')
+    await page.getByRole('button', { name: 'Tải Excel' }).last().waitFor()
+    const download = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Tải Excel' }).last().click()
+    const file = `/tmp/book-${cycle}.xlsx`
+    await (await download).saveAs(file)
+    const workbook = new Excel.Workbook(); await workbook.xlsx.readFile(file)
+    assert(JSON.stringify(workbook.worksheets[0].getSheetValues()).includes(data.note), 'Sổ xuất thiếu dòng vừa duyệt')
+    await unlink(file)
+    await input.fill('Bạn làm được gì?'); await input.press('Enter')
+    await page.getByText('Mình có thể tra thu chi, xem đơn và chuẩn bị mẫu sổ.', { exact: false }).nth(cycle - 1).waitFor()
+    console.log(`${cycle}: đếm giao dịch, xuất Excel thật và gợi ý đạt`)
     await page.getByRole('button', { name: 'Sổ thu chi', exact: true }).click()
     await page.getByText(data.note, { exact: true }).first().waitFor()
     await page.getByRole('button', { name: /Chat trung tâm/ }).first().click()
@@ -115,6 +133,10 @@ try {
   await page.getByLabel(/Tôi đồng ý với/).check()
   await page.getByRole('button', { name: 'Đăng ký', exact: true }).click()
   await page.getByRole('textbox', { name: /Nhắn cho AI/ }).waitFor({ timeout: 30000 })
+  await page.getByRole('button', { name: 'Sổ thu chi', exact: true }).click()
+  await page.getByRole('tab', { name: 'Mẫu sổ' }).click()
+  await page.getByText('Không có dữ liệu phù hợp trong kỳ.').waitFor()
+  assert.equal(await page.getByText('Dữ liệu mẫu.', { exact: true }).count(), 0)
   console.log('Đăng ký tài khoản mới: giao diện chat hiển thị')
   await registration.tracing.stop()
   await registration.close()

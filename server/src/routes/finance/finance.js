@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { validate } from '../../middlewares/validate.js'
 import * as controller from '../../controllers/finance/finance.controller.js'
 import { badRequest } from '../../lib/httpError.js'
+import { bookCodes } from '../../lib/ledgerBooks.js'
 
 const timestamp = z.string().datetime({ offset: true })
 const period = { from: timestamp.optional(), to: timestamp.optional() }
@@ -16,6 +17,8 @@ const id = (req, _res, next) => { if (!z.string().uuid().safeParse(req.params.id
 
 export const financeRouter = Router()
 financeRouter.get('/ledger', query({ ...period, type: z.enum(['INCOME', 'EXPENSE']).optional() }), controller.ledger)
+financeRouter.get('/ledger-book', query({ code: z.enum(bookCodes), from: timestamp, to: timestamp }), controller.book)
+financeRouter.get('/ledger-threshold', query({}), controller.threshold)
 financeRouter.post('/ledger', validate(entry, 'body', 'Thông tin khoản sổ không hợp lệ.'), controller.create)
 financeRouter.delete('/ledger/:id', id, controller.remove)
 financeRouter.get('/summary', query(period), controller.summary)

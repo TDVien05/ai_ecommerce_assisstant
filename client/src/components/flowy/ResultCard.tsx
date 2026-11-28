@@ -5,13 +5,14 @@ import { Money } from './Money'
 export type ResultMetric = {
   label: string
   value: number
+  unit?: 'count'
   /** "▲ 12% so với hôm qua". Bỏ trống thì ghi chú phụ như số giao dịch. */
   delta?: string
   /** good = risk-low, bad = risk-high, neutral = muted */
   tone?: 'good' | 'bad' | 'neutral'
 }
 
-export type HowLine = { label: string; value: number; total?: boolean }
+export type HowLine = { label: string; value: number; total?: boolean; unit?: 'count' }
 
 type ResultCardProps = {
   metrics: ResultMetric[]
@@ -35,7 +36,7 @@ export function ResultCard({ metrics, source, updatedAt, how }: ResultCardProps)
             className="flex min-w-0 flex-col gap-0.5 border-b px-3.5 py-3 last:border-0 sm:border-r sm:border-b-0"
           >
             <span className="text-xs text-muted-foreground">{m.label}</span>
-            <Money value={m.value} size="lg" />
+            {m.unit === 'count' ? <span className="text-xl font-semibold tabular-nums">{new Intl.NumberFormat('vi-VN').format(m.value)}</span> : <Money value={m.value} size="lg" />}
             {m.delta && (
               <span
                 className={cn(
@@ -71,7 +72,7 @@ export function ResultCard({ metrics, source, updatedAt, how }: ResultCardProps)
           {how.map((l) => (
             <div key={l.label} className={cn('flex justify-between gap-3', l.total && 'border-t pt-1 font-semibold')}>
               <span>{l.label}</span>
-              <Money value={l.value} />
+              {l.unit === 'count' ? <span className="tabular-nums">{new Intl.NumberFormat('vi-VN').format(l.value)}</span> : <Money value={l.value} />}
             </div>
           ))}
         </div>
