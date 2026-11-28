@@ -93,9 +93,8 @@ export async function chat({ role, messages, tools, toolChoice, responseFormat, 
       continue
     }
 
-    // Log the provider's message (no prompt content, no key) to explain 4xx such as
-    // "model does not support tools" or an invalid model id.
-    logger.error({ role, model, status, providerMessage: payload?.error?.message }, 'AI provider request failed')
+    // Provider error bodies are untrusted and may echo user input or credentials.
+    logger.error({ role, model, status }, 'AI provider request failed')
     throw new AiUnavailableError(response.ok ? 'empty_response' : `http_${status}`, { status })
   }
 }

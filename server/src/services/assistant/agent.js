@@ -14,6 +14,7 @@ import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.j
 import { classifyByRules, RULE_MODE_HELP } from './fallback.js'
 import { formatTime } from './view.js'
 import { appError } from '../../errors/index.js'
+import { logger } from '../../lib/logger.js'
 
 const channel = 'owner'
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
@@ -22,10 +23,13 @@ function formatDayMonth(value) {
   const parts = dayMonth.formatToParts(new Date(value))
   return `${parts.find((part) => part.type === 'day').value}/${parts.find((part) => part.type === 'month').value}`
 }
-function emptyMessage(data, missingClassification = false) {
+function emptyMessage(data, missingClassification = false, suggestImport = true) {
   const date = (value) => new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value))
   const situation = missingClassification ? 'Chưa có khoản thu hoặc chi đã phân loại' : 'Chưa có dữ liệu sổ'
-  return `${situation} từ ${date(data.from)} đến trước ${date(data.to)}. Bạn có thể yêu cầu mình ghi một khoản thu chi hoặc đính kèm tệp CSV sao kê (hoặc XLSX).`
+  return `${situation} từ ${date(data.from)} đến trước ${date(data.to)}.${suggestImport ? ' Bạn có thể yêu cầu mình ghi một khoản thu chi hoặc đính kèm tệp CSV sao kê (hoặc XLSX).' : ''}`
+}
+function classificationNotice(count) {
+  return count ? {type:'text',text:`Trong kỳ có ${count} khoản chưa phân loại hoặc phân loại không hợp lệ. Khi AI hoạt động, bạn có thể yêu cầu mình chuẩn bị đề xuất phân loại; thay đổi chỉ thực hiện sau khi bạn duyệt.`} : null
 }
 
 function resultBlocks(results) {
@@ -52,7 +56,7 @@ function resultBlocks(results) {
         const updatedAt=formatTime(new Date(report.updatedAt)),source=`${label} (${showDate(report.from)} đến trước ${showDate(report.to)}) · sổ thu chi và đơn hàng`
         blocks.push({type:'resultCard',metrics:[{label:'Doanh thu đã phân loại',value:report.revenue},{label:'Chi phí đã phân loại',value:report.expenses},...(report.netProfit===null?[]:[{label:'Lãi tạm tính',value:report.netProfit}])],source,updatedAt,how:[{label:'Doanh thu đã phân loại',value:report.revenue},...(report.cost===null?[]:[{label:'Trừ giá vốn',value:report.cost}]),{label:'Trừ chi phí đã phân loại',value:report.expenses},...(report.netProfit===null?[]:[{label:'Lãi tạm tính',value:report.netProfit,total:true}])]})
         blocks.push({type:'resultCard',metrics:[{label:'Tiền vào',value:report.cashIn},{label:'Tiền ra',value:report.cashOut}],source:`${label} · sổ thu chi, gồm cả khoản cá nhân`,updatedAt,how:[{label:'Tổng khoản thu',value:report.cashIn},{label:'Tổng khoản chi',value:report.cashOut}]})
-        if(report.unknownCount || report.missingCostCount) blocks.push({type:'text',text:`${label}: báo cáo từng phần; ${report.unknownCount} khoản chưa phân loại hoặc phân loại không hợp lệ, ${report.missingCostCount} khoản doanh thu thiếu giá vốn hoặc cần xác minh giá vốn bằng 0. Chưa đủ dữ liệu để tính lãi.`})
+        if(report.unknownCount || report.missingCostCount) blocks.push({type:'text',text:`${label}: báo cáo từng phần; ${report.unknownCount} khoản chưa phân loại hoặc phân loại không hợp lệ, ${report.missingCostCount} khoản doanh thu thiếu giá vốn hoặc cần xác minh giá vốn bằng 0. Chưa đủ dữ liệu để tính lãi.${report.unknownCount?' Khi AI hoạt động, bạn có thể yêu cầu mình chuẩn bị đề xuất phân loại; thay đổi chỉ thực hiện sau khi bạn duyệt.':''}`})
       }
       if(data.difference && data.current.totalCount && data.previous.totalCount) blocks.push({type:'resultCard',metrics:[{label:'Chênh lệch doanh thu',value:data.difference.revenue},{label:'Chênh lệch chi phí',value:data.difference.expenses},...(data.difference.netProfit===null?[]:[{label:'Chênh lệch lãi',value:data.difference.netProfit}])],source:'Kỳ đã chọn trừ kỳ so sánh · sổ thu chi và đơn hàng',updatedAt:formatTime(new Date()),how:[{label:'Doanh thu kỳ đã chọn',value:data.current.revenue},{label:'Trừ doanh thu kỳ so sánh',value:data.previous.revenue},{label:'Chênh lệch doanh thu',value:data.difference.revenue,total:true},{label:'Chi phí kỳ đã chọn',value:data.current.expenses},{label:'Trừ chi phí kỳ so sánh',value:data.previous.expenses},{label:'Chênh lệch chi phí',value:data.difference.expenses,total:true},...(data.difference.netProfit===null?[]:[{label:'Lãi kỳ đã chọn',value:data.current.netProfit},{label:'Trừ lãi kỳ so sánh',value:data.previous.netProfit},{label:'Chênh lệch lãi',value:data.difference.netProfit,total:true}])]})
       return blocks
@@ -74,9 +78,9 @@ function resultBlocks(results) {
     }
     if (name === 'get_summary') {
       if (!data.totalCount) return [{ type: 'text', text: emptyMessage(data) }]
-      if (!data.classifiedCount) return [{ type: 'text', text: emptyMessage(data, true) }]
+      if (!data.classifiedCount) return [{ type: 'text', text: data.unknownCount ? `${emptyMessage(data,true,false)} ${classificationNotice(data.unknownCount).text}` : emptyMessage(data, true) }]
       const source = data.unknownCount ? 'Sổ thu chi; có khoản chưa phân loại, chưa tính vào doanh thu và chi phí' : 'Sổ thu chi; chỉ tính khoản đã phân loại'
-      return [{ type: 'resultCard', metrics: [{ label: 'Doanh thu kinh doanh', value: data.revenue }, { label: 'Chi phí đã phân loại', value: data.expenses }, { label: 'Thu trừ chi đã phân loại', value: data.difference }], source, updatedAt: formatTime(new Date()), how: [{ label: 'Doanh thu kinh doanh; không tính khoản chưa phân loại', value: data.revenue }, { label: 'Trừ chi phí đã phân loại', value: data.expenses }, { label: 'Chênh lệch; chưa đủ căn cứ kết luận lợi nhuận', value: data.difference, total: true }] }]
+      return [{ type: 'resultCard', metrics: [{ label: 'Doanh thu kinh doanh', value: data.revenue }, { label: 'Chi phí đã phân loại', value: data.expenses }, { label: 'Thu trừ chi đã phân loại', value: data.difference }], source, updatedAt: formatTime(new Date()), how: [{ label: 'Doanh thu kinh doanh; không tính khoản chưa phân loại', value: data.revenue }, { label: 'Trừ chi phí đã phân loại', value: data.expenses }, { label: 'Chênh lệch; chưa đủ căn cứ kết luận lợi nhuận', value: data.difference, total: true }] }, ...(data.unknownCount ? [classificationNotice(data.unknownCount)] : [])]
     }
     if (name === 'list_orders' || name === 'get_order') {
       const items = name === 'get_order' ? [data] : data.items
@@ -89,14 +93,14 @@ function resultBlocks(results) {
       }
       return cards
     }
-    if (!data.items.length) return [{ type: 'text', text: emptyMessage(data) }]
+    if (!data.items.length) return [{ type: 'text', text: data.unknownCount ? 'Không có khoản phù hợp với bộ lọc đã chọn.' : emptyMessage(data) }, ...(data.unknownCount ? [classificationNotice(data.unknownCount)] : [])]
     return [{
       type: 'resultCard',
       metrics: [{ label: 'Tổng thu các khoản liệt kê (gồm khoản chưa phân loại)', value: data.totals.income }, { label: 'Tổng chi các khoản liệt kê (gồm khoản chưa phân loại)', value: data.totals.expense }],
       source: data.limited ? 'Sổ thu chi; tổng chỉ gồm 100 khoản mới nhất' : 'Sổ thu chi; các khoản được liệt kê',
       updatedAt: formatTime(new Date()),
       how: data.items.map((item, index) => ({ label: `${index + 1}. ${formatDayMonth(item.occurredAt)} · ${item.type === 'INCOME' ? 'Thu' : 'Chi'} · ${item.category}${item.kind ? '' : ' · chưa phân loại'}`, value: item.amount })),
-    }]
+    }, ...(data.unknownCount ? [classificationNotice(data.unknownCount)] : [])]
   })
 }
 
@@ -173,6 +177,9 @@ export async function runAgent({ text, history, ctx, signal }) {
     return [...(output.text ? [{ type: 'text', text: output.text }] : []), ...summary]
   } catch (error) {
     if (!isAiUnavailable(error)) throw error
+    const reason=typeof error.reason==='string' && /^(?:not_configured|timeout|network|empty_response|http_[1-5]\d\d)$/.test(error.reason) ? error.reason : 'unknown'
+    const providerStatus=Number.isInteger(error.providerStatus) && error.providerStatus>=100 && error.providerStatus<=599 ? error.providerStatus : null
+    logger.warn({reason,providerStatus},'AI unavailable; using basic mode')
     const match = classifyByRules(text)
     if (match) {
       const tool = registry.list().find((item) => item.name === match.tool && item.tier === 'read')

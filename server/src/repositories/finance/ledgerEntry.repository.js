@@ -137,6 +137,13 @@ export async function listPeriod(shopId, from, to, type) {
   return rows
 }
 
+export async function unclassifiedInPeriod(shopId, from, to) {
+  requireShopId(shopId)
+  const {rows}=await query(`SELECT count(*)::int AS count FROM ledger_entries WHERE shop_id=$1 AND occurred_at >= $2 AND occurred_at < $3
+    AND (kind IS NULL OR (type='INCOME' AND kind='EXPENSE') OR (type='EXPENSE' AND kind='BUSINESS_REVENUE'))`,[shopId,from,to])
+  return rows[0].count
+}
+
 const entryColumns = 'id, shop_id, type, kind, channel, category, amount, order_id, note, occurred_at, created_at, document_ref, document_date, industry, manual'
 
 export async function findEntry(shopId, id, client, lock = false) {
@@ -160,6 +167,12 @@ export async function updateManualEntry(shopId, id, value, client) {
   const { rows } = await query(`UPDATE ledger_entries SET type=$3,kind=$4,channel=$5,category=$6,amount=$7,note=$8,occurred_at=$9,document_ref=$10,document_date=$11,industry=$12 WHERE shop_id=$1 AND id=$2 AND manual=true RETURNING ${entryColumns}`,
     [shopId,id,value.type,value.kind,value.channel,value.category,value.amount,value.note,value.occurred_at,value.document_ref,value.document_date,value.industry], client)
   return rows[0] ?? null
+}
+
+export async function classifyEntry(shopId, id, value, client) {
+  requireShopId(shopId)
+  const {rows}=await query(`UPDATE ledger_entries SET kind=$3,channel=$4 WHERE shop_id=$1 AND id=$2 RETURNING ${entryColumns}`,[shopId,id,value.kind,value.channel],client)
+  return rows[0]??null
 }
 
 export async function restoreEntry(row, client) {
