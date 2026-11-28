@@ -1,5 +1,6 @@
 const subscribers = new Map()
 const busy = new Set()
+const streams = new Set()
 const key = (shopId, conversationId) => JSON.stringify([shopId, conversationId])
 
 export function subscribe(shopId, listener) {
@@ -23,3 +24,5 @@ export function release(shopId, conversationId) { busy.delete(key(shopId, conver
 export function typingFor(shopId) {
   return [...busy].map((id) => JSON.parse(id)).filter(([shop]) => shop === shopId).map(([, conversation]) => conversation)
 }
+export function trackStream(close) { streams.add(close); return () => streams.delete(close) }
+export function closeAllStreams() { for (const close of streams) close(); streams.clear() }
