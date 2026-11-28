@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 
 const { dropShops, dbAvailable, pool } = await import('../test-support/db.js')
 const { seed, TEMPLATE_PAGE_ID } = await import('../src/db/seed.js')
-const demo = await import('../src/services/demo.service.js')
+const demo = await import('../src/services/demo/demo.service.js')
 const products = await import('../src/db/repos/products.js')
 
 after(async () => { await pool.end() })

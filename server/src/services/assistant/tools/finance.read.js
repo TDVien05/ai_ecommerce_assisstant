@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getSummary, listLedger } from '../../ledger.service.js'
+import { getSummary, listLedger } from '../../finance/ledger.service.js'
 
 const date = z.string().describe('ISO 8601 với múi giờ')
 export const tools = [

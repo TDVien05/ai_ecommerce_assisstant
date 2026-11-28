@@ -5,11 +5,11 @@ import { env } from './config/env.js'
 import { logger } from './lib/logger.js'
 import { cors } from './middlewares/cors.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
-import { healthRouter } from './routes/health.js'
+import { healthRouter } from './routes/health/health.js'
 import { apiRouter } from './routes/index.js'
-import { messengerWebhookRouter } from './routes/webhook.messenger.js'
-import { sepayWebhookRouter } from './routes/webhook.sepay.js'
-import { simWebhookRouter } from './routes/webhook.sim.js'
+import { messengerWebhookRouter } from './routes/webhook/messenger.js'
+import { sepayWebhookRouter } from './routes/webhook/sepay.js'
+import { simWebhookRouter } from './routes/webhook/sim.js'
 
 export function createApp() {
   const app = express()

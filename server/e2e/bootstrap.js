@@ -20,7 +20,7 @@ await db.query("INSERT INTO ledger_entries (shop_id,type,category,kind,channel,a
 await db.query('INSERT INTO customers (id,shop_id,psid) VALUES ($1,$2,$3)', [customerId, shopId, randomUUID()])
 await db.query("INSERT INTO orders (id,shop_id,customer_id,payment_code,status,subtotal,total) VALUES ($1,$2,$3,$4,'PAID',$5,$5)", [orderId, shopId, customerId, paymentCode, income])
 await db.end()
-const { createAlert } = await import('../src/services/alerts.service.js')
+const { createAlert } = await import('../src/services/alerts/alerts.service.js')
 await createAlert(shopId, { eventKey: randomUUID(), level: 'mid', title: 'Cảnh báo kiểm thử', reasons: ['Kiểm tra kết nối'] })
 await createAlert(shopId, { eventKey: randomUUID(), level: 'mid', title: 'Cảnh báo kiểm thử', reasons: ['Kiểm tra kết nối'] })
 const now = new Date(), tool = (name, input) => ({ tool_calls: [{ id: randomUUID(), type: 'function', function: { name, arguments: JSON.stringify(input) } }] })

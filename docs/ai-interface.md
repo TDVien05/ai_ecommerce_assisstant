@@ -1,6 +1,6 @@
 # Hợp đồng giao diện trợ lý và lớp AI
 
-Tài liệu này mô tả lớp AI hiện có và hợp đồng giữa máy chủ, agent và giao diện. Chat lưu DB, SSE và công cụ đọc/đề xuất ghi sổ đã có; hạn mức trong bộ nhớ, chế độ luật và lớp bảo vệ là bản tạm. Kiểu JSON là nguồn chuẩn tại `client/src/lib/ai/types.ts`; cách gọi nằm ở `client/src/lib/ai/http.ts`. Backend tuân thủ `routes → controllers → services → db` theo [ARCHITECTURE.md](ARCHITECTURE.md).
+Tài liệu này mô tả lớp AI hiện có và hợp đồng giữa máy chủ, agent và giao diện. Chat lưu DB, SSE và công cụ đọc/đề xuất ghi sổ đã có; hạn mức trong bộ nhớ và lớp bảo vệ là bản tạm; chế độ luật đã có cho các câu hỏi đọc dữ liệu. Kiểu JSON là nguồn chuẩn tại `client/src/lib/ai/types.ts`; cách gọi nằm ở `client/src/lib/ai/http.ts`. Backend tuân thủ `routes → controllers → services → db` theo [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Lớp AI hiện có
 
@@ -9,14 +9,14 @@ Nhập các hàm từ `server/src/services/ai/index.js`:
 - `chat({ role, messages, tools, toolChoice, responseFormat, temperature, maxTokens, ctx, signal })` trả Promise `{ message, finishReason, model, usage: { promptTokens, completionTokens } }`. `role` là `agent | bot | classify | vision | fraud`; `messages` và `tools` theo định dạng OpenAI. Khi dịch vụ AI không khả dụng, hàm ném lỗi có `code: 'AI_UNAVAILABLE'`; hủy qua `signal` không nhất thiết là lỗi này. `ctx.shopId` phục vụ ghi nhận usage.
 - `runToolLoop({ role, messages, tools, maxRounds, ctx, signal })` trả Promise `{ text, messages, toolCalls, rounds, stopReason }`, với `stopReason` là `answer | max_rounds`. Sau khi đạt giới hạn, vòng lặp yêu cầu một câu trả lời cuối không gọi công cụ.
 - `loadPrompt(name, vars)` nạp prompt được phép và thay các placeholder bằng giá trị tin cậy; `wrapUntrusted(content, tag)` bọc dữ liệu ngoài, vô hiệu hóa thẻ trùng và không đưa dữ liệu này vào system prompt.
-- `isAiUnavailable(err)` nhận diện mã lỗi; `aiStatus()` trả `mock | live | rules` theo cấu hình. `rules` hiện chỉ là trạng thái cấu hình, không chứng minh chế độ dự phòng đã được triển khai.
+- `isAiUnavailable(err)` nhận diện mã lỗi; `aiStatus()` trả `mock | live | rules` theo cấu hình. `rules` nghĩa là chưa cấu hình nhà cung cấp; khi đó agent trả lời các câu hỏi đọc dữ liệu bằng `classifyByRules`.
 
 Vòng lặp hiện xác thực đối số bằng Zod rồi trực tiếp gọi `tool.run(input, ctx)`. Nó **chưa tự thực thi** phân cấp quyền, bước duyệt hay guardrail; agent và các công cụ phải bảo đảm các điều kiện đó khi triển khai.
 
 ### Các hàm cần bổ sung, chưa có người nhận
 
 - `reserveAgentRun(shopId)` giới hạn số yêu cầu `messages` được chấp nhận cho từng cửa hàng theo ngày Việt Nam; sao kê cũng tính một lượt. Trả `429 AI_DAILY_LIMIT` khi hết. Bộ đếm trong bộ nhớ từng tiến trình, đặt lại sau khởi động; cần bộ đếm bền vững cho sản xuất. Duyệt, trả lời câu hỏi và hoàn tác không tính lượt.
-- `classifyByRules(text)` trả `{ tool, input }` hoặc `null`, chỉ chọn công cụ đọc. Khi gặp `AI_UNAVAILABLE`, agent dùng kết quả này để đọc dữ liệu; nếu không khớp, trả thông báo rõ ràng. Bộ luật dự phòng hiện là adapter tạm.
+- `classifyByRules(text, now?)` (`services/assistant/fallback.js`) trả `{ tool, input }` hoặc `null`, chỉ chọn công cụ đọc: `get_summary`, `list_ledger`, `list_orders`, `get_order`. Khớp từ khóa có dấu và không dấu, hiểu kỳ "hôm nay, hôm qua, tuần này, tuần trước, tháng này, tháng trước, năm nay, N ngày qua" (mặc định tháng này, giờ Việt Nam, tuần bắt đầu thứ Hai). Yêu cầu ghi, sửa, xóa trả `null`. Khi gặp `AI_UNAVAILABLE`, agent chạy công cụ khớp và ghi chú đang ở chế độ cơ bản; lỗi 4xx của công cụ (ví dụ mã đơn không tồn tại) trả thành câu trả lời; không khớp thì trả hướng dẫn các câu hỏi dùng được.
 
 ### Các service dự kiến do Viên cung cấp
 
@@ -28,7 +28,7 @@ Chữ ký dưới đây là hợp đồng dự kiến để Viên xác nhận, c
 | Phân loại | `classifyRows(rows, ctx)` → kết quả cho từng dòng `{ index, kind, category, confidence, question }`; tối đa 50 dòng mỗi lô, không trả hay sửa số tiền. `kind`: `BUSINESS_REVENUE`, `PERSONAL`, `EXPENSE`, `TRANSFER`; `category`: `SALES`, `SHIPPING`, `ADS`, `INVENTORY`, `OTHER`. |
 | Rủi ro | `assessFraud({ events, facts }, ctx)` → `{ level, reasons, signals }`; AI chỉ giữ hoặc nâng mức so với luật, không tạo cảnh báo hay đổi đơn. |
 | Ảnh chứng từ | `readReceipt({ buffer, mime }, ctx)` → `{ transactions, warnings }`; JPEG/PNG tối đa 2 MB, không dùng để xác nhận thanh toán. Nhận ảnh ở endpoint upload cần thống nhất riêng. |
-| Cửa hàng | `getShopSettings(shopId, { client? }?)` → `{ name, bankCode, bankAccountNumber, bankAccountName }`; `updateShopSettings(shopId, patch, { client? }?)` → `{ before, after }`, mỗi ảnh chụp cùng kiểu cài đặt. Cả hai thuộc `services/shop.service.js`; xem hợp đồng bên dưới. |
+| Cửa hàng | `getShopSettings(shopId, { client? }?)` → `{ name, bankCode, bankAccountNumber, bankAccountName }`; `updateShopSettings(shopId, patch, { client? }?)` → `{ before, after }`, mỗi ảnh chụp cùng kiểu cài đặt. Cả hai thuộc `services/shop/shop.service.js`; xem hợp đồng bên dưới. |
 
 Service cửa hàng được agent và trang Cài đặt dùng chung. `shopId` do máy chủ lấy từ phiên đăng nhập; `patch` chỉ nhận các trường cài đặt nêu trên, không nhận token. Các trường ngân hàng có thể `null`; mã ngân hàng gồm 2–20 chữ/số, số tài khoản gồm 5–32 chữ số, tên cửa hàng không rỗng. Dữ liệu sai trả `400 BAD_REQUEST`, cửa hàng không tồn tại trả `404 SHOP_NOT_FOUND`. Hàm cập nhật khóa dòng và trả ảnh chụp trước/sau để bên gọi lưu nhật ký hoàn tác; nếu truyền `client`, bên gọi phải mở transaction và ghi nhật ký trong cùng transaction. Không truyền `client` thì service tự mở transaction. Service không tự duyệt: agent chỉ được gọi hàm cập nhật sau khi người dùng duyệt. Không có endpoint hay công cụ agent nào được tạo bởi service này.
 
@@ -44,7 +44,7 @@ Máy chủ dựng số liệu `resultCard` và câu trả về khi duyệt từ 
 
 ## Lớp bảo vệ NV-00 (dự kiến, Viên cung cấp)
 
-Hợp đồng dự kiến tại `server/src/services/guardrail.service.js`:
+Hợp đồng dự kiến tại `server/src/services/guardrail/guardrail.service.js`:
 
 - `checkInput({ text, channel, ctx })` → `{ action: 'allow' | 'refuse', category, message, signals }`; `category` là `ok | injection | off_topic | secret_request | forbidden_action`.
 - `guardData(content, { source, channel, ctx })` → `{ content, flagged, signals }`; `source` là `statement | receipt | customer_message | tool_output`.
@@ -95,4 +95,4 @@ Gửi chú thích `: ping` mỗi 20 giây. `message` thêm tin mới hoặc thay
 
 ### Điểm nối cảnh báo
 
-`createAlert(shopId, { eventKey, level, title, reasons, orderId? }, { client } = {})` trong `services/alerts.service.js` tạo hoặc tìm lại cảnh báo theo cặp cửa hàng và sự việc; `level` là `mid` hoặc `high`. Kết quả `{ alert, created, events }`. Khi truyền `client` đã trong transaction, bên gọi chỉ được gọi `publishAlert(shopId, events)` sau khi commit; không truyền `client` thì service tự giao dịch và phát sự kiện sau commit. Các cảnh báo cùng `eventKey` trong một cửa hàng không tạo thêm luồng hoặc thông báo. Hàm không phát hiện gian lận và không thay đổi đơn hàng.
+`createAlert(shopId, { eventKey, level, title, reasons, orderId? }, { client } = {})` trong `services/alerts/alerts.service.js` tạo hoặc tìm lại cảnh báo theo cặp cửa hàng và sự việc; `level` là `mid` hoặc `high`. Kết quả `{ alert, created, events }`. Khi truyền `client` đã trong transaction, bên gọi chỉ được gọi `publishAlert(shopId, events)` sau khi commit; không truyền `client` thì service tự giao dịch và phát sự kiện sau commit. Các cảnh báo cùng `eventKey` trong một cửa hàng không tạo thêm luồng hoặc thông báo. Hàm không phát hiện gian lận và không thay đổi đơn hàng.

@@ -11,7 +11,7 @@ Read `AGENTS.md`, `README.md` and relevant `docs/` before writing code. When the
   - `routes/`: only declare the path + middleware chain (verify, body parser, `validate`) and point to a controller. No inline handlers.
   - `controllers/`: read `req` (already validated), call a service, pick the status code and send `res`. No business logic, no access to `db/`.
   - `services/`: business logic and transactions. Knows nothing about `req`/`res`.
-  - Naming: `routes/<name>.js` ↔ `controllers/<name>.controller.js` ↔ `services/<name>.service.js`.
+  - Feature folders: inside each layer, files live in one folder per feature, e.g. `routes/<feature>/<name>.js` ↔ `controllers/<feature>/<name>.controller.js` ↔ `services/<feature>/<name>.service.js` ↔ `db/<feature>/<name>.js`. Don't add files directly under a layer root. The feature map and the exceptions (`routes/index.js`; `db/pool.js`, `migrate.js`, `seed.js`, `migrations/`, `repos/`) are in `docs/ARCHITECTURE.md`, section "Feature folders".
 - Validate every input (body, query, AI tool input) with `zod`.
 - Express 5 catches errors from async handlers, so don't wrap each route in try/catch. Throw errors with `status` + `code` and let `errorHandler` return JSON.
 - Webhooks: verify the signature/API key **before** parsing or processing. The Messenger route must keep the raw body.

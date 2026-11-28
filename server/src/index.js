@@ -2,8 +2,8 @@ import { env } from './config/env.js'
 import { createApp } from './app.js'
 import { pool } from './db/pool.js'
 import { logger } from './lib/logger.js'
-import { deleteExpiredDemoShops } from './services/demo.service.js'
-import { recover, interruptActive } from './services/assistant.service.js'
+import { deleteExpiredDemoShops } from './services/demo/demo.service.js'
+import { recover, interruptActive } from './services/assistant/assistant.service.js'
 import { closeAllStreams } from './services/assistant/events.js'
 
 try { await recover() } catch (err) { logger.error({ err }, 'Assistant recovery failed') }

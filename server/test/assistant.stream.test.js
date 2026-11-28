@@ -8,7 +8,7 @@ test('assistant SSE isolates shops and persists messages', { skip: !process.env.
   const { pool } = await import('../src/db/pool.js')
   const { env } = await import('../src/config/env.js')
   const { createApp } = await import('../src/app.js')
-  const { recover } = await import('../src/services/assistant.service.js')
+  const { recover } = await import('../src/services/assistant/assistant.service.js')
   const { acquire, release, closeAllStreams } = await import('../src/services/assistant/events.js')
   const server = createApp().listen(0, '127.0.0.1')
   await new Promise((resolve) => server.once('listening', resolve))

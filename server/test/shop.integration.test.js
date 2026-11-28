@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 test('shop service validates, isolates shops and rolls back updates', { skip: !process.env.TEST_DATABASE_URL }, async () => {
   process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
   const { pool } = await import('../src/db/pool.js')
-  const { getShopSettings, updateShopSettings } = await import('../src/services/shop.service.js')
+  const { getShopSettings, updateShopSettings } = await import('../src/services/shop/shop.service.js')
   const client = await pool.connect()
   const first = randomUUID()
   const second = randomUUID()

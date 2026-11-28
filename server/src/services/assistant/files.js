@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { HttpError } from '../../lib/httpError.js'
-import * as db from '../../db/assistant.files.js'
+import * as db from '../../db/assistant/files.js'
 const bad = (message) => new HttpError(400,'INVALID_FILE',message)
 export async function uploadFile(shopId,file) {
   if (!file || !Buffer.isBuffer(file.buffer) || !file.buffer.length || file.buffer.length > 2097152) throw bad('Chọn một tệp CSV không rỗng, tối đa 2 MB.')
