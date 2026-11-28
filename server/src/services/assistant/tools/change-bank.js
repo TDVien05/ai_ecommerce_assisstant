@@ -3,6 +3,7 @@ import { appError } from '../../../errors/index.js'
 import { getShopSettings, updateShopSettings } from '../../shop/shop.service.js'
 import { seal, open } from './change-resources.js'
 import { env } from '../../../config/env.js'
+import { redactOwnerText } from '../../../lib/sensitiveText.js'
 
 export const bankOperation = z.object({entity:z.literal('bank'),action:z.literal('update'),data:z.object({bankCode:z.string().regex(/^[A-Za-z0-9]{2,20}$/),bankAccountNumber:z.string().regex(/^\d{5,32}$/),bankAccountName:z.string().trim().min(1).max(120)}).strict()}).strict()
 const conflict=()=>appError('STEP_CONFLICT','Thông tin tài khoản đã thay đổi; không thể thực hiện thao tác.')
@@ -14,6 +15,7 @@ export const bankChange={
     if(!env.ASSISTANT_SENSITIVE_ENABLED)throw appError('TOOL_NOT_ALLOWED','Chức năng đổi tài khoản nhận tiền chưa sẵn sàng.')
     const data=change.data
     if (!ctx.ownerText || ![data.bankCode,data.bankAccountNumber,data.bankAccountName].every((v)=>ctx.ownerText.includes(v))) throw appError('BAD_REQUEST','Mã ngân hàng, số và tên tài khoản phải có trong tin nhắn của bạn ở lượt này.')
+    if (redactOwnerText(ctx.ownerText).includes(data.bankAccountNumber)) throw appError('BAD_REQUEST','Hãy ghi rõ số tài khoản trong tin nhắn, tách biệt số tiền và đơn vị tiền.')
     const old=bankOnly(await getShopSettings(ctx.shopId))
     return {tool:this.name,input:seal(data),expected:seal(old)}
   },

@@ -11,6 +11,7 @@ import { formatTime } from './view.js'
 import { getFile } from './files.js'
 import { parseStatementCsv, classifyRows } from './statement.js'
 import { makeStep } from './steps.js'
+import { redactOwnerText } from '../../lib/sensitiveText.js'
 
 const title='Nhập sao kê', scope='Kiểm tra và phân loại giao dịch trong tệp CSV.'
 function threadView(row) { return {id:row.id,title:row.title,status:row.status,scope:row.scope,updatedAt:formatTime(row.updated_at)} }
@@ -33,7 +34,7 @@ export async function startStatement(auth,{text,attachments}) {
   if (attachments.length!==1) throw appError('INVALID_FILE', 'Mỗi lần chỉ nhập một tệp CSV.')
   const file=await getFile(auth.shopId,attachments[0].fileId)
   if (file.name!==attachments[0].name) throw appError('FILE_NOT_FOUND', 'Không tìm thấy tệp sao kê.')
-  const safeText=text.replace(/(?<!\d)\d{5,32}(?!\d)/g,(value)=>`${'*'.repeat(value.length-4)}${value.slice(-4)}`)
+  const safeText=redactOwnerText(text)
   const id=randomUUID(), hubUser={id:randomUUID(),role:'user',text:safeText,files:[file.name],attachmentIds:[file.id],threadId:id}
   const digest=createHash('sha256').update(file.content).digest('hex')
   const threadUser={id:randomUUID(),role:'user',text:safeText,files:[file.name]}

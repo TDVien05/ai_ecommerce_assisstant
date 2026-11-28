@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import { appError } from '../../../errors/index.js'
 import * as conversations from '../../../repositories/messenger/conversation.repository.js'
+import { hasSensitiveDraftNumber } from '../../../lib/sensitiveText.js'
 
-export const draftText=z.string().trim().min(1).max(2000).refine((value)=>!/(?<!\d)\d{5,32}(?!\d)/.test(value),'Không đưa dãy số nhạy cảm vào bản nháp.')
+export const draftText=z.string().trim().min(1).max(2000).refine((value)=>!hasSensitiveDraftNumber(value),'Không đưa dãy số nhạy cảm vào bản nháp.')
 export const messageOperation=z.object({entity:z.literal('customer_message'),action:z.literal('create'),data:z.object({text:draftText}).strict()}).strict()
 
 // Integration point for Viên. It cannot report delivery until a durable,

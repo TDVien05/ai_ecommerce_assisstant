@@ -8,6 +8,7 @@ import { snapshotView } from './view.js'
 import { runAgent } from './agent.js'
 import { startStatement, updateThread } from './threads.js'
 import { reserveAgentRun } from './quota.js'
+import { redactOwnerText } from '../../lib/sensitiveText.js'
 
 const notFound = () => appError('NOT_FOUND', 'Không tìm thấy hội thoại hoặc tệp.')
 const activeRuns = new Map()
@@ -40,8 +41,7 @@ export async function sendMessage({ shopId, userId }, { conversationId, text, at
     if (!await store.conversationExists(shopId, conversationId) || !await store.attachmentsExist(shopId, attachments)) throw notFound()
     if (controller.signal.aborted) throw appError('ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
     reservation=reserveAgentRun(shopId)
-    // Do not persist account-like digit sequences in conversation history.
-    const safeText = text.replace(/(?<!\d)\d{5,32}(?!\d)/g, (value) => `${'*'.repeat(value.length - 4)}${value.slice(-4)}`)
+    const safeText = redactOwnerText(text)
     const message = { id: randomUUID(), role: 'user', text: safeText, ...(attachments.length ? { files: attachments.map((file) => file.name) } : {}) }
     await store.insertMessage(shopId, conversationId, message)
     reservation.commit()
