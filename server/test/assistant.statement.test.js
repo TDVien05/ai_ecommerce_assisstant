@@ -49,6 +49,17 @@ test('CSV import scopes files, asks for classification, approves and undoes', {s
     await pool.query("INSERT INTO assistant_messages (id,shop_id,conversation_id,role,body) VALUES ($1,$2,'hub','user',$3)",[randomUUID(),shop,{id:randomUUID(),role:'user',text:'',attachmentIds:[interrupted.fileId],threadId:thread}])
     assert.equal((await post('/messages',{conversationId:'hub',text:'Thử lại sau gián đoạn',attachments:[interrupted]})).status,204)
     for (let i=0;i<100;i++) { const state=await pool.query("SELECT count(*)::int n FROM assistant_threads WHERE shop_id=$1 AND status='running'",[shop]); if(!state.rows[0].n) break; await new Promise((resolve)=>setTimeout(resolve,30)) }
+    const triggerName=`test_failure_${randomUUID().replaceAll('-','')}`
+    await pool.query(`CREATE FUNCTION ${triggerName}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.shop_id='${shop}'::uuid AND NEW.role='assistant' AND NEW.conversation_id<>'hub' THEN RAISE EXCEPTION 'test'; END IF; RETURN NEW; END $$`)
+    await pool.query(`CREATE TRIGGER ${triggerName} BEFORE INSERT ON assistant_messages FOR EACH ROW EXECUTE FUNCTION ${triggerName}()`)
+    try {
+      const broken=await (await upload('force failure')).json()
+      assert.equal((await post('/messages',{conversationId:'hub',text:'Lỗi thử',attachments:[broken]})).status,204)
+      const {typingFor}=await import('../src/services/assistant/events.js')
+      for(let i=0;i<100 && typingFor(shop).length;i++) await new Promise((resolve)=>setTimeout(resolve,30))
+      assert.equal(typingFor(shop).length,0)
+      assert.equal((await fetch(`http://127.0.0.1:${server.address().port}/health`)).status,200)
+    } finally { await pool.query(`DROP TRIGGER ${triggerName} ON assistant_messages`);await pool.query(`DROP FUNCTION ${triggerName}()`) }
 
   } finally { await new Promise((resolve)=>server.close(resolve)); await pool.end() }
 })
