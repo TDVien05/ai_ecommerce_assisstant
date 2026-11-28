@@ -37,8 +37,8 @@ export class HttpFlowyAI implements FlowyAI {
   upload(file: File): Promise<Attachment> { return api.upload('/assistant/files', file) }
   send(request: SendRequest): Promise<void> { return api.post('/assistant/messages', request) }
   answer({ stepId, questionId, option }: AnswerRequest): Promise<void> { return api.post(`/assistant/steps/${encodeURIComponent(stepId)}/answers`, { questionId, option }) }
-  approve(stepId: string): Promise<ApproveResponse> { return api.post(`/assistant/steps/${encodeURIComponent(stepId)}/approve`) }
-  undo(stepId: string): Promise<void> { return api.post(`/assistant/steps/${encodeURIComponent(stepId)}/undo`) }
+  approve(stepId: string, password?: string): Promise<ApproveResponse> { return api.post(`/assistant/steps/${encodeURIComponent(stepId)}/approve`, password ? {password} : {}) }
+  undo(stepId: string, password?: string): Promise<void> { return api.post(`/assistant/steps/${encodeURIComponent(stepId)}/undo`, password ? {password} : {}) }
   safeAction(alertId: string): Promise<void> { return api.post(`/assistant/alerts/${encodeURIComponent(alertId)}/safe-action`) }
   dismissNotice(noticeId: string): Promise<void> { return api.post(`/assistant/notices/${encodeURIComponent(noticeId)}/dismiss`) }
 }

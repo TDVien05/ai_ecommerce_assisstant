@@ -8,6 +8,8 @@ import { editLedger, patchSchema, column } from './change-ledger.js'
 import { changeAlert } from './change-alert.js'
 import { resourceChange, resourceOperations } from './change-resources.js'
 import { orderChange, orderOperations } from './change-order.js'
+import { bankChange, bankOperation } from './change-bank.js'
+import { messageChange, messageOperation } from './change-message.js'
 const missing = (code) => appError(code)
 
 const date = (value) => new Date(value).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
@@ -37,7 +39,7 @@ editLedger.describe = (action) => {
 }
 
 // Historical tool names remain available for pending steps and existing audit logs.
-export const changeTools = [addLedgerEntries, deleteManualEntry, editLedger, updateOrderStatus, updateShop, changeAlert, resourceChange, orderChange]
+export const changeTools = [addLedgerEntries, deleteManualEntry, editLedger, updateOrderStatus, updateShop, changeAlert, resourceChange, orderChange, bankChange, messageChange]
 export const changeToolByName = new Map(changeTools.map((tool) => [tool.name, tool]))
 const operation = z.union([
   z.object({ entity: z.literal('ledger'), action: z.literal('create'), data: entry }).strict(),
@@ -48,16 +50,18 @@ const operation = z.union([
   z.object({ entity: z.literal('shop'), action: z.literal('update'), data: z.object({ name: z.string().trim().min(1).max(120) }).strict() }).strict(),
   ...resourceOperations,
   ...orderOperations,
+  bankOperation,
+  messageOperation,
 ])
 
 export const proposeChange = {
   name: 'propose_change', tier: 'write',
-  description: 'Đề xuất tối đa 20 thay đổi chờ duyệt: ledger, orders, alerts, shop, products, customers, todos, conversations. Sản phẩm delete là ngừng bán; không xác nhận thanh toán. Dùng id thuộc cửa hàng.',
+  description: 'Đề xuất tối đa 20 thay đổi chờ duyệt: ledger, orders, alerts, shop, products, customers, todos, conversations; bank đổi tài khoản theo dữ liệu chính chủ cung cấp, customer_message tạo bản nháp để chủ chọn người nhận. Hai thao tác này phải duyệt riêng. Sản phẩm delete là ngừng bán; không xác nhận thanh toán.',
   schema: z.object({ changes: z.array(operation).min(1).max(20) }).strict(),
   async propose(input, ctx) {
     const actions = [], seen = new Set()
     for (const change of input.changes) {
-      const key = change.id ? `${change.entity}:${change.id}` : change.entity === 'shop' ? 'shop' : null
+      const key = change.id ? `${change.entity}:${change.id}` : ['shop','bank'].includes(change.entity) ? change.entity : null
       if (key && seen.has(key)) throw appError('BAD_REQUEST', 'Không thể thay đổi cùng một đối tượng hai lần trong một đề xuất.')
       if (key) seen.add(key)
       let tool, args
@@ -71,6 +75,8 @@ export const proposeChange = {
         tool = updateOrderStatus; args = { paymentCode: row.payment_code, status: change.data.status }
       } else if (change.entity === 'alerts') { tool = changeAlert; args = { id: change.id, status: change.data.status } }
       else if (change.entity === 'shop') { tool = updateShop; args = change.data }
+      else if (change.entity === 'bank') { tool = bankChange; args = change }
+      else if (change.entity === 'customer_message') { tool = messageChange; args = change }
       else { tool = resourceChange; args = change }
       actions.push(await tool.propose(args, ctx))
     }

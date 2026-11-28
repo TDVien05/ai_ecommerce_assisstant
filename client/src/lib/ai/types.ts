@@ -47,7 +47,9 @@ export type Block =
       stepId: string
       title: string
       state: RunState
-      entities?: ('ledger' | 'orders' | 'alerts' | 'shop' | 'products' | 'customers' | 'todos' | 'conversations')[]
+      entities?: ('ledger' | 'orders' | 'alerts' | 'shop' | 'products' | 'customers' | 'todos' | 'conversations' | 'bank' | 'customer_message')[]
+      requiresPassword?: boolean
+      messageDraft?: { text: string; conversationId: string | null }
       steps: { label: string; meta?: string; status: StepStatus }[]
       questions?: Question[]
       approveLabel: string
@@ -129,8 +131,8 @@ export interface FlowyAI {
   send(request: SendRequest): Promise<void>
   answer(request: AnswerRequest): Promise<void>
   /** Trả về câu thông báo đã ghi gì, ở thì quá khứ, có số. */
-  approve(stepId: string): Promise<ApproveResponse>
-  undo(stepId: string): Promise<void>
+  approve(stepId: string, password?: string): Promise<ApproveResponse>
+  undo(stepId: string, password?: string): Promise<void>
   safeAction(alertId: string): Promise<void>
   dismissNotice(noticeId: string): Promise<void>
 }

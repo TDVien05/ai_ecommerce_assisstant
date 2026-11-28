@@ -19,6 +19,12 @@ export async function findById(shopId, id, db) {
   return rows[0] ?? null
 }
 
+export async function listRecipients(shopId, db) {
+  requireShopId(shopId)
+  const {rows}=await query('SELECT c.id, COALESCE(NULLIF(u.name,\'\'),\'Khách hàng\') AS name FROM conversations c JOIN customers u ON u.id=c.customer_id AND u.shop_id=c.shop_id WHERE c.shop_id=$1 ORDER BY c.created_at DESC LIMIT 100',[shopId],db)
+  return rows
+}
+
 export async function findByCustomer(shopId, customerId, db) {
   requireShopId(shopId)
   const { rows } = await query(
