@@ -80,6 +80,7 @@ export const api = {
   get: <T>(path: string, query?: Query, signal?: AbortSignal) => request<T>(`/api${path}`, { query, signal }),
   post: <T>(path: string, body?: unknown) => request<T>(`/api${path}`, { method: 'POST', body }),
   patch: <T>(path: string, body?: unknown) => request<T>(`/api${path}`, { method: 'PATCH', body }),
+  put: <T>(path: string, body?: unknown) => request<T>(`/api${path}`, { method: 'PUT', body }),
   delete: <T>(path: string) => request<T>(`/api${path}`, { method: 'DELETE' }),
   upload: async <T>(path: string, file: File): Promise<T> => {
     const fullPath = `/api${path}`

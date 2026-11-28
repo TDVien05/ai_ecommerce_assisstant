@@ -31,6 +31,22 @@ export async function create(shopId, { conversationId, mid = null, role, content
   return rows[0] ?? null
 }
 
+/**
+ * Store a message with its original timestamp (history backfill). Same dedupe as `create()`.
+ * `createdAt` stays null for live webhook traffic, which uses the column default.
+ */
+export async function createAt(shopId, { conversationId, mid = null, role, content = null, createdAt = null }, db) {
+  requireShopId(shopId)
+  const { rows } = await query(
+    `INSERT INTO messages (conversation_id, mid, role, content, created_at)
+     SELECT c.id, $3, $4, $5, COALESCE($6, now()) FROM conversations c WHERE c.id = $2 AND c.shop_id = $1
+     ON CONFLICT (mid) DO NOTHING
+     RETURNING ${columns}`,
+    [shopId, conversationId, mid, role, content, createdAt], db,
+  )
+  return rows[0] ?? null
+}
+
 export async function findByMid(shopId, mid, db) {
   requireShopId(shopId)
   const { rows } = await query(

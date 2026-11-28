@@ -41,6 +41,8 @@ export const ERROR_CODES = Object.freeze({
   ALREADY_UNDONE: { status: 409, message: 'Lượt chạy đã được hoàn tác.' },
   UNDO_EXPIRED: { status: 409, message: 'Đã quá thời hạn hoàn tác.' },
   ALERT_CLOSED: { status: 409, message: 'Cảnh báo đã được xử lý.' },
+  // Meta only allows a reply within 24 hours of the customer's last message.
+  MESSENGER_WINDOW_CLOSED: { status: 409, message: 'Đã quá 24 giờ kể từ tin nhắn cuối của khách; không trả lời tự động được.' },
 
   // 413 / 429: too much
   PAYLOAD_TOO_LARGE: { status: 413, message: 'Nội dung gửi lên quá lớn.' },
@@ -56,4 +58,6 @@ export const ERROR_CODES = Object.freeze({
   AI_UNAVAILABLE: { status: 503, message: 'AI tạm thời không khả dụng.' },
   ASSISTANT_UNAVAILABLE: { status: 503, message: 'Trợ lý tạm thời không khả dụng.' },
   DEMO_UNAVAILABLE: { status: 503, message: 'Tài khoản demo chưa sẵn sàng.' },
+  MESSENGER_API_FAILED: { status: 503, message: 'Không gọi được Graph API của Meta.' },
+  MESSENGER_NOT_CONFIGURED: { status: 503, message: 'Cửa hàng chưa có Page access token để gửi tin nhắn.' },
 })

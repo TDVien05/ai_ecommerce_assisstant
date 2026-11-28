@@ -75,11 +75,11 @@ Every layer keeps its role, and inside each layer the files are grouped into **o
 | `finance` | `finance.js` | `finance.controller.js` | `finance.service.js`, `ledger.service.js` | `ledgerEntry`, `label` |
 | `guardrail` (planned, NV-00) | | | `guardrail.service.js` | |
 | `health` | `health.js` | `health.controller.js` | `health.service.js` | |
-| `messenger` | | | | `customer`, `conversation`, `message` |
-| `orders` | `orders.js` | `orders.controller.js` | `order.service.js` | `order`, `orderItem` |
-| `payments` | | | `payment.service.js`, `fraud.service.js` | `paymentTransaction`, `fraudCheck`, `blocklist` |
+| `messenger` | `messenger.js` | `messenger.controller.js` | `messenger.service.js` (webhook → DB), `bot.service.js` (AI reply), `tools/bot.tools.js` (5 tools), `send.service.js` (Send API), `gate.service.js` (ai_paused + quota), `history.service.js` (backfill), `graph.client.js` | `customer`, `conversation`, `message` |
+| `orders` | `orders.js` | `orders.controller.js` | `order.service.js`, `expiry.service.js` | `order`, `orderItem` |
+| `payments` | | | `payment.service.js`, `reconcile.service.js`, `fraud.service.js` | `paymentTransaction`, `fraudCheck`, `blocklist` |
 | `products` | | | | `product` |
-| `shop` | | | `shop.service.js` | `shop`, `pin`, `todo` |
+| `shop` | `shop.js` | `shop.controller.js` | `shop.service.js`, `payment.service.js` | `shop`, `pin`, `todo` |
 | `webhook` | `messenger.js`, `sepay.js`, `sim.js` | `messenger.controller.js`, `sepay.controller.js`, `sim.controller.js` | `webhook.service.js`, `sim.service.js` | `webhookEvent` |
 
 Validators: `validators/<feature>/<feature>.validator.js` exists for `alerts`, `assistant`, `auth`, `dev`, `finance` and `orders`. The other routers take no client input that needs a schema (`demo`, `health`), or check a signature on the raw body first (`webhook`).

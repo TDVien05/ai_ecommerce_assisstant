@@ -7,11 +7,58 @@ export async function findById(shopId, db) {
   requireShopId(shopId)
   const { rows } = await query(
     `SELECT id, name, fb_page_id, bank_code, bank_account_number, bank_account_name,
-            is_demo, demo_expires_at, created_at
+            is_demo, demo_expires_at, payment_provider, created_at
        FROM shops WHERE id = $1`,
     [shopId], db,
   )
   return rows[0] ?? null
+}
+
+/**
+ * Shop row needed while reconciling a payment: the receiving account decides whether a
+ * transfer belongs to this shop. Read-only, so no lock.
+ */
+export async function findForPayment(shopId, db) {
+  requireShopId(shopId)
+  const { rows } = await query(
+    'SELECT id, name, bank_code, bank_account_number, bank_account_name FROM shops WHERE id = $1',
+    [shopId], db,
+  )
+  return rows[0] ?? null
+}
+
+/**
+ * Encrypted webhook secret of one shop. Callers decrypt it with lib/secrets.js.
+ * Never send this value to a client.
+ */
+export async function findWebhookSecret(shopId, db) {
+  requireShopId(shopId)
+  const { rows } = await query(
+    'SELECT sepay_webhook_secret FROM shops WHERE id = $1',
+    [shopId], db,
+  )
+  return rows[0]?.sepay_webhook_secret ?? null
+}
+
+/** Store the already-encrypted secret. Pass null to remove it (shop stops accepting webhooks). */
+export async function saveWebhookSecret(shopId, encrypted, provider = 'sepay', db) {
+  requireShopId(shopId)
+  const { rows } = await query(
+    `UPDATE shops SET sepay_webhook_secret = $2, payment_provider = $3
+      WHERE id = $1
+      RETURNING id, payment_provider, sepay_webhook_secret IS NOT NULL AS has_secret`,
+    [shopId, encrypted, provider], db,
+  )
+  return rows[0] ?? null
+}
+
+/** Shops that have a webhook secret, for diagnostics (never returns the secret itself). */
+export async function countWithWebhookSecret(db) {
+  const { rows } = await query(
+    'SELECT count(*)::int AS n FROM shops WHERE sepay_webhook_secret IS NOT NULL AND NOT is_demo',
+    [], db,
+  )
+  return rows[0].n
 }
 
 /** Raw row including fb_page_token; only for services that need to call the Send API. */

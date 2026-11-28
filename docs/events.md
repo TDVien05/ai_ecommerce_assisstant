@@ -100,7 +100,8 @@ SePay shape (also what `/api/dev/simulate-payment` and `/webhooks/sim` produce):
 | Endpoint | Auth | Notes |
 |---|---|---|
 | `GET/POST /webhooks/messenger` | `X-Hub-Signature-256` (FB_APP_SECRET) | raw body before JSON |
-| `POST /webhooks/sepay` | `Authorization: Apikey <SEPAY_WEBHOOK_API_KEY>` | answers `{ success: true }` |
+| `POST /webhooks/sepay/:shopId` | `X-SePay-Signature` (HMAC-SHA256, secret của shop đó) | Mô hình nhiều shop — dùng đường này |
+| `POST /webhooks/sepay` | `X-SePay-Signature` (secret toàn cục) hoặc API key | Chỉ cho cài đặt một shop (legacy) |
 | `POST /webhooks/sim` | `X-Sim-Signature: sha256=<hex>` (SIM_WEBHOOK_SECRET) | same handlers as the real ones |
 | `POST /api/dev/simulate-payment` | shop JWT | `{ orderId }` → builds a SePay payload |
 

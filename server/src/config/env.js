@@ -36,6 +36,8 @@ const schema = z.object({
 
   // SePay (required from M4)
   SEPAY_WEBHOOK_API_KEY: optional,
+  // HMAC-SHA256 secret for SePay webhooks (recommended over the API key).
+  SEPAY_WEBHOOK_SECRET: optional,
   // HMAC key for the in-app simulator webhook (/webhooks/sim).
   SIM_WEBHOOK_SECRET: optional,
 

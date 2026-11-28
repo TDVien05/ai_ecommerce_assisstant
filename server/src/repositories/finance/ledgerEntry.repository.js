@@ -51,18 +51,18 @@ export async function create(shopId, entry, db) {
 export async function createOnce(shopId, entry, db) {
   requireShopId(shopId)
   const {
-    type, category, amount, orderId = null, note = null, occurredAt = new Date(),
+    type, kind = null, channel = null, category, amount, orderId = null, note = null, occurredAt = new Date(),
     source = 'manual', labelId = null, counterparty = null, rawDescription = null,
     dedupeKey, runId = null,
   } = entry
   if (!dedupeKey) throw new Error('dedupeKey is required by createOnce')
   const { rows } = await query(
-    `INSERT INTO ledger_entries (shop_id, type, category, amount, order_id, note, occurred_at,
+    `INSERT INTO ledger_entries (shop_id, type, kind, channel, category, amount, order_id, note, occurred_at,
                                  source, label_id, counterparty, raw_description, dedupe_key, run_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
      ON CONFLICT (shop_id, dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING
      RETURNING ${columns}`,
-    [shopId, type, category, amount, orderId, note, occurredAt, source, labelId, counterparty, rawDescription, dedupeKey, runId], db,
+    [shopId, type, kind, channel, category, amount, orderId, note, occurredAt, source, labelId, counterparty, rawDescription, dedupeKey, runId], db,
   )
   if (rows[0]) return { entry: rows[0], inserted: true }
   const existing = await query(

@@ -120,6 +120,78 @@ export async function findExpired(shopId, now = new Date(), db) {
   return rows
 }
 
+/**
+ * Every expired AWAITING_PAYMENT order, across all shops. Used by the hourly/minute sweep,
+ * which has no single tenant to scope to.
+ */
+export async function findAllExpired(now = new Date(), limit = 500, db) {
+  const { rows } = await query(
+    `SELECT ${columns} FROM orders
+      WHERE status = 'AWAITING_PAYMENT' AND expires_at IS NOT NULL AND expires_at < $1
+      ORDER BY expires_at LIMIT $2`,
+    [now, limit], db,
+  )
+  return rows
+}
+
+/**
+ * Compare-and-set: only expire an order that is still AWAITING_PAYMENT. Returns the row when it
+ * flipped, null when something else moved it first (a payment arrived, the owner cancelled it).
+ * That is what keeps a late webhook from being overwritten by the sweep.
+ */
+export async function expireIfAwaiting(shopId, id, client) {
+  requireShopId(shopId)
+  const { rows } = await query(
+    `UPDATE orders SET status = 'EXPIRED'
+      WHERE shop_id = $1 AND id = $2 AND status = 'AWAITING_PAYMENT'
+      RETURNING ${columns}`,
+    [shopId, id], client,
+  )
+  return rows[0] ?? null
+}
+
+/**
+ * Compare-and-set: mark an order paid only while it is still AWAITING_PAYMENT, and stamp
+ * `paid_at` at the same time. Returns null when another writer (a second webhook, the expiry
+ * sweep) got there first, so the caller does not double-apply ledger and stock changes.
+ */
+export async function markPaidIfAwaiting(shopId, id, paidAt, client) {
+  requireShopId(shopId)
+  const { rows } = await query(
+    `UPDATE orders SET status = 'PAID', paid_at = COALESCE($3, now())
+      WHERE shop_id = $1 AND id = $2 AND status = 'AWAITING_PAYMENT'
+      RETURNING ${columns}`,
+    [shopId, id, paidAt ?? null], client,
+  )
+  return rows[0] ?? null
+}
+
+/** Item lines with the product id, for a stock movement. */
+export async function findItemsForStock(shopId, orderId, client) {
+  requireShopId(shopId)
+  const { rows } = await query(
+    `SELECT i.product_id, i.quantity FROM order_items i
+       JOIN orders o ON o.id = i.order_id
+      WHERE o.shop_id = $1 AND o.id = $2 AND i.product_id IS NOT NULL`,
+    [shopId, orderId], client,
+  )
+  return rows
+}
+
+/**
+ * Give stock back when an unpaid order expires.
+ * Lives here (not in product.repository) because the quantity comes from the order's own lines
+ * joined to `orders`, keeping the query with its main table. A deleted product is skipped.
+ */
+export async function restoreStock(shopId, productId, quantity, client) {
+  requireShopId(shopId)
+  await query(
+    `UPDATE products SET stock = stock + $3
+      WHERE id = $2 AND shop_id = $1`,
+    [shopId, productId, quantity], client,
+  )
+}
+
 const viewColumns = `o.id,o.payment_code,o.status,o.subtotal,o.shipping_fee,o.total,o.paid_at,o.created_at,o.expires_at,o.shipping_phone,o.shipping_address,COALESCE(c.name,o.shipping_name,'Khách hàng') AS customer_name`
 
 const viewFrom = `FROM orders o LEFT JOIN customers c ON c.id=o.customer_id AND c.shop_id=o.shop_id`

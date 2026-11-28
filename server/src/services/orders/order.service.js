@@ -2,7 +2,15 @@ import { appError } from '../../errors/index.js'
 import * as orderRepo from '../../repositories/orders/order.repository.js'
 import * as orderItemRepo from '../../repositories/orders/orderItem.repository.js'
 import * as paymentRepo from '../../repositories/payments/paymentTransaction.repository.js'
+import * as shopRepo from '../../repositories/shop/shop.repository.js'
 import { withTransaction } from '../../repositories/database.js'
+import {
+  generatePaymentCode,
+  paymentDeadline,
+  vietQrUrl,
+  PAYMENT_WINDOW_MINUTES,
+} from '../../lib/payment.js'
+import { logger } from '../../lib/logger.js'
 const missing = () => appError('ORDER_NOT_FOUND', 'Không tìm thấy đơn hàng.')
 const conflict = () => appError('ORDER_CONFLICT', 'Trạng thái đơn đã thay đổi hoặc không thể chuyển.')
 const transitions = { SHIPPING: 'PAID', COMPLETED: 'SHIPPING', CANCELLED: 'AWAITING_PAYMENT' }
@@ -38,4 +46,65 @@ export async function updateOrderStatus(shopId,id,status) {
     await changeStatus(shopId,row.payment_code,status,{id:row.id,status:row.status},client)
     return view(await orderRepo.findViewById(shopId,id,client))
   })
+}
+
+/**
+ * Payment instructions for an order: the QR the customer scans and the code the webhook matches.
+ * Returns null when the shop has not configured a receiving account yet, so the caller can tell
+ * the customer to wait instead of showing a broken image.
+ */
+export async function getPaymentInstructions(shopId, rowOrId) {
+  const row = typeof rowOrId === 'string'
+    ? await orderRepo.findViewById(shopId, rowOrId)
+    : rowOrId
+  if (!row) throw missing()
+
+  const shop = await shopRepo.findForPayment(shopId)
+  const qrUrl = vietQrUrl({
+    bankCode: shop?.bank_code,
+    accountNumber: shop?.bank_account_number,
+    accountName: shop?.bank_account_name,
+    amount: money(row.total),
+    addInfo: row.payment_code,
+  })
+
+  return {
+    paymentCode: row.payment_code,
+    amount: money(row.total),
+    expiresAt: row.expires_at ?? null,
+    windowMinutes: PAYMENT_WINDOW_MINUTES,
+    bankCode: shop?.bank_code ?? null,
+    bankAccountNumber: shop?.bank_account_number ?? null,
+    bankAccountName: shop?.bank_account_name ?? null,
+    qrUrl,
+    // What the customer types if they cannot scan the QR.
+    transferNote: row.payment_code,
+    ready: Boolean(qrUrl),
+  }
+}
+
+/** Create an order with a fresh payment code and a 30-minute deadline. */
+export async function createOrder(shopId, input, items) {
+  return withTransaction(async (client) => {
+    // Retry on the (very unlikely) code collision instead of failing the request.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const paymentCode = generatePaymentCode()
+      try {
+        return await orderRepo.create(
+          shopId,
+          { ...input, paymentCode, expiresAt: paymentDeadline() },
+          items,
+        )
+      } catch (error) {
+        if (error?.code === '23505' && error?.constraint === 'orders_payment_code_key') continue
+        throw error
+      }
+    }
+    throw appError('CONFLICT', 'Không tạo được mã thanh toán, vui lòng thử lại.')
+  })
+}
+
+/** Payment code collision retries are logged so a broken generator is noticed. */
+export function logCodeRetry(shopId) {
+  logger.warn({ shopId }, 'payment code collision, retrying')
 }
