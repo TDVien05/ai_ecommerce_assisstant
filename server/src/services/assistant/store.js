@@ -1,1 +1,1 @@
-export { loadSnapshot, conversationExists, attachmentsExist, insertMessage, recoverInterrupted } from '../../db/assistant.js'
+export { loadSnapshot, conversationExists, attachmentsExist, insertMessage, recoverInterrupted, recentMessages } from '../../db/assistant.js'

@@ -1,4 +1,5 @@
 import * as assistant from '../services/assistant.service.js'
+import { trackStream } from '../services/assistant/events.js'
 
 export async function stream(req, res) {
   let ready = false
@@ -11,7 +12,8 @@ export async function stream(req, res) {
     else queued.push(event)
   })
   let ping
-  res.on('close', () => { closed = true; clearInterval(ping); unsubscribe() })
+  const untrack = trackStream(() => res.end())
+  res.on('close', () => { closed = true; clearInterval(ping); unsubscribe(); untrack() })
   try {
     const snapshot = await assistant.snapshot(req.auth.shopId)
     if (closed) return
@@ -22,10 +24,10 @@ export async function stream(req, res) {
     for (const event of queued) write(event)
     ping = setInterval(() => res.write(': ping\n\n'), 20_000)
     ping.unref()
-  } catch (err) { unsubscribe(); throw err }
+  } catch (err) { unsubscribe(); untrack(); throw err }
 }
 
 export async function send(req, res) {
-  await assistant.sendMessage(req.auth.shopId, req.body)
+  await assistant.sendMessage(req.auth, req.body)
   res.sendStatus(204)
 }

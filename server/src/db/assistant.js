@@ -25,6 +25,11 @@ export async function insertMessage(shopId, conversationId, message, client = po
   await client.query('INSERT INTO assistant_messages (shop_id, id, conversation_id, role, body) VALUES ($1, $2, $3, $4, $5)', [shopId, message.id, conversationId, message.role, message])
 }
 
+export async function recentMessages(shopId, conversationId) {
+  const { rows } = await pool.query('SELECT body FROM (SELECT seq, body FROM assistant_messages WHERE shop_id = $1 AND conversation_id = $2 ORDER BY seq DESC LIMIT 20) recent ORDER BY seq', [shopId, conversationId])
+  return rows.map((row) => row.body)
+}
+
 export async function recoverInterrupted(client) {
   const steps = await client.query("UPDATE assistant_steps SET state = 'failed', decided_at = now(), view = jsonb_set(view, '{state}', '\"failed\"') WHERE state = 'working' RETURNING shop_id, id, message_id")
   for (const step of steps.rows) {

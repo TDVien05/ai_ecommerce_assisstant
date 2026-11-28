@@ -58,7 +58,7 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 
 ### Assistant (planned)
 
-`GET /api/assistant/stream` provides a JWT-protected SSE stream with a snapshot first and heartbeats every 20 seconds. `POST /api/assistant/messages` accepts `{ conversationId, text, attachments }`, persists the message and returns `204`; the current assistant reply is fixed text. A busy conversation returns `409 ASSISTANT_BUSY`, and another shop's thread or attachment returns `404`. The remaining assistant endpoints, agent and guardrails are not implemented yet. The complete proposed contract is in [ai-interface.md](ai-interface.md).
+`GET /api/assistant/stream` provides a JWT-protected SSE stream with a snapshot first and heartbeats every 20 seconds. `POST /api/assistant/messages` accepts `{ conversationId, text, attachments }`, persists the message and returns `204`; the assistant can call read-only ledger tools. A busy conversation returns `409 ASSISTANT_BUSY`, and another shop's thread or attachment returns `404`. Quota, rule fallback and guardrails are temporary adapters, and the other assistant endpoints remain unimplemented. The complete contract is in [ai-interface.md](ai-interface.md).
 
 ### Products
 | Method | Path | Description |
