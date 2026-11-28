@@ -2,6 +2,7 @@
 import { z } from 'zod'
 import { validate } from '../validate.js'
 import { badRequest } from '../../errors/index.js'
+import { bookCodes } from '../../lib/ledgerBooks.js'
 
 const timestamp = z.string().datetime({ offset: true })
 const period = { from: timestamp.optional(), to: timestamp.optional() }
@@ -13,6 +14,8 @@ const entry = z.object({
 }).strict()
 
 export const ledger = query({ ...period, type: z.enum(['INCOME', 'EXPENSE']).optional() })
+export const book = query({ code: z.enum(bookCodes), from: timestamp, to: timestamp })
+export const threshold = query({})
 export const create = validate(entry, 'body', 'Thông tin khoản sổ không hợp lệ.')
 /** :id of a ledger entry. Checks only the id, so req.params is left as it is. */
 export const entryId = (req, _res, next) => { if (!z.string().uuid().safeParse(req.params.id).success) throw badRequest('Mã khoản sổ không hợp lệ.'); next() }

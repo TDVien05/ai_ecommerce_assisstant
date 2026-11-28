@@ -42,6 +42,8 @@ Máy chủ dựng số liệu `resultCard` và câu trả về khi duyệt từ 
 
 `shopId` chỉ lấy từ phiên đã xác thực. Mọi bước, tệp, cảnh báo và thông báo phải được kiểm tra thuộc cửa hàng đó; tài nguyên của cửa hàng khác trả `404`. Không tin ID cửa hàng do mô hình hoặc client cung cấp.
 
+`get_activity({from,to})` đếm và cộng khoản thu, khoản chi và đơn tạo trong kỳ theo cửa hàng, tách trạng thái đơn; giao dịch ngân hàng chưa gắn đơn chưa được tính. `export_ledger_book({code?,from?,to?})` chuẩn bị khối `ledgerExport` với mã, tên, kỳ và cảnh báo; mặc định S1a-HKD trong tháng hiện tại theo giờ Việt Nam. Việc tải gọi API sổ thật khi tài chính thật được bật. Số lượng trong `resultCard` có `unit: 'count'`, không hiển thị như tiền.
+
 ## Lớp bảo vệ NV-00 (dự kiến, Viên cung cấp)
 
 Hợp đồng dự kiến tại `server/src/services/guardrail/guardrail.service.js`:
@@ -68,7 +70,7 @@ Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗ
 | `POST /api/assistant/alerts/:id/safe-action` | Không body | `204` |
 | `POST /api/assistant/notices/:id/dismiss` | Không body | `204` |
 
-`conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; `resultCard` có nguồn và thời điểm cập nhật.
+`conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `ledgerExport`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; `resultCard` có nguồn và thời điểm cập nhật.
 
 ## SSE (dự kiến)
 

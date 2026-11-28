@@ -4,6 +4,7 @@ import { tools as financeTools } from './tools/finance.read.js'
 import { writeTools } from './tools/finance.write.js'
 import { listOrders, getOrder, updateOrderStatus } from './tools/orders.js'
 import { unmatchedPayments } from './tools/payments.js'
+import { exportBook } from './tools/books.js'
 import { updateShop } from './tools/shop.js'
 import { makeStep } from './steps.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
@@ -25,6 +26,13 @@ function emptyMessage(data, missingClassification = false) {
 
 function resultBlocks(results) {
   return results.flatMap(({ name, data }) => {
+    if (name === 'export_ledger_book') return [{ type: 'ledgerExport', code: data.code, name: data.name, from: data.from, to: data.to, warnings: data.warnings }]
+    if (name === 'get_activity') {
+      const source = 'Sổ thu chi và đơn tạo trong kỳ', updatedAt = formatTime(new Date())
+      const card = (label, item) => ({ type: 'resultCard', metrics: [{ label: `Số ${label}`, value: item.count, unit: 'count' }, { label: `Tổng ${label}`, value: item.amount }], source, updatedAt, how: [{ label: `Số ${label}`, value: item.count, unit: 'count' }, { label: `Tổng ${label}`, value: item.amount }] })
+      const labels = { AWAITING_PAYMENT: 'đơn chờ thanh toán', PAID: 'đơn đã thanh toán', SHIPPING: 'đơn đang giao', COMPLETED: 'đơn hoàn tất', CANCELLED: 'đơn đã hủy', EXPIRED: 'đơn hết hạn', REFUNDED: 'đơn hoàn tiền' }
+      return [card('khoản thu', data.income), card('khoản chi', data.expense), card('đơn hàng', data.orderTotal), ...data.orders.map((item) => card(labels[item.status] ?? `đơn ${item.status}`, item)), { type: 'text', text: 'Giao dịch ngân hàng chưa gắn đơn hiện chưa xem được.' }]
+    }
     if (name === 'get_summary') {
       if (!data.totalCount) return [{ type: 'text', text: emptyMessage(data) }]
       if (!data.classifiedCount) return [{ type: 'text', text: emptyMessage(data, true) }]
@@ -78,7 +86,7 @@ export async function runAgent({ text, history, ctx, signal }) {
   const results = []
   const actions = []
   const registry = createRegistry()
-  for (const tool of [...financeTools, listOrders, getOrder, unmatchedPayments]) registry.register({ ...tool, run: async (input, toolCtx) => {
+  for (const tool of [...financeTools, listOrders, getOrder, unmatchedPayments, exportBook]) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
     const data = await tool.run(input, toolCtx)
     const guarded = await guardData(JSON.stringify(data), { source: 'tool_output', channel, ctx })
@@ -104,7 +112,7 @@ export async function runAgent({ text, history, ctx, signal }) {
     // Numeric answers must come from server-generated blocks, not model prose.
     const unsafeNumbers = /\d|(?:không|một|hai|ba|bốn|tư|năm|sáu|bảy|tám|chín|mười|trăm|nghìn|ngàn|triệu|tỷ)\s+(?:đồng|nghìn|ngàn|triệu|tỷ)/i
     const hasCard = summary.some((block) => block.type === 'resultCard')
-    const prose = actions.length ? 'Mình đã chuẩn bị đề xuất; bạn kiểm tra trước khi duyệt.' : hasCard ? 'Đây là kết quả từ dữ liệu cửa hàng.' : summary.length ? '' : (response.text && !unsafeNumbers.test(response.text) ? response.text : 'Mình chưa có kết quả công cụ để trả lời. Bạn cung cấp thêm thông tin nhé.')
+    const prose = actions.length ? 'Mình đã chuẩn bị đề xuất; bạn kiểm tra trước khi duyệt.' : hasCard ? 'Đây là kết quả từ dữ liệu cửa hàng.' : summary.length ? '' : (response.text && !unsafeNumbers.test(response.text) ? response.text : 'Mình có thể tra thu chi, xem đơn và chuẩn bị mẫu sổ. Bạn thử hỏi: “Hôm nay có bao nhiêu giao dịch?”, “Chi hôm nay gồm những gì?” hoặc “Xuất mẫu sổ tháng này”.')
     const output = await checkOutput({ text: prose, channel, ctx })
     return [...(output.text ? [{ type: 'text', text: output.text }] : []), ...summary]
   } catch (error) {

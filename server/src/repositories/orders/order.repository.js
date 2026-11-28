@@ -180,3 +180,10 @@ export async function copyFromShop(shopId, templateId, interval, codeSuffix, db)
     [shopId, templateId, interval, codeSuffix], db,
   )
 }
+
+/** Activity in a period: count and total of orders per status. */
+export async function activityByStatus(shopId, from, to, db) {
+  const { rows } = await query(`SELECT status,count(*)::int AS count,coalesce(sum(total),0)::text AS amount
+    FROM orders WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3 GROUP BY status ORDER BY status`, [shopId, from, to], db)
+  return rows
+}

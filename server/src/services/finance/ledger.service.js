@@ -1,4 +1,5 @@
 import * as ledgerRepo from '../../repositories/finance/ledgerEntry.repository.js'
+import * as orderRepo from '../../repositories/orders/order.repository.js'
 import { badRequest } from '../../errors/index.js'
 
 function period({ from, to }) {
@@ -29,4 +30,13 @@ export async function listLedger(shopId, input) {
     else expense = money(expense + item.amount)
   }
   return { items, totals: { income, expense }, from: input.from, to: input.to, limited: rows.length > 100 }
+}
+
+export async function getActivity(shopId, input) {
+  period(input)
+  const data = { ledger: await ledgerRepo.activityByType(shopId, input.from, input.to), orders: await orderRepo.activityByStatus(shopId, input.from, input.to) }
+  const entry = (type) => { const row = data.ledger.find((item) => item.type === type); return { count: row?.count ?? 0, amount: money(row?.amount ?? 0) } }
+  const orders = data.orders.map((row) => ({ status: row.status, count: row.count, amount: money(row.amount) }))
+  const orderTotal = orders.reduce((sum, row) => ({ count: money(sum.count + row.count), amount: money(sum.amount + row.amount) }), { count: 0, amount: 0 })
+  return { from: input.from, to: input.to, income: entry('INCOME'), expense: entry('EXPENSE'), orders, orderTotal }
 }

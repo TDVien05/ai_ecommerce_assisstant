@@ -181,3 +181,10 @@ export async function removeAllForShop(shopId, db) {
   requireShopId(shopId)
   await query('DELETE FROM ledger_entries WHERE shop_id = $1', [shopId], db)
 }
+
+/** Activity in a period: count and total of ledger entries per type (INCOME, EXPENSE). */
+export async function activityByType(shopId, from, to, db) {
+  const { rows } = await query(`SELECT type,count(*)::int AS count,coalesce(sum(amount),0)::text AS amount
+    FROM ledger_entries WHERE shop_id=$1 AND occurred_at >= $2 AND occurred_at < $3 GROUP BY type`, [shopId, from, to], db)
+  return rows
+}
