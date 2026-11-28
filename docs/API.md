@@ -50,7 +50,15 @@ Sending a QR image: `message.attachment = { type: "image", payload: { url, is_re
 | Method | Path | Description |
 |---|---|---|
 | POST | `/api/auth/login` | `{ email, password }` → `{ token }` |
-| GET | `/api/auth/me` | current shop info |
+| POST | `/api/auth/register` | `{ ownerName, shopName, email, password, acceptedTerms: true }` → `201 { token }`; duplicate email → `409 EMAIL_EXISTS` |
+| POST | `/api/auth/demo` | No body → `{ token }` for the server-configured demo account; unavailable configuration → `503 DEMO_UNAVAILABLE` |
+| GET | `/api/auth/me` | JWT required → `{ user: { id, email, ownerName }, shop: { id, name, isDemo } }` |
+
+Login, registration and demo are public; `/me` requires `Authorization: Bearer <token>`. `ownerName` can be `null` for existing users. Registration requires nonempty owner and shop names (maximum 120 characters each), a valid email, acceptance of terms and a password of at least 8 characters and at most 72 UTF-8 bytes. Registration and demo are rate limited (`429 TOO_MANY_ATTEMPTS`); login has its own limiter. Demo credentials remain on the server.
+
+### Assistant (planned)
+
+The eight JWT-protected endpoints and SSE contract are specified in [ai-interface.md](ai-interface.md). The client interface exists; the server endpoints, agent and guardrails are not implemented yet.
 
 ### Products
 | Method | Path | Description |

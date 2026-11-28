@@ -1,6 +1,6 @@
 # CLAUDE.md — Project conventions
 
-Read `README.md` and `docs/` before writing code. When the code and the docs disagree, ask instead of guessing.
+Read `AGENTS.md`, `README.md` and relevant `docs/` before writing code. When the code and the docs disagree, ask instead of guessing.
 
 ## Stack
 - Backend: Node.js 18+, Express 5, ES Modules (`"type": "module"`), PostgreSQL.
@@ -25,6 +25,8 @@ Read `README.md` and `docs/` before writing code. When the code and the docs dis
 - Never add a tool that lets the LLM move an order to `PAID`.
 
 ## Frontend rules
+- Before creating, changing or removing UI in `client/`, read `docs/design-system/AGENTS.md`, `docs/design-system/README.md`, then `docs/design-system/COMPONENTS.md` in full. Follow `AGENTS.md` for the mandatory design and verification rules.
+- Build with the existing Flowy theme and components and shadcn components. Do not introduce new design tokens or change the theme without agreement from the UI owner; propose missing design-system components as specified in `AGENTS.md`.
 - Prefer existing shadcn components (`npx shadcn@latest add <name>`) over writing your own.
 - Call the API through a single client, `src/lib/api.ts`.
 - Money formatting: `new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })`.
