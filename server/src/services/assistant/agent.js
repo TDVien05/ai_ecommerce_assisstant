@@ -2,7 +2,9 @@ import { loadPrompt, runToolLoop, isAiUnavailable } from '../ai/index.js'
 import { createRegistry } from './registry.js'
 import { tools as financeTools } from './tools/finance.read.js'
 import { listOrders, getOrder } from './tools/orders.js'
-import { exportBook } from './tools/books.js'
+import { exportBook, ledgerBook } from './tools/books.js'
+import { reportTool } from './tools/report.js'
+import { pageTool } from './tools/page.js'
 import { queryTool } from './tools/query.js'
 import { proposeChange } from './tools/change.js'
 import { changeToolByName } from './tools/change.js'
@@ -27,6 +29,29 @@ function emptyMessage(data, missingClassification = false) {
 
 function resultBlocks(results) {
   return results.flatMap(({ name, data }) => {
+    if (name === 'open_page') return [{type:'pageLink',page:data.page,label:data.label,filters:data.filters}]
+    if (name === 'get_report') {
+      const blocks=[]
+      for(const [label,report] of [['Kỳ đã chọn',data.current],['Kỳ so sánh',data.previous]]) {
+        if(!report)continue
+        if(!report.totalCount) {blocks.push({type:'text',text:`${label}: chưa có dữ liệu thu chi.`});continue}
+        if(!report.classifiedCount) blocks.push({type:'text',text:`${label}: chưa có khoản doanh thu hoặc chi phí kinh doanh được phân loại.`})
+        const showDate=(value)=>new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value))
+        const updatedAt=formatTime(new Date(report.updatedAt)),source=`${label} (${showDate(report.from)} đến trước ${showDate(report.to)}) · sổ thu chi và đơn hàng`
+        blocks.push({type:'resultCard',metrics:[{label:'Doanh thu đã phân loại',value:report.revenue},{label:'Chi phí đã phân loại',value:report.expenses},...(report.netProfit===null?[]:[{label:'Lãi tạm tính',value:report.netProfit}])],source,updatedAt,how:[{label:'Doanh thu đã phân loại',value:report.revenue},...(report.cost===null?[]:[{label:'Trừ giá vốn',value:report.cost}]),{label:'Trừ chi phí đã phân loại',value:report.expenses},...(report.netProfit===null?[]:[{label:'Lãi tạm tính',value:report.netProfit,total:true}])]})
+        blocks.push({type:'resultCard',metrics:[{label:'Tiền vào',value:report.cashIn},{label:'Tiền ra',value:report.cashOut}],source:`${label} · sổ thu chi, gồm cả khoản cá nhân`,updatedAt,how:[{label:'Tổng khoản thu',value:report.cashIn},{label:'Tổng khoản chi',value:report.cashOut}]})
+        if(report.unknownCount || report.missingCostCount) blocks.push({type:'text',text:`${label}: báo cáo từng phần; ${report.unknownCount} khoản chưa phân loại hoặc phân loại không hợp lệ, ${report.missingCostCount} khoản doanh thu thiếu giá vốn hoặc cần xác minh giá vốn bằng 0. Chưa đủ dữ liệu để tính lãi.`})
+      }
+      if(data.difference && data.current.totalCount && data.previous.totalCount) blocks.push({type:'resultCard',metrics:[{label:'Chênh lệch doanh thu',value:data.difference.revenue},{label:'Chênh lệch chi phí',value:data.difference.expenses},...(data.difference.netProfit===null?[]:[{label:'Chênh lệch lãi',value:data.difference.netProfit}])],source:'Kỳ đã chọn trừ kỳ so sánh · sổ thu chi và đơn hàng',updatedAt:formatTime(new Date()),how:[{label:'Doanh thu kỳ đã chọn',value:data.current.revenue},{label:'Trừ doanh thu kỳ so sánh',value:data.previous.revenue},{label:'Chênh lệch doanh thu',value:data.difference.revenue,total:true},{label:'Chi phí kỳ đã chọn',value:data.current.expenses},{label:'Trừ chi phí kỳ so sánh',value:data.previous.expenses},{label:'Chênh lệch chi phí',value:data.difference.expenses,total:true},...(data.difference.netProfit===null?[]:[{label:'Lãi kỳ đã chọn',value:data.current.netProfit},{label:'Trừ lãi kỳ so sánh',value:data.previous.netProfit},{label:'Chênh lệch lãi',value:data.difference.netProfit,total:true}])]})
+      return blocks
+    }
+    if (name === 'ledger_book') {
+      if(data.action==='preview')return [{type:'ledgerExport',code:data.code,name:data.name,from:data.from,to:data.to,warnings:data.warnings}]
+      if(data.action==='list'||data.action==='suggest')return [{type:'text',text:`${data.action==='suggest'?'Bạn có thể xem trước S1a-HKD và tham khảo các mẫu dưới đây; hãy đối chiếu với cơ quan thuế.':'Các mẫu sổ:'}\n${data.items.map((item)=>`${item.code} · ${item.name}`).join('\n')}`},{type:'pageLink',page:'ledger',label:'Mở trang Mẫu sổ',filters:{tab:'templates'}}]
+      if(data.action==='identity')return [{type:'text',text:`Tên cửa hàng: ${data.name || 'chưa có'}. ${data.note}`}]
+      if(data.action==='columns')return [{type:'text',text:data.note},{type:'pageLink',page:'ledger',label:'Mở trang Mẫu sổ',filters:{tab:'templates',code:data.code,...(data.column?{column:data.column}:{})}}]
+      if(data.action==='threshold')return [{type:'resultCard',metrics:[{label:`Doanh thu kinh doanh năm ${data.year}`,value:data.revenue}],source:data.source,updatedAt:formatTime(new Date(data.updatedAt)),how:[{label:'Doanh thu kinh doanh đã ghi trong năm',value:data.revenue,total:true}]},...(data.unknownCount?[{type:'text',text:`Có ${data.unknownCount} khoản chưa phân loại hoặc phân loại không hợp lệ; chưa tính vào doanh thu.`}]:[]),{type:'legalNotice'}]
+    }
     if (name === 'query_data') return data.rows.length ? [{ type: 'dataTable', columns: data.columns, rows: data.rows, source: data.source, updatedAt: formatTime(new Date()), how: `Dữ liệu của cửa hàng theo điều kiện đã chọn; tối đa ${data.limit} dòng${data.grouped ? ', có nhóm và tổng hợp' : ''}.${data.metrics.some((key) => key.startsWith('avg_')) ? ' Giá trị trung bình làm tròn đến đơn vị gần nhất.' : ''}` }] : [{ type: 'text', text: 'Không có dữ liệu phù hợp với điều kiện đã chọn.' }]
     if (name === 'export_ledger_book') return [{ type: 'ledgerExport', code: data.code, name: data.name, from: data.from, to: data.to, warnings: data.warnings }]
     if (name === 'get_activity') {
@@ -88,7 +113,7 @@ export async function runAgent({ text, history, ctx, signal }) {
   const results = []
   const actions = []
   const registry = createRegistry()
-  for (const tool of [...financeTools, listOrders, getOrder, exportBook, queryTool]) registry.register({ ...tool, run: async (input, toolCtx) => {
+  for (const tool of [...financeTools, listOrders, getOrder, exportBook, ledgerBook, reportTool, pageTool, queryTool]) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
     const data = await tool.run(input, toolCtx)
     const modelData = tool.name === 'query_data' ? { ...data, rows: data.modelRows, modelRows: undefined } : data

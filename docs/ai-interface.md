@@ -75,7 +75,7 @@ Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗ
 | `POST /api/assistant/alerts/:id/safe-action` | Không body | `204` |
 | `POST /api/assistant/notices/:id/dismiss` | Không body | `204` |
 
-`conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `dataTable`, `ledgerExport`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; bảng và thẻ có nguồn và thời điểm cập nhật.
+`conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `dataTable`, `ledgerExport`, `pageLink`, `legalNotice`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; bảng và thẻ có nguồn và thời điểm cập nhật.
 
 ## SSE (dự kiến)
 
@@ -108,5 +108,7 @@ Gửi chú thích `: ping` mỗi 20 giây. `message` thêm tin mới hoặc thay
 `propose_change` nhận tối đa 20 thao tác trong `changes`; mỗi thao tác gồm thực thể, hành động, dữ liệu cho phép và mã đối tượng khi sửa hoặc xóa. Máy chủ xác định cửa hàng từ phiên. Đơn chỉ chuyển theo các trạng thái hợp lệ; không có thao tác xác nhận thanh toán. Mọi thay đổi được duyệt trong một giao dịch và có thể hoàn tác nếu dữ liệu chưa đổi tiếp. Đề xuất và nhật ký cũ vẫn được hỗ trợ.
 
 Sản phẩm, khách hàng, việc cần làm và chế độ AI hội thoại cũng có thể được đề xuất thay đổi. Xóa sản phẩm được chuyển thành ngừng bán. Đơn mới chỉ ở trạng thái chờ thanh toán, giá lấy từ sản phẩm của cửa hàng, không trừ tồn kho; nếu giá thay đổi trước khi duyệt, đề xuất bị từ chối. Nhật ký hoàn tác các dữ liệu này được mã hóa; khóa lấy từ `APP_ENCRYPTION_KEY`, hoặc `JWT_SECRET` nếu chưa đặt. Cần giữ khóa ổn định để các thay đổi trước đó còn hoàn tác được.
+
+`get_report` trả báo cáo từng phần cho kỳ đã chọn và kỳ so sánh tùy chọn từ cùng một ảnh chụp DB; doanh thu và chi phí chỉ gồm khoản kinh doanh hợp lệ, còn dòng tiền gồm mọi khoản thu/chi. Khi thiếu phân loại, thiếu giá vốn hoặc giá vốn bằng 0 cần xác minh, máy chủ không tính lãi. `ledger_book` cung cấp danh sách, gợi ý, xem trước, tên hộ và doanh thu lũy kế; cột tự đặt chỉ được điền sẵn trên trang Mẫu sổ để người dùng tự thêm, chưa lưu trên máy chủ. `open_page` trả nút và bộ lọc trong danh sách cho phép, không tự điều hướng.
 
 Đổi tài khoản nhận tiền mặc định tắt (`ASSISTANT_SENSITIVE_ENABLED=false`) cho tới khi kiểm thử tổng. Các trường phải có nguyên văn trong tin của chủ cửa hàng; duyệt và hoàn tác yêu cầu nhập lại mật khẩu. Giới hạn thử mật khẩu tạm nằm trong bộ nhớ một tiến trình. Nội dung tin nhắn gửi khách do chủ shop sửa và chọn người nhận; đầu nối `sendCustomerMessage(shopId, conversationId, text)` chưa gửi thật, trả trạng thái chưa kết nối. Chỉ nối gửi thật sau khi có cơ chế gửi bền vững, chống gửi trùng và kiểm thử tổng. Lịch sử chat che dãy số tài khoản trong tin có ngữ cảnh ngân hàng, giữ số tiền kèm đơn vị hoặc dấu phân cách. Bản nháp tin khách từ chối dãy liền từ 9 chữ số không có đơn vị tiền.

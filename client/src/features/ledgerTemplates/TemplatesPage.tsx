@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ledgerTemplatesApi, type BookRow, type LedgerBook, type Template, type TemplateCode, type Threshold } from '@/lib/ledgerTemplates'
 import { exportExcel, exportPdf } from './exportBook'
+import { useLocation } from 'react-router-dom'
 
 type Period = 'month' | 'quarter' | 'year'
 function makePeriod(year: number, period: Period, part: number) {
@@ -24,6 +25,7 @@ function display(value: string | number | null, kind: string) {
 }
 
 export function TemplatesPage() {
+  const {search}=useLocation()
   const [now] = useState(() => new Date())
   const [items, setItems] = useState<Template[] | null>(null)
   const [threshold, setThreshold] = useState<Threshold | null>(null)
@@ -40,6 +42,7 @@ export function TemplatesPage() {
   const [extra, setExtra] = useState<string[]>([])
   const [extraName, setExtraName] = useState('')
   const [identity, setIdentity] = useState({ name: '', taxId: '', address: '', location: '' })
+  useEffect(()=>{const params=new URLSearchParams(search), requested=params.get('code');if(requested && ['S1a-HKD','S2a-HKD','S2b-HKD','S2c-HKD','S2d-HKD','S2e-HKD','S3a-HKD'].includes(requested))setCode(requested as TemplateCode);setExtraName(params.get('column')?.slice(0,80) ?? '')},[search])
   useEffect(() => {
     let active = true
     const load = () => { Promise.all([ledgerTemplatesApi.list(), ledgerTemplatesApi.threshold()]).then(([list, limit]) => { if (active) { setItems(list.items); setThreshold(limit) } }).catch(() => { if (active) setError('Không tải được danh sách mẫu.') }) }

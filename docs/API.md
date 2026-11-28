@@ -108,6 +108,7 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/finance/summary?from=&to=` | `{ revenue, cost, grossProfit, expenses, netProfit, orderCount, aov }` |
+| GET | `/api/finance/report?from=&to=` | Báo cáo từng phần, số khoản thiếu phân loại/giá vốn, dòng tiền, chuỗi ngày và sản phẩm; `netProfit` là `null` khi chưa đủ căn cứ. |
 | GET | `/api/finance/timeseries?from=&to=&interval=day` | revenue by day/week |
 | GET | `/api/finance/top-products?from=&to=&limit=5` | best-selling products |
 | GET | `/api/finance/ledger` | income/expense ledger |

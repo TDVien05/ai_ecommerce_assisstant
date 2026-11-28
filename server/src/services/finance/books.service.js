@@ -46,5 +46,5 @@ export async function getThreshold(shopId) {
   const now = new Date(), year = Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric' }).format(now))
   const from = new Date(Date.UTC(year, 0, 1) - 7 * 3600000).toISOString(), to = now.toISOString()
   const summary = await getSummary(shopId, { from, to })
-  return { year, revenue: summary.revenue, threshold: 1000000000, updatedAt: to, source: 'sổ thu chi' }
+  return { year, revenue: summary.revenue, unknownCount: summary.unknownCount, threshold: 1000000000, updatedAt: to, source: 'sổ thu chi' }
 }
