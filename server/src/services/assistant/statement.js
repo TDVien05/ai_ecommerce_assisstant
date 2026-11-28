@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { chat, loadPrompt } from '../ai/index.js'
 import { guardData } from './guard.js'
 import { appError } from '../../errors/index.js'
+import { redactStatementText } from '../../lib/sensitiveText.js'
 
 const invalid = (message) => appError('INVALID_STATEMENT', message)
 const normalize = (value) => value.toLocaleLowerCase('vi-VN').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]/g,'')
@@ -53,10 +54,8 @@ export function parseStatementRows(records) {
 }
 // Bank-account-like digit sequences in imported free text never reach the model,
 // approval card or ledger notes in their original form.
-export function maskStatementText(value) {
-  return value?.replace(/(?<!\d)(?:\d[\s./-]?){6,32}(?!\d)/g,(match)=>{const digits=match.replace(/\D/g,'');return digits.length>=6?`${'*'.repeat(digits.length-4)}${digits.slice(-4)}`:match}) ?? value
-}
-export function safeStatementRows(rows) {return rows.map((row)=>({...row,description:maskStatementText(row.description),reference:maskStatementText(row.reference)}))}
+export const maskStatementText=redactStatementText
+export function safeStatementRows(rows) {return rows.map((row)=>({...row,description:maskStatementText(row.description),reference:maskStatementText(row.reference,{reference:true})}))}
 const classified=z.object({items:z.array(z.object({index:z.number().int(),kind:z.enum(['BUSINESS_REVENUE','PERSONAL','EXPENSE','TRANSFER']),category:z.enum(['SALES','SHIPPING','ADS','INVENTORY','OTHER']),confidence:z.number().min(0).max(1),question:z.string().nullable()}).strict())}).strict()
 const suspicious = (text) => /(?:bỏ qua|ignore|system prompt|hệ thống|xóa toàn bộ|khóa api|api key)/iu.test(text)
 export async function classifyRows(rows,ctx) {
