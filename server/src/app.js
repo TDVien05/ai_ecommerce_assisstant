@@ -22,9 +22,15 @@ import { assistantRouter } from './routes/assistant/assistant.js'
 import { financeRouter } from './routes/finance/finance.js'
 import { ordersRouter } from './routes/orders/orders.js'
 import { alertsRouter } from './routes/alerts/alerts.js'
+import { shopRouter } from './routes/shop/shop.js'
+import { messengerRouter } from './routes/messenger/messenger.js'
 import { deleteExpiredDemoShops } from './services/demo/demo.service.js'
 import { recover, interruptActive } from './services/assistant/assistant.service.js'
 import { closeAllStreams } from './services/assistant/events.js'
+import { registerMessengerHandlers } from './services/messenger/messenger.service.js'
+import { onEvent } from './services/webhook/webhook.service.js'
+import { reconcilePayment } from './services/payments/reconcile.service.js'
+import { expireOverdueOrders } from './services/orders/expiry.service.js'
 
 /** Dashboard REST API, mounted at /api (docs/API.md section 3). Add a new feature router here. */
 function createApiRouter() {
@@ -38,6 +44,8 @@ function createApiRouter() {
   api.use('/finance', financeRouter)
   api.use('/orders', ordersRouter)
   api.use('/alerts', alertsRouter)
+  api.use('/shop', shopRouter)
+  api.use('/messenger', messengerRouter)
   return api
 }
 
@@ -95,6 +103,17 @@ export function createApp() {
 /** Recover interrupted work, listen on PORT, start background jobs and handle shutdown. */
 export async function startServer() {
   try { await recover() } catch (err) { logger.error({ err }, 'Assistant recovery failed') }
+
+  // Customer Messenger messages are written to `messages` from here on. Registered here, not at
+  // import time, so tests calling createApp() keep a clean handler list.
+  registerMessengerHandlers()
+
+  // Money arrived: turn it into an order status (PAID / UNDERPAID / a todo for the owner).
+  onEvent('payment.received', async ({ eventId, shopId, payload }) => {
+    const result = await reconcilePayment({ shopId, payload, eventId })
+    logger.info({ eventId, shopId, ...result }, 'payment reconciled')
+  })
+
   const server = createApp().listen(env.PORT, () => {
     logger.info(`Server listening on http://localhost:${env.PORT}`)
   })
@@ -104,6 +123,13 @@ export async function startServer() {
     deleteExpiredDemoShops().catch((err) => logger.error({ err }, 'demo shop cleanup failed'))
   sweepDemoShops()
   setInterval(sweepDemoShops, 60 * 60 * 1000).unref()
+
+  // Unpaid orders past their 30-minute deadline become EXPIRED and release their stock.
+  // Every minute, so the window the customer sees matches the one the sweep enforces.
+  const sweepExpiredOrders = () =>
+    expireOverdueOrders().catch((err) => logger.error({ err }, 'expired order sweep failed'))
+  sweepExpiredOrders()
+  setInterval(sweepExpiredOrders, 60 * 1000).unref()
 
   const shutdown = (signal) => {
     logger.info(`${signal} received, shutting down`)

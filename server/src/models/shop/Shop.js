@@ -1,5 +1,5 @@
 // Table `shops`. Schema source: db/migrations/*.sql.
-// fb_page_token is stored encrypted; never log it.
+// fb_page_token and sepay_webhook_secret are stored encrypted; never log them.
 import { defineModel, bool, createdAt, opt, text, ts, unique, uuidPk } from '../../lib/entityColumns.js'
 
 export const Shop = defineModel('Shop', 'shops', {
@@ -13,4 +13,6 @@ export const Shop = defineModel('Shop', 'shops', {
   created_at:           createdAt(),
   is_demo:              bool(),
   demo_expires_at:      opt(ts()),
+  sepay_webhook_secret: opt(text()),
+  payment_provider:     opt(text()),
 })

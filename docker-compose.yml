@@ -38,7 +38,9 @@ services:
       NODE_ENV: development
       PORT: 4000
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-sales_assistant}
-      CORS_ORIGIN: http://localhost:5173
+      # CORS_ORIGIN is intentionally NOT set here: `environment:` overrides `env_file:`,
+      # so a value here would freeze the origin and hide changes made in server/.env.
+      # Configure it in server/.env (comma-separated for several origins).
     ports:
       - "4000:4000"
     volumes:

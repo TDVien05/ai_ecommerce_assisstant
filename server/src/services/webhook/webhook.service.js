@@ -88,7 +88,8 @@ export async function ingest(input) {
   }
   const { provider, externalId, type, payload, defer = false } = { ...parsed.data, defer: input.defer === true }
 
-  const shopId = await resolveShopId(provider, payload)
+  // A signature-verified route passes the shop in; otherwise resolve it from the payload.
+  const shopId = input.shopId ?? await resolveShopId(provider, payload)
   const { event, inserted } = await webhookEventsRepo.claim({ provider, externalId, type, shopId, payload })
 
   if (!inserted) {
