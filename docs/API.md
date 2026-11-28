@@ -73,7 +73,7 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 
 ### Assistant (planned)
 
-`GET /api/assistant/stream` provides a JWT-protected SSE stream with a snapshot first and heartbeats every 20 seconds. `POST /api/assistant/messages` accepts `{ conversationId, text, attachments }`, persists the message and returns `204`. Ledger write tools create proposals; they do not change the ledger until approval. `POST /api/assistant/steps/:id/answers` accepts `{ questionId, option }` and returns `204`; `POST /api/assistant/steps/:id/approve` returns `{ message }`; `POST /api/assistant/steps/:id/undo` returns `204`. The latter three never call the model. Repeated approval or undo returns `409 STEP_CONFLICT`; another shop's resources return `404`. Mỗi yêu cầu messages được chấp nhận tính một lượt theo cửa hàng, kể cả nhập sao kê; AI_DAILY_RUN_LIMIT mặc định 50 lượt/ngày theo giờ Việt Nam, vượt trả 429 AI_DAILY_LIMIT. Bộ đếm trong bộ nhớ từng tiến trình và đặt lại khi khởi động; chưa phù hợp để giới hạn chi phí bền vững trên nhiều máy chủ. Duyệt, trả lời câu hỏi và hoàn tác không tính lượt. Chế độ luật và guardrail đầy đủ đang phát triển. Upload CSV và endpoint cảnh báo đã triển khai. See [ai-interface.md](ai-interface.md).
+`GET /api/assistant/stream` provides a JWT-protected SSE stream with a snapshot first and heartbeats every 20 seconds. `POST /api/assistant/messages` accepts `{ conversationId, text, attachments }`, persists the message and returns `204`. Ledger write tools create proposals; they do not change the ledger until approval. `POST /api/assistant/steps/:id/answers` accepts `{ questionId, option }` and returns `204`; `POST /api/assistant/steps/:id/approve` returns `{ message }`; `POST /api/assistant/steps/:id/undo` returns `204`. The latter three never call the model. Repeated approval or undo returns `409 STEP_CONFLICT`; another shop's resources return `404`. Mỗi yêu cầu messages được chấp nhận tính một lượt theo cửa hàng, kể cả nhập sao kê; AI_DAILY_RUN_LIMIT mặc định 50 lượt/ngày theo giờ Việt Nam, vượt trả 429 AI_DAILY_LIMIT. Bộ đếm trong bộ nhớ từng tiến trình và đặt lại khi khởi động; chưa phù hợp để giới hạn chi phí bền vững trên nhiều máy chủ. Duyệt, trả lời câu hỏi và hoàn tác không tính lượt. Chế độ luật và guardrail đầy đủ đang phát triển. Upload CSV/XLSX và endpoint cảnh báo đã triển khai. See [ai-interface.md](ai-interface.md).
 
 ### Products
 | Method | Path | Description |
@@ -108,6 +108,7 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/finance/summary?from=&to=` | `{ revenue, cost, grossProfit, expenses, netProfit, orderCount, aov }` |
+| GET | `/api/finance/report?from=&to=` | Báo cáo từng phần, số khoản thiếu phân loại/giá vốn, dòng tiền, chuỗi ngày và sản phẩm; `netProfit` là `null` khi chưa đủ căn cứ. |
 | GET | `/api/finance/timeseries?from=&to=&interval=day` | revenue by day/week |
 | GET | `/api/finance/top-products?from=&to=&limit=5` | best-selling products |
 | GET | `/api/finance/ledger` | income/expense ledger |

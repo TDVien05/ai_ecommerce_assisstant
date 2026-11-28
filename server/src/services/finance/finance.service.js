@@ -1,6 +1,7 @@
 import { withTransaction } from '../../repositories/database.js'
 import { appError } from '../../errors/index.js'
 import * as ledgerRepo from '../../repositories/finance/ledgerEntry.repository.js'
+import { beginReportSnapshot } from '../../repositories/assistant/reportSnapshot.js'
 
 const invalid = () => appError('BAD_REQUEST', 'Thông tin khoản sổ không hợp lệ.')
 const incomplete = () => appError('FINANCE_INCOMPLETE', 'Dữ liệu chưa đủ để tính báo cáo. Vui lòng phân loại khoản sổ và bổ sung giá vốn.')
@@ -64,3 +65,30 @@ export async function getTopProducts(shopId, query) {
   await complete(shopId, query)
   return { items: (await ledgerRepo.topProducts(shopId, query)).map((row) => ({ productId: row.product_id, name: row.name, quantity: money(row.quantity), revenue: money(row.revenue) })) }
 }
+
+// Partial report: missing inputs are disclosed instead of being treated as zero.
+async function partialReport(shopId, query, client) {
+  validatePeriod(query)
+  const [coverage,row,points,products]=await Promise.all([
+    ledgerRepo.reportCoverage(shopId,query,client),ledgerRepo.summary(shopId,query,client),
+    ledgerRepo.timeseries(shopId,{...query,interval:'day'},client),ledgerRepo.topProducts(shopId,{...query,limit:5},client),
+  ])
+  const revenue=money(row.revenue),expenses=money(row.expenses),knownCost=money(row.cost)
+  const complete=coverage.classified>0 && coverage.unknown===0 && coverage.missing_cost===0 && row.missing_items===0
+  const cost=complete?knownCost:null, grossProfit=complete?money(revenue-cost):null
+  return { revenue,expenses,cost,grossProfit,netProfit:complete?money(grossProfit-expenses):null,
+    totalCount:coverage.total,classifiedCount:coverage.classified,unknownCount:coverage.unknown,missingCostCount:coverage.missing_cost,
+    cashIn:money(coverage.cash_in),cashOut:money(coverage.cash_out),
+    points:points.map((item)=>({date:item.date,revenue:money(item.revenue)})),
+    products:products.map((item)=>({productId:item.product_id,name:item.name,quantity:money(item.quantity),revenue:money(item.revenue)})),
+    updatedAt:new Date().toISOString() }
+}
+export async function getPartialReports(shopId,queries) {
+  return withTransaction(async(client)=>{
+    await beginReportSnapshot(client)
+    const reports=[]
+    for(const query of queries) reports.push(await partialReport(shopId,query,client))
+    return reports
+  })
+}
+export async function getPartialReport(shopId,query) { return (await getPartialReports(shopId,[query]))[0] }

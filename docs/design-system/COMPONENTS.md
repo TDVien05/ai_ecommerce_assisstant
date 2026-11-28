@@ -30,7 +30,7 @@ Import từ `@/components/flowy`. Ví dụ đầy đủ nằm ở `client/src/pa
 | `AssistantMessage` | Tin của AI. Con là chữ ngắn rồi các khối. `live` khi AI đang trả lời. |
 | `AssistantText` | Văn bản AI với đoạn, xuống dòng, danh sách đầu dòng và chữ đậm; HTML được hiển thị như văn bản. |
 | `UserMessage` | Tin của người dùng, có thể kèm `files`. |
-| `Composer` | Ô chat. `onSubmit(text, files)`, tối đa 3 `suggestions`; chọn một tệp sao kê CSV. |
+| `Composer` | Ô chat. `onSubmit(text, files)`, tối đa 3 `suggestions`; chọn một tệp sao kê CSV hoặc XLSX. |
 | `DayDivider` | Dải ngày giữa feed. |
 
 ## Luồng việc
@@ -48,6 +48,7 @@ Import từ `@/components/flowy`. Ví dụ đầy đủ nằm ở `client/src/pa
 |---|---|
 | `AgentStep` | Một lần AI làm việc trong luồng: các bước, câu hỏi lại (`questions`), Duyệt, Hoàn tác. `state`: `working`, `waiting`, `done`, `undone`, `failed`. |
 | `ResultCard` | Số liệu từ máy chủ, tối đa 3 ô, có nguồn và `how` (Cách tính); `unit: 'count'` cho số lượng, mặc định hiển thị tiền. |
+| `DataTable` | Bảng dữ liệu do máy chủ trả về, hiển thị số tiền với `Money`, số lượng riêng, nguồn và cách tính. |
 | `RiskAlert` | Cảnh báo lừa đảo mức `mid` hoặc `high`, danh sách lý do, một hành động an toàn. |
 | `Block*` | Khung chung để tự dựng khối AI mới. |
 
@@ -58,7 +59,7 @@ Import từ `@/components/flowy`. Ví dụ đầy đủ nằm ở `client/src/pa
 - `RiskBadge level="low|mid|high"` và `OrderStatusBadge status="pending|approved|cancelled|new"`.
 - `toastDone('Đã ghi 14 giao dịch vào sổ.', onUndo)`: thông báo sau khi ghi dữ liệu, có Hoàn tác 10 giây. Đặt `<Toaster />` (đã có trong `App.tsx`).
 - `Button` shadcn: `default` cho hành động chính (một nút mỗi khối), `outline` cho phụ, `ghost` cho thanh công cụ, `destructive` cho xóa. Nút trong khối AI dùng `size="lg"`.
-- `AgentStep` có thể nhận `onSkip` để bỏ qua đề xuất mà không thay đổi dữ liệu.
+- `AgentStep` có thể nhận `onSkip` để bỏ qua đề xuất mà không thay đổi dữ liệu; `extra` để ghép ô nhập chuyên biệt và `canUndo={false}` cho tin nhắn đã gửi không thể hoàn tác.
 - `Badge` shadcn có thêm biến thể `risk-low`, `risk-mid`, `risk-high`.
 
 ## Quy tắc ghép màn hình mới

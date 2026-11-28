@@ -37,5 +37,8 @@ export async function send(req, res) {
 }
 
 export async function answer(req, res) { await approval.answer(req.auth, req.params.id, req.body); res.sendStatus(204) }
-export async function approve(req, res) { res.json(await approval.approve(req.auth, req.params.id)) }
-export async function undo(req, res) { await approval.undo(req.auth, req.params.id); res.sendStatus(204) }
+export async function sensitiveDetails(req,res) { res.set('Cache-Control','no-store');res.json(await approval.sensitiveDetails(req.auth,req.params.id)) }
+export async function messageRecipients(req,res) { res.json(await approval.messageRecipients(req.auth)) }
+export async function updateMessageDraft(req,res) { await approval.updateMessageDraft(req.auth,req.params.id,req.body);res.sendStatus(204) }
+export async function approve(req, res) { res.json(await approval.approve(req.auth, req.params.id, req.body)) }
+export async function undo(req, res) { await approval.undo(req.auth, req.params.id, req.body); res.sendStatus(204) }

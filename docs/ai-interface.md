@@ -44,6 +44,8 @@ Máy chủ dựng số liệu `resultCard` và câu trả về khi duyệt từ 
 
 `get_activity({from,to})` đếm và cộng khoản thu, khoản chi và đơn tạo trong kỳ theo cửa hàng, tách trạng thái đơn; giao dịch ngân hàng chưa gắn đơn chưa được tính. `export_ledger_book({code?,from?,to?})` chuẩn bị khối `ledgerExport` với mã, tên, kỳ và cảnh báo; mặc định S1a-HKD trong tháng hiện tại theo giờ Việt Nam. Việc tải gọi API sổ thật khi tài chính thật được bật. Số lượng trong `resultCard` có `unit: 'count'`, không hiển thị như tiền.
 
+`query_data` chỉ đọc các thực thể `ledger`, `orders`, `order_items`, `products`, `customers`, `payments`, `files`, `imports`, `alerts`, `conversations`, `messages`, `todos`. Danh sách trường của từng thực thể nằm trong `query-entities.js`; các trường không có trong danh sách bị từ chối. Đầu vào gồm `fields`, `filters` (`eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `contains`), tối đa hai `groupBy` (ngày/tuần/tháng theo giờ Việt Nam), `metrics` (`count`, `sum`, `avg`, `min`, `max`), `sort` và `limit` tối đa 100. `avg` làm tròn tới đơn vị gần nhất. SQL được dựng từ biểu thức cố định và tham số, chạy trong transaction chỉ đọc với `statement_timeout` 3 giây. `order_items` và `messages` kiểm tra cửa hàng qua đơn hoặc hội thoại cha; `payments` chỉ trả dòng có `shop_id` thuộc phiên. Điện thoại chỉ để lộ bốn số cuối, địa chỉ được ẩn; các trường này không được lọc hoặc nhóm. Nội dung tin khách, mô tả giao dịch và tên tệp đi qua `guardData`; do lớp này còn tạm, nội dung tự do được ẩn khỏi mô hình và chỉ hiển thị cho chủ cửa hàng sau khi che các mẫu thông tin nhạy cảm thông dụng. Che nội dung tự do theo mẫu không bảo đảm nhận diện mọi bí mật và địa chỉ; cần guardrail đầy đủ trước khi sử dụng dữ liệu thực nhạy cảm. Kết quả dạng `dataTable` do máy chủ dựng, có nguồn và cách tính; không dùng để suy ra lợi nhuận hay nghĩa vụ thuế.
+
 ## Lớp bảo vệ NV-00 (dự kiến, Viên cung cấp)
 
 Hợp đồng dự kiến tại `server/src/services/guardrail/guardrail.service.js`:
@@ -57,7 +59,7 @@ Thứ tự một lượt: (1) `checkInput`; nếu `refuse`, trả `message` thà
 
 ## HTTP (dự kiến)
 
-Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗi theo dạng `{ "error": { "code": "...", "message": "..." } }`. `GET /stream`, `POST /messages`, upload CSV và các endpoint `steps`, cảnh báo, thông báo đã triển khai. Công cụ ghi chỉ tạo đề xuất, việc duyệt và hoàn tác chạy trong giao dịch DB. Các kiểu `Attachment`, `Message`, `Thread`, `Snapshot` và `Block` lấy chính xác từ `types.ts`.
+Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗi theo dạng `{ "error": { "code": "...", "message": "..." } }`. `GET /stream`, `POST /messages`, upload CSV/XLSX và các endpoint `steps`, cảnh báo, thông báo đã triển khai. Công cụ ghi chỉ tạo đề xuất, việc duyệt và hoàn tác chạy trong giao dịch DB. Các kiểu `Attachment`, `Message`, `Thread`, `Snapshot` và `Block` lấy chính xác từ `types.ts`.
 
 | Phương thức và đường dẫn | Yêu cầu | Thành công |
 |---|---|---|
@@ -65,12 +67,15 @@ Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗ
 | `POST /api/assistant/files` | multipart, trường `file` | `{ fileId, name }` (`Attachment`) |
 | `POST /api/assistant/messages` | `{ conversationId, text, attachments: Attachment[] }` | `204`, xử lý bất đồng bộ |
 | `POST /api/assistant/steps/:id/answers` | `{ questionId, option }` | `204` |
-| `POST /api/assistant/steps/:id/approve` | Không body | `{ message }`, thông báo kết quả đã ghi |
-| `POST /api/assistant/steps/:id/undo` | Không body | `204` |
+| `POST /api/assistant/steps/:id/approve` | `{ password? }`; bắt buộc với tài khoản nhận tiền | `{ message }`, thông báo kết quả đã ghi |
+| `POST /api/assistant/steps/:id/undo` | `{ password? }`; bắt buộc với tài khoản nhận tiền | `204` |
+| `GET /api/assistant/steps/:id/sensitive` | Chỉ bước tài khoản đang chờ duyệt | Tài khoản cũ và mới; `Cache-Control: no-store` |
+| `GET /api/assistant/message-recipients` | Không body | Hội thoại thuộc cửa hàng để chủ shop chọn |
+| `POST /api/assistant/steps/:id/message-draft` | `{ text, conversationId }` | `204`, lưu bản nháp đã sửa |
 | `POST /api/assistant/alerts/:id/safe-action` | Không body | `204` |
 | `POST /api/assistant/notices/:id/dismiss` | Không body | `204` |
 
-`conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `ledgerExport`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; `resultCard` có nguồn và thời điểm cập nhật.
+`conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `dataTable`, `ledgerExport`, `pageLink`, `legalNotice`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; bảng và thẻ có nguồn và thời điểm cập nhật.
 
 ## SSE (dự kiến)
 
@@ -98,3 +103,16 @@ Gửi chú thích `: ping` mỗi 20 giây. `message` thêm tin mới hoặc thay
 ### Điểm nối cảnh báo
 
 `createAlert(shopId, { eventKey, level, title, reasons, orderId? }, { client } = {})` trong `services/alerts/alerts.service.js` tạo hoặc tìm lại cảnh báo theo cặp cửa hàng và sự việc; `level` là `mid` hoặc `high`. Kết quả `{ alert, created, events }`. Khi truyền `client` đã trong transaction, bên gọi chỉ được gọi `publishAlert(shopId, events)` sau khi commit; không truyền `client` thì service tự giao dịch và phát sự kiện sau commit. Các cảnh báo cùng `eventKey` trong một cửa hàng không tạo thêm luồng hoặc thông báo. Hàm không phát hiện gian lận và không thay đổi đơn hàng.
+
+
+`propose_change` nhận tối đa 20 thao tác trong `changes`; mỗi thao tác gồm thực thể, hành động, dữ liệu cho phép và mã đối tượng khi sửa hoặc xóa. Máy chủ xác định cửa hàng từ phiên. Đơn chỉ chuyển theo các trạng thái hợp lệ; không có thao tác xác nhận thanh toán. Mọi thay đổi được duyệt trong một giao dịch và có thể hoàn tác nếu dữ liệu chưa đổi tiếp. Đề xuất và nhật ký cũ vẫn được hỗ trợ.
+
+Khoản sổ tự động chỉ cho phép đề xuất thay đổi phân loại hoặc kênh tiền, không sửa số tiền, ngày hay xóa khoản; người dùng cần duyệt và có thể hoàn tác nếu không có xung đột. Khi dữ liệu thiếu phân loại, kết quả đọc nêu số khoản và cách đề nghị phân loại; AI rơi về chế độ cơ bản ghi lý do và mã nhà cung cấp, không ghi nội dung hay khóa.
+
+Sản phẩm, khách hàng, việc cần làm và chế độ AI hội thoại cũng có thể được đề xuất thay đổi. Xóa sản phẩm được chuyển thành ngừng bán. Đơn mới chỉ ở trạng thái chờ thanh toán, giá lấy từ sản phẩm của cửa hàng, không trừ tồn kho; nếu giá thay đổi trước khi duyệt, đề xuất bị từ chối. Nhật ký hoàn tác các dữ liệu này được mã hóa; khóa lấy từ `APP_ENCRYPTION_KEY`, hoặc `JWT_SECRET` nếu chưa đặt. Cần giữ khóa ổn định để các thay đổi trước đó còn hoàn tác được.
+
+`get_report` trả báo cáo từng phần cho kỳ đã chọn và kỳ so sánh tùy chọn từ cùng một ảnh chụp DB; doanh thu và chi phí chỉ gồm khoản kinh doanh hợp lệ, còn dòng tiền gồm mọi khoản thu/chi. Khi thiếu phân loại, thiếu giá vốn hoặc giá vốn bằng 0 cần xác minh, máy chủ không tính lãi. `ledger_book` cung cấp danh sách, gợi ý, xem trước, tên hộ và doanh thu lũy kế; cột tự đặt chỉ được điền sẵn trên trang Mẫu sổ để người dùng tự thêm, chưa lưu trên máy chủ. `open_page` trả nút và bộ lọc trong danh sách cho phép, không tự điều hướng.
+
+Đổi tài khoản nhận tiền mặc định tắt (`ASSISTANT_SENSITIVE_ENABLED=false`) cho tới khi kiểm thử tổng. Các trường phải có nguyên văn trong tin của chủ cửa hàng; duyệt và hoàn tác yêu cầu nhập lại mật khẩu. Giới hạn thử mật khẩu tạm nằm trong bộ nhớ một tiến trình. Nội dung tin nhắn gửi khách do chủ shop sửa và chọn người nhận; đầu nối `sendCustomerMessage(shopId, conversationId, text)` chưa gửi thật, trả trạng thái chưa kết nối. Chỉ nối gửi thật sau khi có cơ chế gửi bền vững, chống gửi trùng và kiểm thử tổng. Lịch sử chat che dãy số tài khoản trong tin có ngữ cảnh ngân hàng, giữ số tiền kèm đơn vị hoặc dấu phân cách. Bản nháp tin khách từ chối dãy liền từ 9 chữ số không có đơn vị tiền.
+
+`statement` hỗ trợ lịch sử, xem trước, đối chiếu với sổ theo ngày, chiều và số tiền, đề xuất nhập hoặc hoàn tác một lần nhập; đối chiếu chỉ là gợi ý, không gán vào đơn hay sửa giao dịch ngân hàng. CSV UTF-8 và XLSX tối đa 2 MB, 100 dòng dữ liệu; XLSX chỉ đọc trang tính đầu, tối đa 30 cột, giới hạn giải nén 12 MB, từ chối công thức trong trang được đọc và thành phần nhúng. Mô tả và tham chiếu được che các dãy số tài khoản dạng thông dụng, qua `guardData` trước khi hiển thị hoặc phân loại; nội dung tệp tự do không đưa vào kết quả cho mô hình. Việc che theo mẫu không bảo đảm nhận diện mọi cách viết số tài khoản. Tệp gốc vẫn lưu trong cơ sở dữ liệu để kiểm tra trùng và đọc lại.

@@ -8,13 +8,14 @@ import { pool, withTransaction } from './pool.js'
  * conversations, 60 orders across every state, ledger entries (including money-losing days),
  * SePay transactions, one fraud case and a few todos.
  *
- * `npm run seed` is idempotent: the template is marked by its fb_page_id, so a second run
- * does nothing instead of duplicating rows. Each judge session gets a copy of this shop
+ * `npm run seed` is idempotent: the template is marked by its fb_page_id; subsequent runs
+ * only fill missing classifications, without adding rows. Each judge session gets a copy
  * (see repositories/shop/shop.repository.js + services/demo/demo.service.js).
  */
 
 // The template's page id lives with the shops queries; re-exported here for the seed's callers.
 import { TEMPLATE_PAGE_ID } from '../repositories/shop/shop.repository.js'
+import { classifyTemplateEntries } from '../repositories/finance/ledgerEntry.repository.js'
 export { TEMPLATE_PAGE_ID }
 
 const SEED = 20261127
@@ -82,7 +83,8 @@ const dayMs = 24 * 60 * 60 * 1000
 export async function seed() {
   const existing = await pool.query('SELECT id FROM shops WHERE fb_page_id = $1', [TEMPLATE_PAGE_ID])
   if (existing.rows.length) {
-    console.log('Seed skipped: template shop already exists')
+    await withTransaction((client) => classifyTemplateEntries(existing.rows[0].id, client))
+    console.log('Seed skipped: template shop already exists; missing classifications updated')
     await seedDemoAccount()
     return { skipped: true, shopId: existing.rows[0].id }
   }
@@ -184,8 +186,8 @@ export async function seed() {
       if (paid) {
         await client.query(
           `INSERT INTO ledger_entries (shop_id, type, category, amount, order_id, note, occurred_at, source,
-                                       counterparty, dedupe_key)
-           VALUES ($1, 'INCOME', 'SALES', $2, $3, $4, $5, 'order', $6, $7)`,
+                                       counterparty, dedupe_key, kind, manual)
+           VALUES ($1, 'INCOME', 'SALES', $2, $3, $4, $5, 'order', $6, $7, 'BUSINESS_REVENUE', false)`,
           [shopId, total, order.rows[0].id, `Thu tiền đơn ${paymentCode}`, paidAt, customer.name,
             `seed:order:${paymentCode}`],
         )
@@ -292,6 +294,7 @@ export async function seed() {
       [shopId],
     )
 
+    await classifyTemplateEntries(shopId,client)
     return shopId
   })
 

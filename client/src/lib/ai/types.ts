@@ -39,6 +39,9 @@ export type Metric = {
 
 export type Block =
   | { type: 'text'; text: string }
+  | { type: 'pageLink'; page: 'ledger' | 'orders' | 'reports' | 'fraud' | 'messenger' | 'sources' | 'settings'; label: string; filters: Record<string,string> }
+  | { type: 'legalNotice' }
+  | { type: 'dataTable'; columns: import('@/components/flowy').DataColumn[]; rows: import('@/components/flowy').DataValue[][]; source: string; updatedAt: string; how: string }
   | { type: 'ledgerExport'; code: import('@/lib/ledgerTemplates').TemplateCode; name: string; from: string; to: string; warnings: string[] }
   | {
       /** Thay đổi dữ liệu do AI đề xuất. Chỉ ghi sau khi người dùng duyệt. */
@@ -46,6 +49,9 @@ export type Block =
       stepId: string
       title: string
       state: RunState
+      entities?: ('ledger' | 'orders' | 'alerts' | 'shop' | 'products' | 'customers' | 'todos' | 'conversations' | 'bank' | 'customer_message')[]
+      requiresPassword?: boolean
+      messageDraft?: { text: string; conversationId: string | null }
       steps: { label: string; meta?: string; status: StepStatus }[]
       questions?: Question[]
       approveLabel: string
@@ -127,8 +133,8 @@ export interface FlowyAI {
   send(request: SendRequest): Promise<void>
   answer(request: AnswerRequest): Promise<void>
   /** Trả về câu thông báo đã ghi gì, ở thì quá khứ, có số. */
-  approve(stepId: string): Promise<ApproveResponse>
-  undo(stepId: string): Promise<void>
+  approve(stepId: string, password?: string): Promise<ApproveResponse>
+  undo(stepId: string, password?: string): Promise<void>
   safeAction(alertId: string): Promise<void>
   dismissNotice(noticeId: string): Promise<void>
 }

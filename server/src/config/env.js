@@ -25,6 +25,8 @@ const schema = z.object({
   DEMO_SHOP_TTL_HOURS: z.coerce.number().int().positive().default(24),
   // Encrypts Page tokens at rest (optional until the deploy milestone).
   APP_ENCRYPTION_KEY: optional,
+  // Enable only after the sensitive approval flow has passed its full validation.
+  ASSISTANT_SENSITIVE_ENABLED: z.preprocess((v) => (v === '' || v === undefined ? 'false' : v), z.enum(['true', 'false'])).transform((v) => v === 'true'),
 
   // Meta Messenger (required from M1)
   FB_APP_SECRET: optional,

@@ -1,5 +1,6 @@
 import { getLedger } from './finance.service.js'
 import { getSummary } from './ledger.service.js'
+import { findById as findShop } from '../../repositories/shop/shop.repository.js'
 
 const add = (a, b) => { const value = a + b; if (!Number.isSafeInteger(value)) throw new Error('Unsafe book amount'); return value }
 function section(title, entries) {
@@ -38,12 +39,12 @@ export async function getBook(shopId, { code, from, to }) {
     sections = [section('', [])]; warnings.push(code === 'S2d-HKD' ? 'Chưa có dữ liệu nhập, xuất, tồn.' : 'Chưa có dữ liệu nghĩa vụ thuế khác.')
   } else sections = [section('', entries)]
   if (!sections.some((part) => part.rows.length)) warnings.push('Không có dữ liệu phù hợp trong kỳ.')
-  return { from, to, sections, warnings, updatedAt: ledger.updatedAt, source: 'sổ thu chi', count: sections.reduce((sum, part) => sum + part.rows.length, 0) }
+  return { from, to, sections, warnings, updatedAt: ledger.updatedAt, source: 'sổ thu chi', shopName: (await findShop(shopId))?.name ?? '', count: sections.reduce((sum, part) => sum + part.rows.length, 0) }
 }
 
 export async function getThreshold(shopId) {
   const now = new Date(), year = Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric' }).format(now))
   const from = new Date(Date.UTC(year, 0, 1) - 7 * 3600000).toISOString(), to = now.toISOString()
   const summary = await getSummary(shopId, { from, to })
-  return { year, revenue: summary.revenue, threshold: 1000000000, updatedAt: to, source: 'sổ thu chi' }
+  return { year, revenue: summary.revenue, unknownCount: summary.unknownCount, threshold: 1000000000, updatedAt: to, source: 'sổ thu chi' }
 }

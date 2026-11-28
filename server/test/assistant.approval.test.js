@@ -22,7 +22,17 @@ test('agent changes require approval, isolate shops and undo atomically', { skip
   const toolCall = (name, input) => ({ id: randomUUID(), type: 'function', function: { name, arguments: JSON.stringify(input) } })
   async function proposeMany(calls) {
     const before = await pool.query('SELECT count(*)::int AS n FROM assistant_steps WHERE shop_id=$1', [shop])
-    setMockReplies([{ tool_calls: calls.map(([name, input]) => toolCall(name, input)) }, { content: 'Đã chuẩn bị.' }])
+    const changes = []
+    for (const [name, input] of calls) {
+      if (name === 'add_ledger_entries') changes.push(...input.entries.map((data) => ({ entity:'ledger', action:'create', data })))
+      if (name === 'delete_manual_entry') changes.push({ entity:'ledger', action:'delete', id:input.entryId })
+      if (name === 'update_order_status') {
+        const row = await pool.query('SELECT id FROM orders WHERE shop_id=$1 AND payment_code=$2', [shop,input.paymentCode])
+        changes.push({ entity:'orders', action:'update', id:row.rows[0].id, data:{ status:input.status } })
+      }
+      if (name === 'update_shop_settings') changes.push({ entity:'shop', action:'update', data:input })
+    }
+    setMockReplies([{ tool_calls: [toolCall('propose_change', { changes })] }, { content: 'Đã chuẩn bị.' }])
     assert.equal((await post('/assistant/messages', { conversationId: 'hub', text: 'Thử đề xuất', attachments: [] })).status, 204)
     for (let i = 0; i < 100; i++) {
       const rows = await pool.query('SELECT * FROM assistant_steps WHERE shop_id=$1 ORDER BY created_at DESC', [shop])

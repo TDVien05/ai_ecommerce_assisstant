@@ -1,5 +1,7 @@
 # AI Agent
 
+The tools the owner's chat assistant can call today are listed in [tools.md](tools.md).
+
 ## Principles
 - The LLM **only decides what to say and which tool to call**. Prices, stock, totals and payment status always come from the DB through tools; the LLM never calculates or makes them up.
 - The LLM **has no tool to mark an order as paid**. Only the SePay webhook can do that.
@@ -33,9 +35,9 @@ You are a sales assistant for the shop "{shop_name}" on Facebook Messenger.
 
 ### Trợ lý dành cho chủ cửa hàng
 
-Trợ lý nhận tin tại `POST /api/assistant/messages` và gửi kết quả qua SSE. Công cụ hiện có: `get_summary`, `list_ledger`, `get_activity`, `export_ledger_book`, `list_orders`, `get_order`, đề xuất `add_ledger_entries`, `delete_manual_entry`, `update_order_status` và đổi tên cửa hàng. Giao dịch chưa đối soát và thay đổi thông tin ngân hàng chưa hỗ trợ.
+Trợ lý nhận tin tại `POST /api/assistant/messages` và gửi kết quả qua SSE. Công cụ hiện có: `query_data`, `get_report`, `ledger_book`, `open_page`, `get_summary`, `list_ledger`, `get_activity`, `export_ledger_book`, `list_orders`, `get_order` và `propose_change`. `query_data` chỉ xem giao dịch đã gắn cửa hàng, không thay đổi hoặc gán giao dịch; chức năng đổi tài khoản nhận tiền mặc định tắt.
 
-Thay đổi dữ liệu chỉ được thực hiện sau khi người dùng duyệt và có thể hoàn tác nếu dữ liệu chưa thay đổi tiếp. Không có công cụ xác nhận thanh toán. Bộ đọc CSV tạm nhận ngày, mô tả và số tiền; dòng nghi ngờ hoặc phân loại không chắc phải được người dùng chọn.
+Thay đổi dữ liệu chỉ được thực hiện sau khi người dùng duyệt và có thể hoàn tác nếu dữ liệu chưa thay đổi tiếp. Không có công cụ xác nhận thanh toán. `statement` đọc CSV/XLSX và hỗ trợ lịch sử, xem trước, đối chiếu gợi ý, đề xuất nhập và hoàn tác lần nhập; dòng nghi ngờ hoặc phân loại không chắc phải được người dùng chọn.
 
 Giới hạn mặc định là 50 yêu cầu được chấp nhận mỗi cửa hàng mỗi ngày (`AI_DAILY_RUN_LIMIT`), tính cả nhập sao kê. Bộ đếm lưu trong bộ nhớ từng tiến trình, đặt lại sau khởi động, chưa thay thế giới hạn chi phí tại nhà cung cấp hoặc bộ đếm bền vững. Chế độ luật dự phòng và lớp bảo vệ đầy đủ đang phát triển.
 
@@ -53,3 +55,9 @@ Giới hạn mặc định là 50 yêu cầu được chấp nhận mỗi cửa 
 5. "Mình chuyển rồi nha" ("I've paid") + a photo, but no webhook yet → the AI does not confirm.
 6. Matching webhook → the customer receives a confirmation message.
 7. The customer is abusive or demands a refund → handover.
+
+Trợ lý cửa hàng đề xuất thay đổi qua `propose_change`. Máy chủ kiểm tra thực thể, thao tác và trường theo danh sách cho phép; dữ liệu chỉ thay đổi sau khi người dùng duyệt, có nhật ký và hoàn tác khi không xung đột. Không cho công cụ đưa đơn sang trạng thái đã thanh toán hoặc sửa giao dịch ngân hàng.
+
+`get_report` trả báo cáo từng phần và so sánh từ dữ liệu máy chủ; lãi không được tính khi dữ liệu chưa đủ. `ledger_book` tra cứu mẫu sổ và doanh thu lũy kế, `open_page` dựng nút mở trang cùng bộ lọc được phép. Các công cụ đọc chuyên biệt cũ vẫn được giữ để tương thích trong khi chờ kiểm thử tổng.
+
+Đổi tài khoản nhận tiền mặc định tắt cho tới khi kiểm thử tổng. Bản nháp tin khách cần người dùng chọn người nhận, chỉnh sửa và duyệt; Messenger chưa được nối và công cụ không báo đã gửi.

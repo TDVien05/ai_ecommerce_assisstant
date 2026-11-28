@@ -44,6 +44,8 @@ type AgentStepProps = {
   undoNote?: string
   /** Dòng kết quả khi state="done": "Đã ghi 14 giao dịch lúc 21:42" */
   doneText?: string
+  extra?: React.ReactNode
+  canUndo?: boolean
 }
 
 /**
@@ -77,6 +79,7 @@ export function AgentStep(props: AgentStepProps) {
             ))}
           </div>
         )}
+        {props.extra}
       </BlockBody>
       {state === 'waiting' && (
         <BlockFooter>
@@ -91,7 +94,7 @@ export function AgentStep(props: AgentStepProps) {
           )}
           {props.onSkip && <Button size="lg" variant="outline" onClick={props.onSkip}>Bỏ qua</Button>}
           <span className="flex-1" />
-          <span className="text-xs text-muted-foreground">Ghi xong vẫn hoàn tác được</span>
+          <span className="text-xs text-muted-foreground">{props.canUndo === false ? 'Tin đã gửi không thể hoàn tác' : 'Ghi xong vẫn hoàn tác được'}</span>
         </BlockFooter>
       )}
       {state === 'done' && props.onUndo && (

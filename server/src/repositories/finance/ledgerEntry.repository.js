@@ -94,35 +94,35 @@ export async function counts(shopId, { from = null, to = null }) {
   return rows[0]
 }
 
-export async function summary(shopId, { from = null, to = null }) {
+export async function summary(shopId, { from = null, to = null }, client) {
   const { rows } = await query(`WITH entries AS (SELECT l.* FROM ledger_entries l WHERE ${filter}),
     revenue AS (SELECT COALESCE(sum(amount) FILTER (WHERE kind='BUSINESS_REVENUE' AND type='INCOME'),0)::numeric AS amount,
       COALESCE(sum(amount) FILTER (WHERE kind='EXPENSE' AND type='EXPENSE'),0)::numeric AS expense FROM entries),
     order_revenue AS (SELECT order_id, sum(amount)::numeric AS amount FROM entries WHERE kind='BUSINESS_REVENUE' AND type='INCOME' AND order_id IS NOT NULL GROUP BY order_id),
     item_cost AS (SELECT oi.order_id,sum(oi.unit_cost::numeric * oi.quantity)::numeric AS amount FROM order_items oi JOIN order_revenue r ON r.order_id=oi.order_id JOIN orders o ON o.id=oi.order_id AND o.shop_id=$1 GROUP BY oi.order_id),
     orders AS (SELECT count(*)::int AS count, COALESCE(sum(r.amount),0)::numeric AS revenue, COALESCE(sum(c.amount),0)::numeric AS cost, count(*) FILTER (WHERE c.order_id IS NULL)::int AS missing_items FROM order_revenue r LEFT JOIN item_cost c ON c.order_id=r.order_id)
-    SELECT revenue.amount::text AS revenue,revenue.expense::text AS expenses,orders.cost::text AS cost,orders.revenue::text AS order_revenue,orders.count AS order_count,orders.missing_items FROM revenue CROSS JOIN orders`, [shopId, from, to])
+    SELECT revenue.amount::text AS revenue,revenue.expense::text AS expenses,orders.cost::text AS cost,orders.revenue::text AS order_revenue,orders.count AS order_count,orders.missing_items FROM revenue CROSS JOIN orders`, [shopId, from, to], client)
   return rows[0]
 }
 
-export async function timeseries(shopId, { from = null, to = null, interval = 'day' }) {
+export async function timeseries(shopId, { from = null, to = null, interval = 'day' }, client) {
   const { rows } = await query(`SELECT date_trunc($4, l.occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date::text AS date, sum(l.amount)::text AS revenue
-    FROM ledger_entries l WHERE ${filter} AND l.kind='BUSINESS_REVENUE' AND l.type='INCOME' GROUP BY 1 ORDER BY 1`, [shopId, from, to, interval])
+    FROM ledger_entries l WHERE ${filter} AND l.kind='BUSINESS_REVENUE' AND l.type='INCOME' GROUP BY 1 ORDER BY 1`, [shopId, from, to, interval], client)
   return rows
 }
 
-export async function topProducts(shopId, { from = null, to = null, limit = 5 }) {
+export async function topProducts(shopId, { from = null, to = null, limit = 5 }, client) {
   const { rows } = await query(`WITH matched AS (SELECT DISTINCT l.order_id FROM ledger_entries l WHERE ${filter} AND l.kind='BUSINESS_REVENUE' AND l.type='INCOME' AND l.order_id IS NOT NULL)
     SELECT COALESCE(oi.product_id::text,oi.name_snapshot) AS product_id, oi.name_snapshot AS name, sum(oi.quantity)::text AS quantity, sum(oi.unit_price::numeric*oi.quantity)::text AS revenue
     FROM order_items oi JOIN matched m ON m.order_id=oi.order_id JOIN orders o ON o.id=oi.order_id AND o.shop_id=$1
-    GROUP BY 1,2 ORDER BY sum(oi.unit_price::numeric*oi.quantity) DESC,1 LIMIT $4`, [shopId, from, to, limit])
+    GROUP BY 1,2 ORDER BY sum(oi.unit_price::numeric*oi.quantity) DESC,1 LIMIT $4`, [shopId, from, to, limit], client)
   return rows
 }
 
 export async function periodSummary(shopId, from, to) {
   const { rows } = await query(`SELECT
     count(*)::int AS total_count,
-    count(*) FILTER (WHERE kind IS NULL)::int AS unknown_count,
+    count(*) FILTER (WHERE kind IS NULL OR (type='INCOME' AND kind='EXPENSE') OR (type='EXPENSE' AND kind='BUSINESS_REVENUE'))::int AS unknown_count,
     count(*) FILTER (WHERE (kind = 'BUSINESS_REVENUE' AND type = 'INCOME') OR (kind = 'EXPENSE' AND type = 'EXPENSE'))::int AS classified_count,
     COALESCE(sum(amount) FILTER (WHERE kind = 'BUSINESS_REVENUE' AND type = 'INCOME'), 0)::text AS revenue,
     COALESCE(sum(amount) FILTER (WHERE kind = 'EXPENSE' AND type = 'EXPENSE'), 0)::text AS expenses
@@ -135,6 +135,13 @@ export async function listPeriod(shopId, from, to, type) {
     FROM ledger_entries WHERE shop_id = $1 AND occurred_at >= $2 AND occurred_at < $3
     AND ($4::text IS NULL OR type = $4) ORDER BY occurred_at DESC, id LIMIT 101`, [shopId, from, to, type ?? null])
   return rows
+}
+
+export async function unclassifiedInPeriod(shopId, from, to) {
+  requireShopId(shopId)
+  const {rows}=await query(`SELECT count(*)::int AS count FROM ledger_entries WHERE shop_id=$1 AND occurred_at >= $2 AND occurred_at < $3
+    AND (kind IS NULL OR (type='INCOME' AND kind='EXPENSE') OR (type='EXPENSE' AND kind='BUSINESS_REVENUE'))`,[shopId,from,to])
+  return rows[0].count
 }
 
 const entryColumns = 'id, shop_id, type, kind, channel, category, amount, order_id, note, occurred_at, created_at, document_ref, document_date, industry, manual'
@@ -156,6 +163,18 @@ export async function removeEntry(shopId, id, client) {
   return result.rowCount > 0
 }
 
+export async function updateManualEntry(shopId, id, value, client) {
+  const { rows } = await query(`UPDATE ledger_entries SET type=$3,kind=$4,channel=$5,category=$6,amount=$7,note=$8,occurred_at=$9,document_ref=$10,document_date=$11,industry=$12 WHERE shop_id=$1 AND id=$2 AND manual=true RETURNING ${entryColumns}`,
+    [shopId,id,value.type,value.kind,value.channel,value.category,value.amount,value.note,value.occurred_at,value.document_ref,value.document_date,value.industry], client)
+  return rows[0] ?? null
+}
+
+export async function classifyEntry(shopId, id, value, client) {
+  requireShopId(shopId)
+  const {rows}=await query(`UPDATE ledger_entries SET kind=$3,channel=$4 WHERE shop_id=$1 AND id=$2 RETURNING ${entryColumns}`,[shopId,id,value.kind,value.channel],client)
+  return rows[0]??null
+}
+
 export async function restoreEntry(row, client) {
   await query(`INSERT INTO ledger_entries (${entryColumns}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
     [row.id, row.shop_id, row.type, row.kind, row.channel, row.category, row.amount, row.order_id, row.note, row.occurred_at, row.created_at, row.document_ref, row.document_date, row.industry, row.manual], client)
@@ -165,15 +184,33 @@ export async function restoreEntry(row, client) {
 export async function copyFromShop(shopId, templateId, interval, keySuffix, db) {
   await query(
     `INSERT INTO ledger_entries (shop_id, type, category, amount, order_id, note, occurred_at, source,
-                                 counterparty, raw_description, dedupe_key)
+                                 counterparty, raw_description, dedupe_key, kind, channel, document_ref, document_date, industry, manual)
      SELECT $1, l.type, l.category, l.amount, m.new_id, l.note, l.occurred_at + $3::interval, l.source,
             l.counterparty, l.raw_description,
-            l.dedupe_key || ':' || $4
+            l.dedupe_key || ':' || $4, l.kind, l.channel, l.document_ref, l.document_date, l.industry, l.manual
        FROM ledger_entries l
        LEFT JOIN demo_order_map m ON m.old_id = l.order_id
       WHERE l.shop_id = $2`,
     [shopId, templateId, interval, keySuffix], db,
   )
+}
+
+/** Classify only identifiable template records that still lack a kind. */
+export async function classifyTemplateEntries(shopId, db) {
+  requireShopId(shopId)
+  const result=await query(`UPDATE ledger_entries l SET kind=CASE
+      WHEN l.type='INCOME' AND l.category='SALES' AND l.source='order' AND l.order_id IS NOT NULL
+        AND l.dedupe_key LIKE 'seed:order:%' AND EXISTS(SELECT 1 FROM orders o WHERE o.id=l.order_id AND o.shop_id=l.shop_id)
+        THEN 'BUSINESS_REVENUE'
+      WHEN l.type='EXPENSE' AND l.source='manual' AND (l.category IN ('INVENTORY','ADS','SHIPPING')
+        OR (l.category='OTHER' AND l.note ILIKE '%mặt bằng%')) THEN 'EXPENSE'
+      ELSE NULL END
+    WHERE l.shop_id=$1 AND l.kind IS NULL AND (
+      (l.type='INCOME' AND l.category='SALES' AND l.source='order' AND l.order_id IS NOT NULL
+        AND l.dedupe_key LIKE 'seed:order:%' AND EXISTS(SELECT 1 FROM orders o WHERE o.id=l.order_id AND o.shop_id=l.shop_id))
+      OR (l.type='EXPENSE' AND l.source='manual' AND (l.category IN ('INVENTORY','ADS','SHIPPING')
+        OR (l.category='OTHER' AND l.note ILIKE '%mặt bằng%'))))`,[shopId],db)
+  return result.rowCount
 }
 
 /** Demo reset: delete every row of this shop, in the caller's transaction. */
@@ -187,4 +224,19 @@ export async function activityByType(shopId, from, to, db) {
   const { rows } = await query(`SELECT type,count(*)::int AS count,coalesce(sum(amount),0)::text AS amount
     FROM ledger_entries WHERE shop_id=$1 AND occurred_at >= $2 AND occurred_at < $3 GROUP BY type`, [shopId, from, to], db)
   return rows
+}
+
+export async function reportCoverage(shopId, {from = null,to = null}, client) {
+  requireShopId(shopId)
+  const {rows}=await query(`SELECT count(*)::int AS total,
+    count(*) FILTER (WHERE l.kind IS NULL OR (l.type='INCOME' AND l.kind='EXPENSE') OR (l.type='EXPENSE' AND l.kind='BUSINESS_REVENUE'))::int AS unknown,
+    count(*) FILTER (WHERE (l.kind='BUSINESS_REVENUE' AND l.type='INCOME') OR (l.kind='EXPENSE' AND l.type='EXPENSE'))::int AS classified,
+    count(*) FILTER (WHERE l.kind='BUSINESS_REVENUE' AND l.type='INCOME' AND
+      (l.order_id IS NULL OR NOT EXISTS (SELECT 1 FROM orders o WHERE o.id=l.order_id AND o.shop_id=l.shop_id)
+       OR NOT EXISTS (SELECT 1 FROM order_items i WHERE i.order_id=l.order_id)
+       OR EXISTS (SELECT 1 FROM order_items i WHERE i.order_id=l.order_id AND i.unit_cost <= 0)))::int AS missing_cost,
+    COALESCE(sum(l.amount) FILTER (WHERE l.type='INCOME'),0)::text AS cash_in,
+    COALESCE(sum(l.amount) FILTER (WHERE l.type='EXPENSE'),0)::text AS cash_out
+    FROM ledger_entries l WHERE ${filter}`, [shopId,from,to],client)
+  return rows[0]
 }

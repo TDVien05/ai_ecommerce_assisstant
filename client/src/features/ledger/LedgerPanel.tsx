@@ -7,13 +7,16 @@ import { ExpenseDialog } from './ExpenseDialog'
 import { categoryLabels } from './categoryLabels'
 import { isReal } from '@/lib/realApi'
 import { range, type Period } from '@/lib/finance/period'
+import { useLocation } from 'react-router-dom'
 
 export function LedgerPanel() {
+  const {search}=useLocation()
   const [period, setPeriod] = useState<Period>('week')
   const [type, setType] = useState<LedgerType | 'ALL'>('ALL')
   const [data, setData] = useState<LedgerResponse | null>(null)
   const [error, setError] = useState('')
   const [open, setOpen] = useState(false)
+  useEffect(()=>{const params=new URLSearchParams(search), value=params.get('period'), kind=params.get('type');if(value==='today'||value==='week'||value==='month')setPeriod(value);if(kind==='INCOME'||kind==='EXPENSE')setType(kind)},[search])
   const requestId = useRef(0)
   const load = useCallback(() => { const id = ++requestId.current; setError(''); financeApi.ledger({ ...range(period), ...(type === 'ALL' ? {} : { type }) }).then((result) => { if (id === requestId.current) setData(result) }).catch((err: unknown) => { if (id === requestId.current) setError(err instanceof Error ? err.message : 'Không tải được sổ thu chi.') }) }, [period, type])
   useEffect(() => { let active = true; const pending = requestId; queueMicrotask(() => { if (active) load() }); window.addEventListener('flowy:ledger-changed', load); return () => { active = false; pending.current++; window.removeEventListener('flowy:ledger-changed', load) } }, [load])

@@ -4,6 +4,11 @@ import { getRepository, transaction, query } from '../../config/database.js'
 import { User } from '../../models/auth/User.js'
 import { Shop } from '../../models/shop/Shop.js'
 
+export async function passwordHashForOwner(shopId, userId, db) {
+  const { rows } = await query('SELECT password_hash FROM users WHERE shop_id=$1 AND id=$2', [shopId,userId], db)
+  return rows[0]?.password_hash ?? null
+}
+
 /** Login lookup: { id, shopId, email, passwordHash } or null. */
 export const findByEmail = async (email) => {
   const users = await getRepository(User)

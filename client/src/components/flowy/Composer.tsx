@@ -58,12 +58,12 @@ export function Composer({
           ref={fileRef}
           type="file"
           hidden
-          accept=".csv,text/csv"
+          accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
         />
         <button
           type="button"
-          aria-label="Đính kèm sao kê CSV"
+          aria-label="Đính kèm sao kê CSV hoặc XLSX"
           onClick={() => fileRef.current?.click()}
           className="grid size-8 place-items-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
         >

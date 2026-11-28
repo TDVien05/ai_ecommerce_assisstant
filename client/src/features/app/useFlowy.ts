@@ -11,8 +11,10 @@ export function useFlowy() {
     const message = event.type === 'message' ? event.message : null
     if (event.type === 'snapshot' || (event.type === 'thread' && event.thread.id.startsWith('alert-')) || (message && (message.id.startsWith('risk-') || message.id.startsWith('notice-')))) window.dispatchEvent(new Event('flowy:alerts-changed'))
     const steps = message?.role === 'assistant' ? message.blocks.filter((block): block is Extract<Block, { type: 'agentStep' }> => block.type === 'agentStep' && (block.state === 'done' || block.state === 'undone')) : []
-    if (event.type === 'snapshot' || steps.some((step) => step.title === 'Thay đổi sổ thu chi' || step.steps.some((item) => /^(Thu |Chi |Xóa khoản )/.test(item.label)))) window.dispatchEvent(new Event('flowy:ledger-changed'))
-    if (event.type === 'snapshot' || steps.some((step) => step.steps.some((item) => item.label.startsWith('Đơn ')))) window.dispatchEvent(new Event('flowy:orders-changed'))
+    if (steps.some((step) => step.entities?.includes('alerts'))) window.dispatchEvent(new Event('flowy:alerts-changed'))
+    if (event.type === 'snapshot' || steps.some((step) => step.entities?.includes('ledger') || (!step.entities && (step.title === 'Thay đổi sổ thu chi' || step.steps.some((item) => /^(Thu |Chi |Xóa khoản )/.test(item.label)))))) window.dispatchEvent(new Event('flowy:ledger-changed'))
+    if (event.type === 'snapshot' || steps.some((step) => step.entities?.includes('orders') || (!step.entities && step.steps.some((item) => item.label.startsWith('Đơn '))))) window.dispatchEvent(new Event('flowy:orders-changed'))
+    if (steps.some((step) => step.entities?.includes('conversations'))) window.dispatchEvent(new Event('flowy:conversations-changed'))
   }, setConnection), [])
   return { state, connection }
 }
