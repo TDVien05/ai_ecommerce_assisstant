@@ -22,5 +22,11 @@ export async function listLedger(shopId, input) {
   period(input)
   if (input.type && !['INCOME', 'EXPENSE'].includes(input.type)) throw badRequest('Loại khoản sổ không hợp lệ.')
   const rows = await db.list(shopId, input.from, input.to, input.type)
-  return { items: rows.map((row) => ({ id: row.id, type: row.type, kind: row.kind, category: row.category, amount: money(row.amount), note: row.note, occurredAt: row.occurred_at.toISOString() })), from: input.from, to: input.to, limited: rows.length === 100 }
+  const items = rows.slice(0, 100).map((row) => ({ id: row.id, type: row.type, kind: row.kind, category: row.category, amount: money(row.amount), note: row.note, occurredAt: row.occurred_at.toISOString() }))
+  let income = 0, expense = 0
+  for (const item of items) {
+    if (item.type === 'INCOME') income = money(income + item.amount)
+    else expense = money(expense + item.amount)
+  }
+  return { items, totals: { income, expense }, from: input.from, to: input.to, limited: rows.length > 100 }
 }

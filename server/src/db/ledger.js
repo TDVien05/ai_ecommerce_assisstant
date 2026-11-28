@@ -14,6 +14,6 @@ export async function summary(shopId, from, to) {
 export async function list(shopId, from, to, type) {
   const { rows } = await pool.query(`SELECT id, type, kind, category, amount, note, occurred_at
     FROM ledger_entries WHERE shop_id = $1 AND occurred_at >= $2 AND occurred_at < $3
-    AND ($4::text IS NULL OR type = $4) ORDER BY occurred_at DESC, id LIMIT 100`, [shopId, from, to, type ?? null])
+    AND ($4::text IS NULL OR type = $4) ORDER BY occurred_at DESC, id LIMIT 101`, [shopId, from, to, type ?? null])
   return rows
 }

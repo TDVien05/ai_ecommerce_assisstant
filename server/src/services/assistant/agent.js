@@ -3,9 +3,15 @@ import { createRegistry } from './registry.js'
 import { tools as financeTools } from './tools/finance.read.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
 import { consumeAgentRun, classifyByRules } from './fallback.js'
+import { formatTime } from './view.js'
 
 const channel = 'owner'
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+const dayMonth = new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit' })
+function formatDayMonth(value) {
+  const parts = dayMonth.formatToParts(new Date(value))
+  return `${parts.find((part) => part.type === 'day').value}/${parts.find((part) => part.type === 'month').value}`
+}
 
 function resultBlocks(results) {
   return results.flatMap(({ name, data }) => {
@@ -13,13 +19,16 @@ function resultBlocks(results) {
       if (!data.totalCount) return [{ type: 'text', text: 'Chưa có dữ liệu sổ trong kỳ này.' }]
       if (!data.classifiedCount) return [{ type: 'text', text: 'Chưa có khoản thu hoặc chi đã phân loại trong kỳ; không thể kết luận doanh thu hay chi phí.' }]
       const source = data.unknownCount ? 'Sổ thu chi; có khoản chưa phân loại, chưa tính vào doanh thu và chi phí' : 'Sổ thu chi; chỉ tính khoản đã phân loại'
-      return [{ type: 'resultCard', metrics: [{ label: 'Doanh thu kinh doanh', value: data.revenue }, { label: 'Chi phí đã phân loại', value: data.expenses }, { label: 'Thu trừ chi đã phân loại', value: data.difference }], source, updatedAt: new Date().toISOString(), how: [{ label: 'Doanh thu kinh doanh; không tính khoản chưa phân loại', value: data.revenue }, { label: 'Trừ chi phí đã phân loại', value: data.expenses }, { label: 'Chênh lệch; chưa đủ căn cứ kết luận lợi nhuận', value: data.difference, total: true }] }]
+      return [{ type: 'resultCard', metrics: [{ label: 'Doanh thu kinh doanh', value: data.revenue }, { label: 'Chi phí đã phân loại', value: data.expenses }, { label: 'Thu trừ chi đã phân loại', value: data.difference }], source, updatedAt: formatTime(new Date()), how: [{ label: 'Doanh thu kinh doanh; không tính khoản chưa phân loại', value: data.revenue }, { label: 'Trừ chi phí đã phân loại', value: data.expenses }, { label: 'Chênh lệch; chưa đủ căn cứ kết luận lợi nhuận', value: data.difference, total: true }] }]
     }
     if (!data.items.length) return [{ type: 'text', text: 'Chưa có khoản sổ trong kỳ này.' }]
-    return [
-      { type: 'text', text: data.limited ? 'Danh sách khoản sổ được giới hạn tối đa 100 khoản.' : 'Các khoản sổ trong kỳ:' },
-      ...data.items.map((item) => ({ type: 'resultCard', metrics: [{ label: `${item.type === 'INCOME' ? 'Thu' : 'Chi'} · ${item.category}`, value: item.amount }], source: 'Sổ thu chi', updatedAt: item.occurredAt, how: [{ label: item.kind ? 'Khoản đã ghi trong sổ' : 'Khoản chưa phân loại; không mặc định là doanh thu', value: item.amount, total: true }] })),
-    ]
+    return [{
+      type: 'resultCard',
+      metrics: [{ label: 'Tổng thu các khoản liệt kê (gồm khoản chưa phân loại)', value: data.totals.income }, { label: 'Tổng chi các khoản liệt kê (gồm khoản chưa phân loại)', value: data.totals.expense }],
+      source: data.limited ? 'Sổ thu chi; tổng chỉ gồm 100 khoản mới nhất' : 'Sổ thu chi; các khoản được liệt kê',
+      updatedAt: formatTime(new Date()),
+      how: data.items.map((item, index) => ({ label: `${index + 1}. ${formatDayMonth(item.occurredAt)} · ${item.type === 'INCOME' ? 'Thu' : 'Chi'} · ${item.category}${item.kind ? '' : ' · chưa phân loại'}`, value: item.amount })),
+    }]
   })
 }
 
