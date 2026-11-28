@@ -8,7 +8,10 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
-  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  // Comma-separated list of allowed browser origins, e.g. "https://flowy.vientruong.site,http://localhost:5173".
+  // Trailing slashes are stripped because the browser's Origin header never has one.
+  CORS_ORIGIN: z.string().default('http://localhost:5173')
+    .transform((v) => v.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean)),
   SERVE_CLIENT_DIR: optional,
 
   DATABASE_URL: z.string().min(1),
