@@ -8,6 +8,7 @@ import { changeToolByName as tools } from './tools/change.js'
 import { updateThread, publishUpdate } from './threads.js'
 import { verifyOwnerPassword } from './password.js'
 import * as conversationRepo from '../../repositories/messenger/conversation.repository.js'
+import { requestProactiveScan } from './proactive.service.js'
 
 const notFound = () => appError('STEP_NOT_FOUND', 'Không tìm thấy bước cần duyệt.')
 const conflict = () => appError('STEP_CONFLICT', 'Bước đã thay đổi hoặc không thể thực hiện.')
@@ -96,6 +97,7 @@ export async function approve(auth, id, { password } = {}) {
   notify(auth, result.step, result.message)
   for (const event of result.events) publish(auth.shopId, event)
   publishUpdate(auth.shopId,result.update)
+  requestProactiveScan(auth.shopId, { opened: true, force: true })
   return { message: result.description }
 }
 
@@ -129,4 +131,5 @@ export async function undo(auth, id, { password } = {}) {
   notify(auth, result.step, result.message)
   for (const event of result.events) publish(auth.shopId, event)
   publishUpdate(auth.shopId,result.update)
+  requestProactiveScan(auth.shopId, { opened: true, force: true })
 }

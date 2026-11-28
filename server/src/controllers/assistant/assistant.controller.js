@@ -2,6 +2,7 @@ import * as assistant from '../../services/assistant/assistant.service.js'
 import { trackStream } from '../../services/assistant/events.js'
 import * as approval from '../../services/assistant/approval.js'
 import { uploadFile } from '../../services/assistant/files.js'
+import { dismissProactive, requestProactiveScan } from '../../services/assistant/proactive.service.js'
 
 export async function stream(req, res) {
   let ready = false
@@ -30,6 +31,16 @@ export async function stream(req, res) {
 }
 
 export async function upload(req, res) { res.status(201).json(await uploadFile(req.auth.shopId,req.file)) }
+
+export function refreshProactive(req, res) {
+  requestProactiveScan(req.auth.shopId, { opened: true })
+  res.sendStatus(204)
+}
+
+export async function dismissProactiveNotice(req, res) {
+  await dismissProactive(req.auth.shopId, req.params.id)
+  res.sendStatus(204)
+}
 
 export async function send(req, res) {
   await assistant.sendMessage(req.auth, req.body)

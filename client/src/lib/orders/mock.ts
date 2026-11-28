@@ -4,7 +4,11 @@ import type { OrderStatus, OrdersApi, OrderTransition } from './types'
 
 export const mockOrders: OrdersApi = {
   async list(query = {}) {
-    return respond({ items: store.orders.filter((order) => (!query.status || order.status === query.status) && (!query.from || order.createdAt >= query.from) && (!query.to || order.createdAt <= query.to)) })
+    const now = Date.now()
+    return respond({ items: store.orders.filter((order) => (!query.status || order.status === query.status)
+      && (!query.from || order.createdAt >= query.from) && (!query.to || order.createdAt <= query.to)
+      && (!query.code || order.paymentCode === query.code)
+      && (!query.overdue || (order.status === 'AWAITING_PAYMENT' && order.expiresAt && Date.parse(order.expiresAt) <= now))) })
   },
   async get(id) {
     const order = store.orders.find((item) => item.id === id)

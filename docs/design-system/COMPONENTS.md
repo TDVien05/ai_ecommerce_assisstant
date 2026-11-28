@@ -39,7 +39,7 @@ Import từ `@/components/flowy`. Ví dụ đầy đủ nằm ở `client/src/pa
 |---|---|
 | `ThreadList` | Danh sách luồng trong sidebar. Trạng thái `alert`, `waiting`, `running`, `done`; tự sắp theo mức cần chú ý. |
 | `ThreadSummary` | AI báo vào chat trung tâm khi luồng chờ duyệt hoặc xong. Một luồng một thẻ. Không có nút Duyệt ở đây. |
-| `ProactiveNotice` | AI tự nhắn khi có chuyện (đơn khả nghi, tiền không khớp). Chỉ tự làm việc an toàn, đảo ngược được. |
+| `ProactiveNotice` | Tin ở đầu chat trung tâm khi có việc cần chú ý. Có nút mở trang hoặc luồng, và nút bỏ qua. Có thể ghép `ResultCard` trong phần nội dung để hiện số liệu và nguồn. |
 | `ThreadStatusIcon`, `StateLabel` | Ký hiệu 10px và nhãn trạng thái viết hoa. |
 
 ## Khối AI

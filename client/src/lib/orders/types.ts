@@ -2,7 +2,7 @@ import type { Payment } from '@/lib/payments/types'
 
 /**
  * Method | Path | Request | Response | Lỗi
- * GET | /api/orders | status?, from?, to? | { items: Order[] } | 400, 401
+ * GET | /api/orders | status?, from?, to?, overdue?, code? | { items: Order[] } | 400, 401
  * GET | /api/orders/:id | — | { order: OrderDetail } | 401, 404
  * PATCH | /api/orders/:id/status | { status: OrderTransition } | { order: Order } | 400, 401, 404, 409
  * Các hình dạng response và mã lỗi là đề xuất cần server xác nhận.
@@ -40,7 +40,7 @@ export type OrderDetail = Order & {
 }
 
 export interface OrdersApi {
-  list(query?: { status?: OrderStatus; from?: string; to?: string }): Promise<{ items: Order[] }>
+  list(query?: { status?: OrderStatus; from?: string; to?: string; overdue?: '1'; code?: string }): Promise<{ items: Order[] }>
   get(id: string): Promise<{ order: OrderDetail }>
   updateStatus(id: string, body: { status: OrderTransition }): Promise<{ order: Order }>
 }

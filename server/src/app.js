@@ -25,6 +25,7 @@ import { alertsRouter } from './routes/alerts/alerts.js'
 import { deleteExpiredDemoShops } from './services/demo/demo.service.js'
 import { recover, interruptActive } from './services/assistant/assistant.service.js'
 import { closeAllStreams } from './services/assistant/events.js'
+import { startProactiveScheduler } from './services/assistant/proactive.service.js'
 
 /** Dashboard REST API, mounted at /api (docs/API.md section 3). Add a new feature router here. */
 function createApiRouter() {
@@ -104,9 +105,11 @@ export async function startServer() {
     deleteExpiredDemoShops().catch((err) => logger.error({ err }, 'demo shop cleanup failed'))
   sweepDemoShops()
   setInterval(sweepDemoShops, 60 * 60 * 1000).unref()
+  const stopProactive = startProactiveScheduler()
 
   const shutdown = (signal) => {
     logger.info(`${signal} received, shutting down`)
+    stopProactive()
     closeAllStreams()
     const closing = new Promise((resolve) => server.close(resolve))
     Promise.all([closing, interruptActive().catch((err) => logger.error({ err }, 'Assistant shutdown recovery failed'))])

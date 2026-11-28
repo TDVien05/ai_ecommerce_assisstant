@@ -74,6 +74,8 @@ Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗ
 | `POST /api/assistant/steps/:id/message-draft` | `{ text, conversationId }` | `204`, lưu bản nháp đã sửa |
 | `POST /api/assistant/alerts/:id/safe-action` | Không body | `204` |
 | `POST /api/assistant/notices/:id/dismiss` | Không body | `204` |
+| `POST /api/assistant/proactive/refresh` | Không body; khi mở Chat trung tâm | `204`, lên lịch quét ngoài yêu cầu |
+| `POST /api/assistant/proactive/:id/dismiss` | Không body; ID UUID của thông báo | `204`, lưu việc bỏ qua cho cửa hàng |
 
 `conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `dataTable`, `ledgerExport`, `pageLink`, `legalNotice`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; bảng và thẻ có nguồn và thời điểm cập nhật.
 
@@ -99,6 +101,14 @@ data: {"conversationId":"hub","value":true}
 ```
 
 Gửi chú thích `: ping` mỗi 20 giây. `message` thêm tin mới hoặc thay tin cùng ID; `thread` thêm hoặc thay luồng cùng ID. Khi kết nối lại phải gửi snapshot đầu tiên để đồng bộ; không gửi sự kiện của cửa hàng khác. `updatedAt` của `Thread` là chuỗi hiển thị như `21:40` theo kiểu client, không giả định là ISO.
+
+### Thông báo chủ động
+
+`snapshot.proactive` và sự kiện SSE `proactive` mang cùng cấu trúc `{ revision, notices }`. Sự kiện gửi toàn bộ danh sách đang mở. Giao diện bỏ qua bản cập nhật cũ theo `revision`. Mỗi phần tử là khối `proactiveNotice` có đường dẫn trang và bộ lọc do máy chủ chọn, tùy chọn kèm `resultCard` hoặc khối nhắc pháp lý có nguồn.
+
+Máy chủ quét theo cửa hàng khi mở chat, sau khi duyệt hoặc hoàn tác (gồm sao kê), và định kỳ mỗi 5 phút cho cửa hàng hoạt động trong 7 ngày qua. Lượt mở cách nhau dưới 5 phút không quét lại. Máy chủ lưu tối đa 5 thông báo đang mở, ưu tiên rủi ro, dùng ID cố định theo luật và kỳ hoặc theo đơn. Bỏ qua được lưu tại máy chủ.
+
+`PROACTIVE_ENABLED` mặc định bật. `PROACTIVE_AI_DAILY_LIMIT` mặc định 3 đợt có thông báo mới mỗi cửa hàng mỗi ngày giờ Việt Nam. Mỗi đợt gửi một yêu cầu viết lời dựa trên số liệu tổng hợp và dùng hạn mức riêng. Giá trị 0, chế độ giả lập và lỗi nhà cung cấp đều dùng nội dung mẫu.
 
 ### Điểm nối cảnh báo
 

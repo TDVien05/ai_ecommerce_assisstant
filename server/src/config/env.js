@@ -27,6 +27,8 @@ const schema = z.object({
   APP_ENCRYPTION_KEY: optional,
   // Enable only after the sensitive approval flow has passed its full validation.
   ASSISTANT_SENSITIVE_ENABLED: z.preprocess((v) => (v === '' || v === undefined ? 'false' : v), z.enum(['true', 'false'])).transform((v) => v === 'true'),
+  PROACTIVE_ENABLED: z.preprocess((v) => (v === '' || v === undefined ? 'true' : v), z.enum(['true', 'false'])).transform((v) => v === 'true'),
+  PROACTIVE_AI_DAILY_LIMIT: z.coerce.number().int().nonnegative().default(3),
 
   // Meta Messenger (required from M1)
   FB_APP_SECRET: optional,

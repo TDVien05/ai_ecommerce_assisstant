@@ -30,12 +30,13 @@ function retryDelay(attempt, response) {
  * @param {object} [opts.responseFormat]  e.g. { type: 'json_object' }
  * @param {number} [opts.temperature]
  * @param {number} [opts.maxTokens]
+ * @param {number} [opts.maxRetries] retries after the initial request
  * @param {{ shopId?: string }} [opts.ctx]  used for ai_usage accounting
  * @param {AbortSignal} [opts.signal]
  * @returns {Promise<{ message: object, finishReason: string, model: string, usage: { promptTokens: number, completionTokens: number } }>}
  * @throws {AiUnavailableError} no key, timeout, provider error, or retries exhausted
  */
-export async function chat({ role, messages, tools, toolChoice, responseFormat, temperature, maxTokens, ctx = {}, signal }) {
+export async function chat({ role, messages, tools, toolChoice, responseFormat, temperature, maxTokens, ctx = {}, signal, maxRetries = MAX_RETRIES }) {
   if (!isConfigured()) throw new AiUnavailableError('not_configured')
   const model = modelFor(role)
 
@@ -68,7 +69,7 @@ export async function chat({ role, messages, tools, toolChoice, responseFormat, 
     } catch (err) {
       if (signal?.aborted) throw err // caller cancelled: not an AI outage
       if (err.name === 'TimeoutError') throw new AiUnavailableError('timeout', { cause: err })
-      if (attempt < MAX_RETRIES) {
+      if (attempt < maxRetries) {
         await sleep(retryDelay(attempt))
         continue
       }
@@ -87,7 +88,7 @@ export async function chat({ role, messages, tools, toolChoice, responseFormat, 
       return { message: choice.message, finishReason: choice.finish_reason, model: payload.model ?? model, usage }
     }
 
-    if (isRetryable(status) && attempt < MAX_RETRIES) {
+    if (isRetryable(status) && attempt < maxRetries) {
       logger.warn({ role, model, status, attempt: attempt + 1 }, 'AI provider error, retrying')
       await sleep(retryDelay(attempt, response))
       continue

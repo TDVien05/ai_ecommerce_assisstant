@@ -9,15 +9,16 @@ import { runAgent } from './agent.js'
 import { startStatement, updateThread } from './threads.js'
 import { reserveAgentRun } from './quota.js'
 import { redactOwnerText } from '../../lib/sensitiveText.js'
+import { loadProactive } from './proactive.service.js'
 
 const notFound = () => appError('NOT_FOUND', 'Không tìm thấy hội thoại hoặc tệp.')
 const activeRuns = new Map()
 let shuttingDown = false
 
 export async function snapshot(shopId) {
-  const data = await store.loadSnapshot(shopId)
+  const [data, proactive] = await Promise.all([store.loadSnapshot(shopId), loadProactive(shopId)])
   if (!data) throw notFound()
-  return snapshotView(data, events.typingFor(shopId))
+  return { ...snapshotView(data, events.typingFor(shopId)), proactive }
 }
 export const subscribe = events.subscribe
 

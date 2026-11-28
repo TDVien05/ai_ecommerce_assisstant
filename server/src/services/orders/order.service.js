@@ -8,7 +8,10 @@ const conflict = () => appError('ORDER_CONFLICT', 'Trạng thái đơn đã thay
 const transitions = { SHIPPING: 'PAID', COMPLETED: 'SHIPPING', CANCELLED: 'AWAITING_PAYMENT' }
 const money = (value) => { const amount = Number(value); if (!Number.isSafeInteger(amount)) throw new Error('Unsafe integer in order data'); return amount }
 const view = (row) => ({ id: row.id, paymentCode: row.payment_code, status: row.status, subtotal: money(row.subtotal), shippingFee: money(row.shipping_fee), total: money(row.total), customerName: row.customer_name ?? 'Khách hàng', expiresAt: row.expires_at ?? null, paidAt: row.paid_at, createdAt: row.created_at })
-export async function listOrders(shopId, { status, from, to } = {}) { if (from && to && Date.parse(from) >= Date.parse(to)) throw appError('BAD_REQUEST', 'Khoảng thời gian không hợp lệ.'); return (await orderRepo.listOrders(shopId,status,undefined,{from,to})).map(view) }
+export async function listOrders(shopId, { status, from, to, overdue, code } = {}) {
+  if (from && to && Date.parse(from) >= Date.parse(to)) throw appError('BAD_REQUEST', 'Khoảng thời gian không hợp lệ.')
+  return (await orderRepo.listOrders(shopId, status, undefined, { from, to, overdue: overdue === '1', code })).map(view)
+}
 export async function getOrder(shopId, paymentCode, { client, lock = false } = {}) { const row = await orderRepo.findOrder(shopId,paymentCode,client,lock); if (!row) throw missing(); return view(row) }
 export async function changeStatus(shopId, paymentCode, status, expected, client) {
   const current = await getOrder(shopId,paymentCode,{client,lock:true})

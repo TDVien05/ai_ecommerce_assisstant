@@ -7,8 +7,9 @@ import type { RiskLevel } from './types'
 type ProactiveNoticeProps = {
   /** Câu đầu, in đậm: đối tượng + vấn đề. "Đơn #1042 có dấu hiệu lừa đảo." */
   headline: string
-  /** Bằng chứng cụ thể và việc AI đã tự làm (chỉ việc an toàn, đảo ngược được). */
+  /** Bằng chứng cụ thể từ dữ liệu cửa hàng. */
   detail: React.ReactNode
+  children?: React.ReactNode
   risk?: RiskLevel
   actionLabel?: string
   onOpenThread: () => void
@@ -19,6 +20,7 @@ type ProactiveNoticeProps = {
 export function ProactiveNotice({
   headline,
   detail,
+  children,
   risk,
   actionLabel = 'Mở luồng',
   onOpenThread,
@@ -36,6 +38,7 @@ export function ProactiveNotice({
         <p className="m-0">
           <b className="font-semibold">{headline}</b> {detail}
         </p>
+        {children}
       </BlockBody>
       <BlockFooter>
         <Button size="lg" onClick={onOpenThread}>

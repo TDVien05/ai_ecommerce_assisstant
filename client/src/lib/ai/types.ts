@@ -37,9 +37,31 @@ export type Metric = {
   tone?: 'good' | 'bad' | 'neutral'
 }
 
+type PageTarget = { page: 'ledger' | 'orders' | 'reports' | 'fraud' | 'messenger' | 'sources' | 'settings'; filters: Record<string, string> }
+type ResultBlock = {
+  type: 'resultCard'
+  metrics: Metric[]
+  source: string
+  updatedAt: string
+  how?: { label: string; value: number; total?: boolean; unit?: 'count' }[]
+}
+
+export type ProactiveNoticeBlock = {
+  type: 'proactiveNotice'
+  noticeId: string
+  headline: string
+  detail: string
+  risk?: RiskLevel
+  actionLabel: string
+} & (
+  | { threadId: ConversationId; target?: never }
+  | { target: PageTarget; threadId?: never; result?: ResultBlock; legal?: boolean; wording?: string }
+)
+type ProactiveView = { revision: number; notices: ProactiveNoticeBlock[] }
+
 export type Block =
   | { type: 'text'; text: string }
-  | { type: 'pageLink'; page: 'ledger' | 'orders' | 'reports' | 'fraud' | 'messenger' | 'sources' | 'settings'; label: string; filters: Record<string,string> }
+  | ({ type: 'pageLink'; label: string } & PageTarget)
   | { type: 'legalNotice' }
   | { type: 'dataTable'; columns: import('@/components/flowy').DataColumn[]; rows: import('@/components/flowy').DataValue[][]; source: string; updatedAt: string; how: string }
   | { type: 'ledgerExport'; code: import('@/lib/ledgerTemplates').TemplateCode; name: string; from: string; to: string; warnings: string[] }
@@ -58,13 +80,7 @@ export type Block =
       undoNote: string
       doneText?: string
     }
-  | {
-      type: 'resultCard'
-      metrics: Metric[]
-      source: string
-      updatedAt: string
-      how?: { label: string; value: number; total?: boolean; unit?: 'count' }[]
-    }
+  | ResultBlock
   | {
       type: 'riskAlert'
       alertId: string
@@ -84,16 +100,7 @@ export type Block =
       updatedAt: string
       summary: string
     }
-  | {
-      /** Chỉ ở chat trung tâm. AI tự gửi, không chờ hỏi. */
-      type: 'proactiveNotice'
-      noticeId: string
-      threadId: ConversationId
-      headline: string
-      detail: string
-      risk?: RiskLevel
-      actionLabel: string
-    }
+  | ProactiveNoticeBlock
 
 export type Message =
   | { id: string; role: 'user'; text: string; files?: string[] }
@@ -103,6 +110,7 @@ export type Snapshot = {
   shopName: string
   threads: Thread[]
   conversations: Record<ConversationId, Message[]>
+  proactive?: ProactiveView
   /** Các hội thoại mà AI đang soạn trả lời. */
   typing: ConversationId[]
 }
@@ -114,6 +122,7 @@ export type AIEvent =
   /** Thêm mới, hoặc thay luồng cũ cùng id. */
   | { type: 'thread'; thread: Thread }
   | { type: 'typing'; conversationId: ConversationId; value: boolean }
+  | { type: 'proactive'; proactive: ProactiveView }
 
 /** File đã tải lên, dùng lại id khi gửi tin. */
 export type Attachment = { fileId: string; name: string }
@@ -137,4 +146,6 @@ export interface FlowyAI {
   undo(stepId: string, password?: string): Promise<void>
   safeAction(alertId: string): Promise<void>
   dismissNotice(noticeId: string): Promise<void>
+  refreshProactive(): Promise<void>
+  dismissProactive(noticeId: string): Promise<void>
 }
