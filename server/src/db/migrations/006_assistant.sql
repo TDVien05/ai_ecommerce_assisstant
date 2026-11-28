@@ -37,7 +37,7 @@ CREATE TABLE assistant_steps (
   FOREIGN KEY (shop_id, message_id) REFERENCES assistant_messages(shop_id, id)
 );
 
-CREATE TABLE action_log (
+CREATE TABLE assistant_action_log (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   shop_id    uuid NOT NULL REFERENCES shops(id),
   step_id    uuid NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE assistant_files (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE alerts (
+CREATE TABLE assistant_alerts (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   shop_id     uuid NOT NULL REFERENCES shops(id),
   level       text NOT NULL CHECK (level IN ('mid', 'high')),
@@ -74,6 +74,6 @@ CREATE TABLE alerts (
 CREATE INDEX assistant_threads_shop_updated_idx ON assistant_threads (shop_id, updated_at);
 CREATE INDEX assistant_messages_shop_conversation_seq_idx ON assistant_messages (shop_id, conversation_id, seq);
 CREATE INDEX assistant_steps_shop_conversation_idx ON assistant_steps (shop_id, conversation_id, created_at);
-CREATE INDEX action_log_shop_step_idx ON action_log (shop_id, step_id);
+CREATE INDEX assistant_action_log_shop_step_idx ON assistant_action_log (shop_id, step_id);
 CREATE INDEX assistant_files_shop_created_idx ON assistant_files (shop_id, created_at);
-CREATE INDEX alerts_shop_status_detected_idx ON alerts (shop_id, status, detected_at);
+CREATE INDEX assistant_alerts_shop_status_detected_idx ON assistant_alerts (shop_id, status, detected_at);

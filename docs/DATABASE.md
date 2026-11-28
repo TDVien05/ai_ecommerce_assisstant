@@ -109,9 +109,11 @@ These tables are separate from Messenger `conversations` and `messages`. Every q
 | `assistant_threads` | `(shop_id, id)`; `title`, `status`, `scope`, `created_at`, `updated_at` | Owner work threads; `status` is `alert`, `waiting`, `running` or `done`. |
 | `assistant_messages` | `(shop_id, id)`; `conversation_id`, `role`, `body jsonb`, `seq`, timestamps | Owner and assistant messages; `conversation_id` is `hub` or a thread ID, not a Messenger ID. Updates retain the same message ID and sequence. |
 | `assistant_steps` | `id`, `shop_id`, `conversation_id`, `message_id`, `state`, `view jsonb`, `actions jsonb`, `created_at`, `decided_at` | Proposed actions and their view; the message reference is scoped to the same shop. States: `working`, `waiting`, `done`, `undone`, `failed`. |
-| `action_log` | `id`, `shop_id`, `step_id`, `user_id`, `tool`, `before`, `after`, `applied_at`, `undone_at` | Snapshots for applied actions and undo; the step reference is scoped to the same shop. |
+| `assistant_action_log` | `id`, `shop_id`, `step_id`, `user_id`, `tool`, `before`, `after`, `applied_at`, `undone_at` | Snapshots for applied actions and undo; the step reference is scoped to the same shop. |
 | `assistant_files` | `id`, `shop_id`, `name`, `mime`, `size`, `content`, `created_at` | Uploaded content, limited to 2 MiB; the stored size must match the byte count. |
-| `alerts` | `id`, `shop_id`, `level`, `title`, `reasons`, `order_id`, `detected_at`, `status` | Risk alerts: level `mid`/`high`; status `OPEN`/`HELD`/`DISMISSED`. Order ownership must be checked by the service. |
+| `assistant_alerts` | `id`, `shop_id`, `level`, `title`, `reasons`, `order_id`, `detected_at`, `status` | Risk alerts: level `mid`/`high`; status `OPEN`/`HELD`/`DISMISSED`. Order ownership must be checked by the service. |
+
+`assistant_action_log` and `assistant_alerts` serve only the owner assistant and are independent of `changes`, `agent_runs` and `fraud_checks`. The team will decide later whether to consolidate them.
 
 `assistant_messages`, `assistant_steps` and `assistant_threads` use text conversation IDs so `hub` can exist without a thread row. Services validate thread and message ownership and consistency. Approval and action logging must share one transaction; state transitions and undo require concurrency checks as described in [ai-interface.md](ai-interface.md).
 
