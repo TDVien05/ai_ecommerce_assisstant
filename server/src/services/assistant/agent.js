@@ -20,7 +20,7 @@ function formatDayMonth(value) {
 function emptyMessage(data, missingClassification = false) {
   const date = (value) => new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value))
   const situation = missingClassification ? 'Chưa có khoản thu hoặc chi đã phân loại' : 'Chưa có dữ liệu sổ'
-  return `${situation} từ ${date(data.from)} đến trước ${date(data.to)}. Bạn có thể yêu cầu mình ghi một khoản thu chi; nhập sao kê hiện chưa được hỗ trợ.`
+  return `${situation} từ ${date(data.from)} đến trước ${date(data.to)}. Bạn có thể yêu cầu mình ghi một khoản thu chi hoặc đính kèm tệp CSV sao kê.`
 }
 
 function resultBlocks(results) {

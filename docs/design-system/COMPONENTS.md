@@ -30,7 +30,7 @@ Import từ `@/components/flowy`. Ví dụ đầy đủ nằm ở `client/src/pa
 | `AssistantMessage` | Tin của AI. Con là chữ ngắn rồi các khối. `live` khi AI đang trả lời. |
 | `AssistantText` | Văn bản AI với đoạn, xuống dòng, danh sách đầu dòng và chữ đậm; HTML được hiển thị như văn bản. |
 | `UserMessage` | Tin của người dùng, có thể kèm `files`. |
-| `Composer` | Ô chat. `onSubmit(text, files)`, tối đa 3 `suggestions`. |
+| `Composer` | Ô chat. `onSubmit(text, files)`, tối đa 3 `suggestions`; chọn một tệp sao kê CSV. |
 | `DayDivider` | Dải ngày giữa feed. |
 
 ## Luồng việc

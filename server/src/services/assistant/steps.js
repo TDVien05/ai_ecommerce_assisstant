@@ -22,7 +22,7 @@ export function makeStep(actions) {
     action.input.entries.forEach((entry, index) => {
       const prefix = `${actionIndex}:${index}`
       const label = `${entry.type === 'INCOME' ? 'Thu' : 'Chi'} ${entry.amount.toLocaleString('vi-VN')} ₫ · ${new Date(entry.occurredAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
-      steps.push({ label, status: 'needs' })
+      steps.push({ label, ...(entry.note ? { meta: entry.note } : {}), status: 'needs' })
       if (!entry.kind) questions.push({ id: `${prefix}:kind`, label: `${label}: phân loại`, options: entry.type === 'INCOME' ? ['Doanh thu kinh doanh', 'Tiền cá nhân', 'Chuyển tiền'] : ['Chi phí kinh doanh', 'Tiền cá nhân', 'Chuyển tiền'] })
       if (!entry.channel) questions.push({ id: `${prefix}:channel`, label: `${label}: kênh tiền`, options: Object.keys(channelOptions) })
     })

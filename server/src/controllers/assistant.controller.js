@@ -1,6 +1,7 @@
 import * as assistant from '../services/assistant.service.js'
 import { trackStream } from '../services/assistant/events.js'
 import * as approval from '../services/assistant/approval.js'
+import { uploadFile } from '../services/assistant/files.js'
 
 export async function stream(req, res) {
   let ready = false
@@ -27,6 +28,8 @@ export async function stream(req, res) {
     ping.unref()
   } catch (err) { unsubscribe(); untrack(); throw err }
 }
+
+export async function upload(req, res) { res.status(201).json(await uploadFile(req.auth.shopId,req.file)) }
 
 export async function send(req, res) {
   await assistant.sendMessage(req.auth, req.body)

@@ -44,7 +44,7 @@ export function Composer({
             <button
               key={s}
               type="button"
-              onClick={() => void send(s)}
+              onClick={() => s === 'Nhập sao kê' ? fileRef.current?.click() : void send(s)}
               disabled={disabled || sending}
               className="h-7 rounded-sm border bg-background px-2.5 text-[13px] hover:bg-accent"
             >
@@ -57,14 +57,13 @@ export function Composer({
         <input
           ref={fileRef}
           type="file"
-          multiple
           hidden
-          accept=".xlsx,.xls,.csv,image/*"
+          accept=".csv,text/csv"
           onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
         />
         <button
           type="button"
-          aria-label="Đính kèm sao kê hoặc ảnh"
+          aria-label="Đính kèm sao kê CSV"
           onClick={() => fileRef.current?.click()}
           className="grid size-8 place-items-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
         >

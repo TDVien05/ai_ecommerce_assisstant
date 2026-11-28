@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { validate } from '../middlewares/validate.js'
 import * as controller from '../controllers/assistant.controller.js'
+import { assistantUpload } from '../middlewares/assistantUpload.js'
 
 const attachment = z.object({ fileId: z.string().uuid(), name: z.string().min(1).max(255) }).strict()
 const message = z.object({
@@ -12,6 +13,7 @@ const message = z.object({
 
 export const assistantRouter = Router()
 assistantRouter.get('/stream', controller.stream)
+assistantRouter.post('/files', assistantUpload, controller.upload)
 assistantRouter.post('/messages', validate(message, 'body', 'Tin nhắn không hợp lệ.'), controller.send)
 assistantRouter.post('/steps/:id/answers', validate(z.object({ questionId: z.string().min(1).max(100), option: z.string().min(1).max(100) }).strict()), controller.answer)
 assistantRouter.post('/steps/:id/approve', controller.approve)
