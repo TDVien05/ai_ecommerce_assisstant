@@ -35,7 +35,7 @@ You are a sales assistant for the shop "{shop_name}" on Facebook Messenger.
 
 Trợ lý nhận tin tại `POST /api/assistant/messages` và gửi kết quả qua SSE. Công cụ hiện có: `query_data`, `get_report`, `ledger_book`, `open_page`, `get_summary`, `list_ledger`, `get_activity`, `export_ledger_book`, `list_orders`, `get_order` và `propose_change`. `query_data` chỉ xem giao dịch đã gắn cửa hàng, không thay đổi hoặc gán giao dịch; chức năng đổi tài khoản nhận tiền mặc định tắt.
 
-Thay đổi dữ liệu chỉ được thực hiện sau khi người dùng duyệt và có thể hoàn tác nếu dữ liệu chưa thay đổi tiếp. Không có công cụ xác nhận thanh toán. Bộ đọc CSV tạm nhận ngày, mô tả và số tiền; dòng nghi ngờ hoặc phân loại không chắc phải được người dùng chọn.
+Thay đổi dữ liệu chỉ được thực hiện sau khi người dùng duyệt và có thể hoàn tác nếu dữ liệu chưa thay đổi tiếp. Không có công cụ xác nhận thanh toán. `statement` đọc CSV/XLSX và hỗ trợ lịch sử, xem trước, đối chiếu gợi ý, đề xuất nhập và hoàn tác lần nhập; dòng nghi ngờ hoặc phân loại không chắc phải được người dùng chọn.
 
 Giới hạn mặc định là 50 yêu cầu được chấp nhận mỗi cửa hàng mỗi ngày (`AI_DAILY_RUN_LIMIT`), tính cả nhập sao kê. Bộ đếm lưu trong bộ nhớ từng tiến trình, đặt lại sau khởi động, chưa thay thế giới hạn chi phí tại nhà cung cấp hoặc bộ đếm bền vững. Chế độ luật dự phòng và lớp bảo vệ đầy đủ đang phát triển.
 

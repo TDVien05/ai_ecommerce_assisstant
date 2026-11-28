@@ -76,13 +76,13 @@ export async function approve(auth, id, { password } = {}) {
       const tool = tools.get(action.tool)
       const input = tool?.schema.safeParse(action.input)
       if (!input?.success) throw badInput()
-      const log = await tool.apply(client, input.data, auth, action.expected)
+      const log = await tool.apply(client, input.data, {...auth,stepId:step.id,conversationId:step.conversation_id}, action.expected)
       if (tool.events) events.push(...tool.events(log.after))
       const before = log.before ? { ...log.before, order } : null
       const after = log.after ? { ...log.after, order } : null
       await store.addLog(auth.shopId, step.id, auth.userId, tool.name, before, after, client)
       const entries = (log.after ?? log.before).entries
-      count += entries?.length ?? 1
+      count += tool.countChange===false ? 0 : entries?.length ?? 1
       if (entries?.length === 1) singleChange = { tool: tool.name, entry: entries[0] }
     }
     const description = count === 1 && singleChange && ['add_ledger_entries', 'delete_manual_entry'].includes(singleChange.tool)
@@ -113,7 +113,7 @@ export async function undo(auth, id, { password } = {}) {
       for (const log of logs) {
         const tool = tools.get(log.tool)
         if (!tool) throw conflict()
-        await tool.revert(client, log, auth)
+        await tool.revert(client, log, {...auth,stepId:step.id,conversationId:step.conversation_id})
         if (tool.events) events.push(...tool.events(log.before))
       }
       await store.markUndone(auth.shopId, id, client)
