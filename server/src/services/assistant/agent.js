@@ -7,7 +7,7 @@ import { unmatchedPayments } from './tools/payments.js'
 import { updateShop } from './tools/shop.js'
 import { makeStep } from './steps.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
-import { consumeAgentRun, classifyByRules } from './fallback.js'
+import { classifyByRules } from './fallback.js'
 import { formatTime } from './view.js'
 
 const channel = 'owner'
@@ -94,7 +94,6 @@ export async function runAgent({ text, history, ctx, signal }) {
   } })
   const messages = buildAgentMessages(text, history)
   try {
-    await consumeAgentRun(ctx.shopId)
     const response = await runToolLoop({ role: 'agent', messages, tools: registry.list(), ctx, signal })
     const summary = resultBlocks(results).filter((block, index, all) => block.type !== 'text' || all.findIndex((other) => other.type === 'text' && other.text === block.text) === index)
     if (actions.length) {

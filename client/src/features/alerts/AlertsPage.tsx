@@ -17,7 +17,7 @@ export function AlertsPage() {
   const requestId = useRef(0)
   const load = useCallback(() => {
     const id = ++requestId.current
-    setAlerts(null); setError('')
+    setError('')
     const payments = isReal('alerts') ? Promise.resolve({items:[] as Payment[]}) : paymentsApi.list()
     Promise.all([alertsApi.list(), payments]).then(([a, p]) => { if (id === requestId.current) { setAlerts(a.items); setPayments(p.items.filter((item) => item.matchStatus === 'NO_ORDER' || item.matchStatus === 'UNDERPAID')) } }).catch((err: unknown) => { if (id === requestId.current) setError(err instanceof Error ? err.message : 'Không tải được cảnh báo.') })
   }, [])

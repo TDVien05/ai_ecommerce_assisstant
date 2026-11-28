@@ -17,7 +17,7 @@ export function OrdersPage() {
   const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState('')
   const requestId = useRef(0)
-  const load = useCallback(() => { const id = ++requestId.current; setOrders(null); setError(''); ordersApi.list().then(({ items }) => { if (id === requestId.current) setOrders(items) }).catch(() => { if (id === requestId.current) setError('Không tải được đơn hàng. Bạn thử lại nhé.') }) }, [])
+  const load = useCallback(() => { const id = ++requestId.current; setError(''); ordersApi.list().then(({ items }) => { if (id === requestId.current) setOrders(items) }).catch(() => { if (id === requestId.current) setError('Không tải được đơn hàng. Bạn thử lại nhé.') }) }, [])
   useEffect(() => { let active = true; const pending = requestId; queueMicrotask(() => { if (active) load() }); window.addEventListener('flowy:orders-changed',load); return () => { active = false; pending.current++; window.removeEventListener('flowy:orders-changed',load) } }, [load])
   const visible = orders?.filter((order) => (filter === 'ALL' || order.status === filter) && `${order.paymentCode} ${order.customerName}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')))
   return <div className="flex flex-col gap-4">

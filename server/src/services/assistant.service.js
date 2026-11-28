@@ -7,6 +7,7 @@ import * as events from './assistant/events.js'
 import { snapshotView } from './assistant/view.js'
 import { runAgent } from './assistant/agent.js'
 import { startStatement, updateThread } from './assistant/threads.js'
+import { reserveAgentRun } from './assistant/quota.js'
 
 const notFound = () => new HttpError(404, 'NOT_FOUND', 'Không tìm thấy hội thoại hoặc tệp.')
 const activeRuns = new Map()
@@ -20,8 +21,12 @@ export async function snapshot(shopId) {
 export const subscribe = events.subscribe
 
 export async function sendMessage({ shopId, userId }, { conversationId, text, attachments }) {
-  if (attachments.length) { if (conversationId !== 'hub') throw new HttpError(400,'INVALID_FILE','Hãy gửi sao kê tại chat trung tâm.'); return startStatement({shopId,userId},{text,attachments}) }
   if (shuttingDown) throw new HttpError(503, 'ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
+  if (attachments.length) {
+    if (conversationId !== 'hub') throw new HttpError(400,'INVALID_FILE','Hãy gửi sao kê tại chat trung tâm.')
+    const reservation=reserveAgentRun(shopId)
+    try { await startStatement({shopId,userId},{text,attachments}); reservation.commit(); return } catch(error) { reservation.refund(); throw error }
+  }
   if (!events.acquire(shopId, conversationId)) throw new HttpError(409, 'ASSISTANT_BUSY', 'Hội thoại đang xử lý, vui lòng thử lại sau.')
   const key = JSON.stringify([shopId, conversationId])
   const controller = new AbortController()
@@ -29,11 +34,14 @@ export async function sendMessage({ shopId, userId }, { conversationId, text, at
   const done = new Promise((resolve) => { complete = resolve })
   activeRuns.set(key, { controller, done })
   const finish = () => { activeRuns.delete(key); events.release(shopId, conversationId); complete() }
+  let reservation
   try {
     if (!await store.conversationExists(shopId, conversationId) || !await store.attachmentsExist(shopId, attachments)) throw notFound()
     if (controller.signal.aborted) throw new HttpError(503, 'ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
+    reservation=reserveAgentRun(shopId)
     const message = { id: randomUUID(), role: 'user', text, ...(attachments.length ? { files: attachments.map((file) => file.name) } : {}) }
     await store.insertMessage(shopId, conversationId, message)
+    reservation.commit()
     events.publish(shopId, { type: 'message', conversationId, message })
     events.publish(shopId, { type: 'typing', conversationId, value: true })
     setImmediate(async () => {
@@ -60,7 +68,7 @@ export async function sendMessage({ shopId, userId }, { conversationId, text, at
       }
       finally { finish(); events.publish(shopId, { type: 'typing', conversationId, value: false }) }
     })
-  } catch (err) { finish(); throw err }
+  } catch (err) { reservation?.refund(); finish(); throw err }
 }
 
 export async function recover() {
