@@ -28,7 +28,9 @@ Chữ ký dưới đây là hợp đồng dự kiến để Viên xác nhận, c
 | Phân loại | `classifyRows(rows, ctx)` → kết quả cho từng dòng `{ index, kind, category, confidence, question }`; tối đa 50 dòng mỗi lô, không trả hay sửa số tiền. `kind`: `BUSINESS_REVENUE`, `PERSONAL`, `EXPENSE`, `TRANSFER`; `category`: `SALES`, `SHIPPING`, `ADS`, `INVENTORY`, `OTHER`. |
 | Rủi ro | `assessFraud({ events, facts }, ctx)` → `{ level, reasons, signals }`; AI chỉ giữ hoặc nâng mức so với luật, không tạo cảnh báo hay đổi đơn. |
 | Ảnh chứng từ | `readReceipt({ buffer, mime }, ctx)` → `{ transactions, warnings }`; JPEG/PNG tối đa 2 MB, không dùng để xác nhận thanh toán. Nhận ảnh ở endpoint upload cần thống nhất riêng. |
-| Cửa hàng | `services/shop.service.js` cung cấp nghiệp vụ cài đặt theo cửa hàng; tên hàm, tham số và kết quả cụ thể còn chờ Viên xác nhận, không tự giả định. |
+| Cửa hàng | `getShopSettings(shopId, { client? }?)` → `{ name, bankCode, bankAccountNumber, bankAccountName }`; `updateShopSettings(shopId, patch, { client? }?)` → `{ before, after }`, mỗi ảnh chụp cùng kiểu cài đặt. Cả hai thuộc `services/shop.service.js`; xem hợp đồng bên dưới. |
+
+Service cửa hàng được agent và trang Cài đặt dùng chung. `shopId` do máy chủ lấy từ phiên đăng nhập; `patch` chỉ nhận các trường cài đặt nêu trên, không nhận token. Các trường ngân hàng có thể `null`; mã ngân hàng gồm 2–20 chữ/số, số tài khoản gồm 5–32 chữ số, tên cửa hàng không rỗng. Dữ liệu sai trả `400 BAD_REQUEST`, cửa hàng không tồn tại trả `404 SHOP_NOT_FOUND`. Hàm cập nhật khóa dòng và trả ảnh chụp trước/sau để bên gọi lưu nhật ký hoàn tác; nếu truyền `client`, bên gọi phải mở transaction và ghi nhật ký trong cùng transaction. Không truyền `client` thì service tự mở transaction. Service không tự duyệt: agent chỉ được gọi hàm cập nhật sau khi người dùng duyệt. Không có endpoint hay công cụ agent nào được tạo bởi service này.
 
 ## Agent và công cụ (dự kiến)
 
