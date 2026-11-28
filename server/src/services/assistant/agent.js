@@ -3,8 +3,8 @@ import { createRegistry } from './registry.js'
 import { tools as financeTools } from './tools/finance.read.js'
 import { writeTools } from './tools/finance.write.js'
 import { listOrders, getOrder, updateOrderStatus } from './tools/orders.js'
-import { unmatchedPayments } from './tools/payments.js'
 import { exportBook } from './tools/books.js'
+import { queryTool } from './tools/query.js'
 import { updateShop } from './tools/shop.js'
 import { makeStep } from './steps.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
@@ -26,6 +26,7 @@ function emptyMessage(data, missingClassification = false) {
 
 function resultBlocks(results) {
   return results.flatMap(({ name, data }) => {
+    if (name === 'query_data') return data.rows.length ? [{ type: 'dataTable', columns: data.columns, rows: data.rows, source: data.source, updatedAt: formatTime(new Date()), how: `Dữ liệu của cửa hàng theo điều kiện đã chọn; tối đa ${data.limit} dòng${data.grouped ? ', có nhóm và tổng hợp' : ''}.${data.metrics.some((key) => key.startsWith('avg_')) ? ' Giá trị trung bình làm tròn đến đơn vị gần nhất.' : ''}` }] : [{ type: 'text', text: 'Không có dữ liệu phù hợp với điều kiện đã chọn.' }]
     if (name === 'export_ledger_book') return [{ type: 'ledgerExport', code: data.code, name: data.name, from: data.from, to: data.to, warnings: data.warnings }]
     if (name === 'get_activity') {
       const source = 'Sổ thu chi và đơn tạo trong kỳ', updatedAt = formatTime(new Date())
@@ -39,7 +40,6 @@ function resultBlocks(results) {
       const source = data.unknownCount ? 'Sổ thu chi; có khoản chưa phân loại, chưa tính vào doanh thu và chi phí' : 'Sổ thu chi; chỉ tính khoản đã phân loại'
       return [{ type: 'resultCard', metrics: [{ label: 'Doanh thu kinh doanh', value: data.revenue }, { label: 'Chi phí đã phân loại', value: data.expenses }, { label: 'Thu trừ chi đã phân loại', value: data.difference }], source, updatedAt: formatTime(new Date()), how: [{ label: 'Doanh thu kinh doanh; không tính khoản chưa phân loại', value: data.revenue }, { label: 'Trừ chi phí đã phân loại', value: data.expenses }, { label: 'Chênh lệch; chưa đủ căn cứ kết luận lợi nhuận', value: data.difference, total: true }] }]
     }
-    if (name === 'list_unmatched_payments') return [{ type: 'text', text: data.message }]
     if (name === 'list_orders' || name === 'get_order') {
       const items = name === 'get_order' ? [data] : data.items
       if (!items.length) return [{ type: 'text', text: 'Không có đơn hàng phù hợp.' }]
@@ -86,10 +86,11 @@ export async function runAgent({ text, history, ctx, signal }) {
   const results = []
   const actions = []
   const registry = createRegistry()
-  for (const tool of [...financeTools, listOrders, getOrder, unmatchedPayments, exportBook]) registry.register({ ...tool, run: async (input, toolCtx) => {
+  for (const tool of [...financeTools, listOrders, getOrder, exportBook, queryTool]) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
     const data = await tool.run(input, toolCtx)
-    const guarded = await guardData(JSON.stringify(data), { source: 'tool_output', channel, ctx })
+    const modelData = tool.name === 'query_data' ? { ...data, rows: data.modelRows, modelRows: undefined } : data
+    const guarded = await guardData(JSON.stringify(modelData), { source: 'tool_output', channel, ctx })
     results.push({ name: tool.name, data })
     return guarded.content
   } })

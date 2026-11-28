@@ -146,6 +146,8 @@ ordersRouter.patch('/:id/status', ordersValidator.updateStatus, controller.updat
 
 `server/src/repositories/<feature>/<table>.repository.js` holds **every query for one table**, like the `model/` data-access folder in other projects. `repositories/orders/order.repository.js` has all the `orders` queries; `models/orders/Order.js` describes the shape of that table. There is one repository for each model.
 
+The assistant's `repositories/assistant/queryData.js` is a shared executor for the cross-entity, read-only `query_data` tool. It accepts only a plan assembled from the assistant's server-owned allowlist, requires a shop id and an existing transaction, applies a three-second statement timeout, and runs through `config/database.js`. It does not accept SQL from the model and does not replace table repositories for ordinary operations.
+
 - **Where a query goes:** in the repository of the table it reads or writes. A query that joins other tables (for example a report on `ledger_entries` that joins `orders`) goes with its main table.
 - **Signature:** `shopId` first (tenant-scoped repositories check it with `requireShopId` from `repositories/guard.js`), then the input, then an optional `client` from `withTransaction` so the call can join a transaction.
 - **A repository never imports `db/pool.js` or `db/dataSource.js`.** It gets everything from `config/database.js`, the same way a `model/` file elsewhere calls `getCollection(...)` from `config/database`: SQL repositories call `query(text, params, client)`, TypeORM repositories call `getRepository(Model)`.

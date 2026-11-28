@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AgentStep, AssistantText, Block as FlowyBlock, BlockHeader, BlockBody, BlockFooter, ProactiveNotice, ResultCard, RiskAlert, ThreadSummary } from '@/components/flowy'
+import { AgentStep, AssistantText, Block as FlowyBlock, BlockHeader, BlockBody, BlockFooter, DataTable, ProactiveNotice, ResultCard, RiskAlert, ThreadSummary } from '@/components/flowy'
 import { Button } from '@/components/ui/button'
 import { realLedgerTemplatesApi } from '@/lib/ledgerTemplates'
 import { exportExcel, exportPdf } from '@/features/ledgerTemplates/exportBook'
@@ -17,7 +17,7 @@ export function BlockView({ block, onOpenThread }: { block: Block; onOpenThread:
     try {
       const book = await realLedgerTemplatesApi.book(block.code, block.from, block.to)
       const date = (value: string) => new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(value))
-      const identity = { name: '', taxId: '', address: '', location: '', periodLabel: `${date(block.from)} đến trước ${date(block.to)}` }
+      const identity = { name: book.shopName ?? '', taxId: '', address: '', location: '', periodLabel: `${date(block.from)} đến trước ${date(block.to)}` }
       if (format === 'pdf') await exportPdf(book, identity, [], `${block.code}.pdf`)
       else await exportExcel(book, identity, [], `${block.code}.xlsx`)
     } catch { setError('Không tải được mẫu sổ. Bạn thử lại nhé.') } finally { setBusy(false) }
@@ -42,6 +42,8 @@ export function BlockView({ block, onOpenThread }: { block: Block; onOpenThread:
       )
     case 'resultCard':
       return <ResultCard metrics={block.metrics} source={block.source} updatedAt={block.updatedAt} how={block.how} />
+    case 'dataTable':
+      return <DataTable columns={block.columns} rows={block.rows} source={block.source} updatedAt={block.updatedAt} how={block.how} />
     case 'ledgerExport':
       return <FlowyBlock><BlockHeader><b>{block.code} · {block.name}</b></BlockHeader><BlockBody><p>Kỳ: {new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(block.from))} đến trước {new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(block.to))}</p>{block.warnings.map((warning) => <p className="text-xs text-muted-foreground" key={warning}>{warning}</p>)}{error && <p role="alert">{error}</p>}</BlockBody><BlockFooter><Button disabled={busy} onClick={() => download('pdf')}>Tải PDF</Button><Button variant="outline" disabled={busy} onClick={() => download('xlsx')}>Tải Excel</Button><Button variant="ghost" onClick={() => localStorage.setItem('flowy-ledger-template', block.code)} render={<Link to="/pages/ledger?tab=templates" />}>Mở trang Mẫu sổ</Button></BlockFooter></FlowyBlock>
     case 'riskAlert':

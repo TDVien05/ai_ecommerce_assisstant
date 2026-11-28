@@ -1,5 +1,6 @@
 import { getLedger } from './finance.service.js'
 import { getSummary } from './ledger.service.js'
+import { findById as findShop } from '../../repositories/shop/shop.repository.js'
 
 const add = (a, b) => { const value = a + b; if (!Number.isSafeInteger(value)) throw new Error('Unsafe book amount'); return value }
 function section(title, entries) {
@@ -38,7 +39,7 @@ export async function getBook(shopId, { code, from, to }) {
     sections = [section('', [])]; warnings.push(code === 'S2d-HKD' ? 'Chưa có dữ liệu nhập, xuất, tồn.' : 'Chưa có dữ liệu nghĩa vụ thuế khác.')
   } else sections = [section('', entries)]
   if (!sections.some((part) => part.rows.length)) warnings.push('Không có dữ liệu phù hợp trong kỳ.')
-  return { from, to, sections, warnings, updatedAt: ledger.updatedAt, source: 'sổ thu chi', count: sections.reduce((sum, part) => sum + part.rows.length, 0) }
+  return { from, to, sections, warnings, updatedAt: ledger.updatedAt, source: 'sổ thu chi', shopName: (await findShop(shopId))?.name ?? '', count: sections.reduce((sum, part) => sum + part.rows.length, 0) }
 }
 
 export async function getThreshold(shopId) {

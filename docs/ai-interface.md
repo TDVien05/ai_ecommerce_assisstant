@@ -44,6 +44,8 @@ Máy chủ dựng số liệu `resultCard` và câu trả về khi duyệt từ 
 
 `get_activity({from,to})` đếm và cộng khoản thu, khoản chi và đơn tạo trong kỳ theo cửa hàng, tách trạng thái đơn; giao dịch ngân hàng chưa gắn đơn chưa được tính. `export_ledger_book({code?,from?,to?})` chuẩn bị khối `ledgerExport` với mã, tên, kỳ và cảnh báo; mặc định S1a-HKD trong tháng hiện tại theo giờ Việt Nam. Việc tải gọi API sổ thật khi tài chính thật được bật. Số lượng trong `resultCard` có `unit: 'count'`, không hiển thị như tiền.
 
+`query_data` chỉ đọc các thực thể `ledger`, `orders`, `order_items`, `products`, `customers`, `payments`, `files`, `imports`, `alerts`, `conversations`, `messages`, `todos`. Danh sách trường của từng thực thể nằm trong `query-entities.js`; các trường không có trong danh sách bị từ chối. Đầu vào gồm `fields`, `filters` (`eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `contains`), tối đa hai `groupBy` (ngày/tuần/tháng theo giờ Việt Nam), `metrics` (`count`, `sum`, `avg`, `min`, `max`), `sort` và `limit` tối đa 100. `avg` làm tròn tới đơn vị gần nhất. SQL được dựng từ biểu thức cố định và tham số, chạy trong transaction chỉ đọc với `statement_timeout` 3 giây. `order_items` và `messages` kiểm tra cửa hàng qua đơn hoặc hội thoại cha; `payments` chỉ trả dòng có `shop_id` thuộc phiên. Điện thoại chỉ để lộ bốn số cuối, địa chỉ được ẩn; các trường này không được lọc hoặc nhóm. Nội dung tin khách, mô tả giao dịch và tên tệp đi qua `guardData`; do lớp này còn tạm, nội dung tự do được ẩn khỏi mô hình và chỉ hiển thị cho chủ cửa hàng sau khi che các mẫu thông tin nhạy cảm thông dụng. Che nội dung tự do theo mẫu không bảo đảm nhận diện mọi bí mật và địa chỉ; cần guardrail đầy đủ trước khi sử dụng dữ liệu thực nhạy cảm. Kết quả dạng `dataTable` do máy chủ dựng, có nguồn và cách tính; không dùng để suy ra lợi nhuận hay nghĩa vụ thuế.
+
 ## Lớp bảo vệ NV-00 (dự kiến, Viên cung cấp)
 
 Hợp đồng dự kiến tại `server/src/services/guardrail/guardrail.service.js`:
@@ -70,7 +72,7 @@ Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗ
 | `POST /api/assistant/alerts/:id/safe-action` | Không body | `204` |
 | `POST /api/assistant/notices/:id/dismiss` | Không body | `204` |
 
-`conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `ledgerExport`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; `resultCard` có nguồn và thời điểm cập nhật.
+`conversationId` của chat trung tâm là `hub`; ID khác là luồng việc. Tin người dùng có `{ id, role: 'user', text, files? }`, tin trợ lý có `{ id, role: 'assistant', blocks }`. Khối gồm `text`, `agentStep`, `resultCard`, `dataTable`, `ledgerExport`, `riskAlert`, `threadSummary`, `proactiveNotice`; trường và trạng thái theo `types.ts`, không thay bằng mô tả tự do. Tiền là số nguyên VND từ máy chủ; bảng và thẻ có nguồn và thời điểm cập nhật.
 
 ## SSE (dự kiến)
 

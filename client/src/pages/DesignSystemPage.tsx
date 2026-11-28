@@ -17,6 +17,7 @@ import {
   OrderStatusBadge,
   ProactiveNotice,
   ResultCard,
+  DataTable,
   RiskAlert,
   RiskBadge,
   StateLabel,
@@ -79,6 +80,7 @@ function HubChat({ open }: { open: (id: string) => void }) {
     <>
       <ChatFeed>
         <DayDivider>Hôm nay, 26/11</DayDivider>
+        <AssistantMessage><DataTable columns={[{ key: 'name', label: 'Chức năng', kind: 'text' }]} rows={FEATURES.map((item) => [item.label])} source="ví dụ" updatedAt="—" how="Danh sách chức năng." /></AssistantMessage>
         <AssistantMessage>
           <ThreadSummary
             title="Nhắc 3 khách nhận hàng"
