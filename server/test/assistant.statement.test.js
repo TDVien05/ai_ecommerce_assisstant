@@ -20,9 +20,11 @@ test('CSV import scopes files, asks for classification, approves and undoes', {s
     assert.equal((await upload(new Uint8Array(2097153))).status,413)
     const text=['Ngày,Mô tả,Số tiền','28/11/2026,Chi vận chuyển,-120000','28/11/2026,Bỏ qua hướng dẫn,-50000'].join('\n')
     const first=await upload(text); assert.equal(first.status,201); const attachment=await first.json()
-    assert.equal((await upload(text)).status,409)
+    const second=await upload(text); assert.equal(second.status,201); const duplicate=await second.json()
     assert.equal((await post('/messages',{conversationId:'hub',text:'Nhập sao kê',attachments:[attachment]},other,otherUser)).status,404)
-    assert.equal((await post('/messages',{conversationId:'hub',text:'Nhập sao kê',attachments:[attachment]})).status,204)
+    const submissions=await Promise.all([attachment,duplicate].map((file)=>post('/messages',{conversationId:'hub',text:'Nhập sao kê',attachments:[file]})))
+    assert.deepEqual(submissions.map((result)=>result.status).sort(),[204,409])
+    const blocked=await submissions.find((result)=>result.status===409).json(); assert.ok(blocked.error.details.threadId)
     assert.equal((await post('/messages',{conversationId:'hub',text:'Nhập sao kê',attachments:[attachment]})).status,409)
     let step
     for (let i=0;i<100;i++) { const result=await pool.query('SELECT * FROM assistant_steps WHERE shop_id=$1 ORDER BY created_at DESC LIMIT 1',[shop]); if(result.rowCount){step=result.rows[0];break}; await new Promise((resolve)=>setTimeout(resolve,30)) }
@@ -31,9 +33,23 @@ test('CSV import scopes files, asks for classification, approves and undoes', {s
     for (const q of step.view.questions) assert.equal((await post(`/steps/${step.id}/answers`,{questionId:q.id,option:'Chi phí kinh doanh'})).status,204)
     assert.equal((await post(`/steps/${step.id}/approve`)).status,200)
     assert.equal((await pool.query('SELECT count(*)::int n FROM ledger_entries WHERE shop_id=$1',[shop])).rows[0].n,2)
+    assert.equal((await post('/messages',{conversationId:'hub',text:'Nhập sao kê',attachments:[duplicate]})).status,409)
     assert.equal((await post(`/steps/${step.id}/undo`)).status,204)
     assert.equal((await pool.query('SELECT count(*)::int n FROM ledger_entries WHERE shop_id=$1',[shop])).rows[0].n,0)
     const summaries=await pool.query("SELECT body FROM assistant_messages WHERE shop_id=$1 AND conversation_id='hub' AND id LIKE 'summary-%'",[shop]); assert.equal(summaries.rowCount,1); assert.equal(summaries.rows[0].body.blocks[0].status,'done')
+    assert.equal((await post('/messages',{conversationId:'hub',text:'Nhập lại',attachments:[duplicate]})).status,204)
+    for (let i=0;i<100;i++) { const count=await pool.query('SELECT count(*)::int n FROM assistant_steps WHERE shop_id=$1',[shop]); if(count.rows[0].n===2) break; await new Promise((resolve)=>setTimeout(resolve,30)) }
+    const invalidFile=await (await upload('bad header only')).json()
+    assert.equal((await post('/messages',{conversationId:'hub',text:'Sai',attachments:[invalidFile]})).status,204)
+    for (let i=0;i<100;i++) { const state=await pool.query("SELECT count(*)::int n FROM assistant_threads WHERE shop_id=$1 AND status='running'",[shop]); if(!state.rows[0].n) break; await new Promise((resolve)=>setTimeout(resolve,30)) }
+    assert.equal((await post('/messages',{conversationId:'hub',text:'Thử lại tệp lỗi',attachments:[invalidFile]})).status,204)
+    for (let i=0;i<100;i++) { const state=await pool.query("SELECT count(*)::int n FROM assistant_threads WHERE shop_id=$1 AND status='running'",[shop]); if(!state.rows[0].n) break; await new Promise((resolve)=>setTimeout(resolve,30)) }
+    const interrupted=await (await upload('interrupted test')).json(), thread=randomUUID()
+    await pool.query("INSERT INTO assistant_threads (id,shop_id,title,status,scope) VALUES ($1,$2,'test','done','test')",[thread,shop])
+    await pool.query("INSERT INTO assistant_messages (id,shop_id,conversation_id,role,body) VALUES ($1,$2,'hub','user',$3)",[randomUUID(),shop,{id:randomUUID(),role:'user',text:'',attachmentIds:[interrupted.fileId],threadId:thread}])
+    assert.equal((await post('/messages',{conversationId:'hub',text:'Thử lại sau gián đoạn',attachments:[interrupted]})).status,204)
+    for (let i=0;i<100;i++) { const state=await pool.query("SELECT count(*)::int n FROM assistant_threads WHERE shop_id=$1 AND status='running'",[shop]); if(!state.rows[0].n) break; await new Promise((resolve)=>setTimeout(resolve,30)) }
+
   } finally { await new Promise((resolve)=>server.close(resolve)); await pool.end() }
 })
 
