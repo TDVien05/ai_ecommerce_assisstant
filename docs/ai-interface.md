@@ -67,8 +67,11 @@ Tất cả endpoint dưới đây yêu cầu `Authorization: Bearer <JWT>`. Lỗ
 | `POST /api/assistant/files` | multipart, trường `file` | `{ fileId, name }` (`Attachment`) |
 | `POST /api/assistant/messages` | `{ conversationId, text, attachments: Attachment[] }` | `204`, xử lý bất đồng bộ |
 | `POST /api/assistant/steps/:id/answers` | `{ questionId, option }` | `204` |
-| `POST /api/assistant/steps/:id/approve` | Không body | `{ message }`, thông báo kết quả đã ghi |
-| `POST /api/assistant/steps/:id/undo` | Không body | `204` |
+| `POST /api/assistant/steps/:id/approve` | `{ password? }`; bắt buộc với tài khoản nhận tiền | `{ message }`, thông báo kết quả đã ghi |
+| `POST /api/assistant/steps/:id/undo` | `{ password? }`; bắt buộc với tài khoản nhận tiền | `204` |
+| `GET /api/assistant/steps/:id/sensitive` | Chỉ bước tài khoản đang chờ duyệt | Tài khoản cũ và mới; `Cache-Control: no-store` |
+| `GET /api/assistant/message-recipients` | Không body | Hội thoại thuộc cửa hàng để chủ shop chọn |
+| `POST /api/assistant/steps/:id/message-draft` | `{ text, conversationId }` | `204`, lưu bản nháp đã sửa |
 | `POST /api/assistant/alerts/:id/safe-action` | Không body | `204` |
 | `POST /api/assistant/notices/:id/dismiss` | Không body | `204` |
 
@@ -103,3 +106,7 @@ Gửi chú thích `: ping` mỗi 20 giây. `message` thêm tin mới hoặc thay
 
 
 `propose_change` nhận tối đa 20 thao tác trong `changes`; mỗi thao tác gồm thực thể, hành động, dữ liệu cho phép và mã đối tượng khi sửa hoặc xóa. Máy chủ xác định cửa hàng từ phiên. Đơn chỉ chuyển theo các trạng thái hợp lệ; không có thao tác xác nhận thanh toán. Mọi thay đổi được duyệt trong một giao dịch và có thể hoàn tác nếu dữ liệu chưa đổi tiếp. Đề xuất và nhật ký cũ vẫn được hỗ trợ.
+
+Sản phẩm, khách hàng, việc cần làm và chế độ AI hội thoại cũng có thể được đề xuất thay đổi. Xóa sản phẩm được chuyển thành ngừng bán. Đơn mới chỉ ở trạng thái chờ thanh toán, giá lấy từ sản phẩm của cửa hàng, không trừ tồn kho; nếu giá thay đổi trước khi duyệt, đề xuất bị từ chối. Nhật ký hoàn tác các dữ liệu này được mã hóa; khóa lấy từ `APP_ENCRYPTION_KEY`, hoặc `JWT_SECRET` nếu chưa đặt. Cần giữ khóa ổn định để các thay đổi trước đó còn hoàn tác được.
+
+Đổi tài khoản nhận tiền mặc định tắt (`ASSISTANT_SENSITIVE_ENABLED=false`) cho tới khi kiểm thử tổng. Các trường phải có nguyên văn trong tin của chủ cửa hàng; duyệt và hoàn tác yêu cầu nhập lại mật khẩu. Giới hạn thử mật khẩu tạm nằm trong bộ nhớ một tiến trình. Nội dung tin nhắn gửi khách do chủ shop sửa và chọn người nhận; đầu nối `sendCustomerMessage(shopId, conversationId, text)` chưa gửi thật, trả trạng thái chưa kết nối. Chỉ nối gửi thật sau khi có cơ chế gửi bền vững, chống gửi trùng và kiểm thử tổng. Lịch sử chat che dãy số tài khoản trong tin có ngữ cảnh ngân hàng, giữ số tiền kèm đơn vị hoặc dấu phân cách. Bản nháp tin khách từ chối dãy liền từ 9 chữ số không có đơn vị tiền.

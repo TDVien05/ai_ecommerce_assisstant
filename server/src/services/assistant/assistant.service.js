@@ -8,6 +8,7 @@ import { snapshotView } from './view.js'
 import { runAgent } from './agent.js'
 import { startStatement, updateThread } from './threads.js'
 import { reserveAgentRun } from './quota.js'
+import { redactOwnerText } from '../../lib/sensitiveText.js'
 
 const notFound = () => appError('NOT_FOUND', 'Không tìm thấy hội thoại hoặc tệp.')
 const activeRuns = new Map()
@@ -22,6 +23,7 @@ export const subscribe = events.subscribe
 
 export async function sendMessage({ shopId, userId }, { conversationId, text, attachments }) {
   if (shuttingDown) throw appError('ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
+  if (/(?:mật\s*khẩu|mat\s*khau|password|passcode)\s*[:=]/iu.test(text)) throw appError('BAD_REQUEST','Không nhập mật khẩu vào chat. Hãy dùng ô mật khẩu riêng trên thẻ duyệt.')
   if (attachments.length) {
     if (conversationId !== 'hub') throw appError('INVALID_FILE', 'Hãy gửi sao kê tại chat trung tâm.')
     const reservation=reserveAgentRun(shopId)
@@ -39,7 +41,8 @@ export async function sendMessage({ shopId, userId }, { conversationId, text, at
     if (!await store.conversationExists(shopId, conversationId) || !await store.attachmentsExist(shopId, attachments)) throw notFound()
     if (controller.signal.aborted) throw appError('ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
     reservation=reserveAgentRun(shopId)
-    const message = { id: randomUUID(), role: 'user', text, ...(attachments.length ? { files: attachments.map((file) => file.name) } : {}) }
+    const safeText = redactOwnerText(text)
+    const message = { id: randomUUID(), role: 'user', text: safeText, ...(attachments.length ? { files: attachments.map((file) => file.name) } : {}) }
     await store.insertMessage(shopId, conversationId, message)
     reservation.commit()
     events.publish(shopId, { type: 'message', conversationId, message })

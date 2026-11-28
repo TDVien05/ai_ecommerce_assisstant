@@ -10,6 +10,10 @@ export async function lockStep(shopId, id, client) {
   return rows[0] ?? null
 }
 
+export async function saveActions(shopId,id,actions,client) {
+  await query('UPDATE assistant_steps SET actions=$3 WHERE shop_id=$1 AND id=$2',[shopId,id,JSON.stringify(actions)],client)
+}
+
 export async function saveStepAndMessage(step, view, client) {
   const found = await query('SELECT body FROM assistant_messages WHERE shop_id = $1 AND id = $2 FOR UPDATE', [step.shop_id, step.message_id], client)
   if (!found.rowCount) throw new Error('Assistant step message missing')

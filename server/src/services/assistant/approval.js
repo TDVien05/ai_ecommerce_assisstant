@@ -6,6 +6,8 @@ import { publish } from './events.js'
 import { resolvedActions } from './steps.js'
 import { changeToolByName as tools } from './tools/change.js'
 import { updateThread, publishUpdate } from './threads.js'
+import { verifyOwnerPassword } from './password.js'
+import * as conversationRepo from '../../repositories/messenger/conversation.repository.js'
 
 const notFound = () => appError('STEP_NOT_FOUND', 'Không tìm thấy bước cần duyệt.')
 const conflict = () => appError('STEP_CONFLICT', 'Bước đã thay đổi hoặc không thể thực hiện.')
@@ -33,10 +35,37 @@ export async function answer(auth, id, { questionId, option }) {
   publishUpdate(auth.shopId,result.update)
 }
 
-export async function approve(auth, id) {
+export async function sensitiveDetails(auth,id) {
+  return withTransaction(async(client)=>{
+    const step=await getLocked(auth,id,client)
+    if(step.state!=='waiting')throw conflict()
+    const action=step.actions.find((item)=>tools.get(item.tool)?.requiresPassword)
+    if(!action)throw notFound()
+    return tools.get(action.tool).details(action)
+  })
+}
+
+export async function messageRecipients(auth) { return {items:await conversationRepo.listRecipients(auth.shopId)} }
+export async function updateMessageDraft(auth,id,input) {
+  const result=await withTransaction(async(client)=>{
+    const step=await getLocked(auth,id,client)
+    if(step.state!=='waiting')throw conflict()
+    const action=step.actions.find((item)=>tools.get(item.tool)?.messageDraft)
+    if(!action || step.actions.length!==1)throw notFound()
+    if(!await conversationRepo.findById(auth.shopId,input.conversationId,client))throw notFound()
+    action.input=input
+    await store.saveActions(auth.shopId,id,step.actions,client)
+    const view={...step.view,messageDraft:input}
+    return {step,message:await store.saveStepAndMessage(step,view,client)}
+  })
+  notify(auth,result.step,result.message)
+}
+
+export async function approve(auth, id, { password } = {}) {
   const result = await withTransaction(async (client) => {
     const step = await getLocked(auth, id, client)
     if (step.state !== 'waiting') throw conflict()
+    if (step.actions.some((action)=>tools.get(action.tool)?.requiresPassword)) await verifyOwnerPassword(auth,password,client)
     let actions
     try { actions = resolvedActions(step.actions, step.view) } catch { throw badInput() }
     if (!Array.isArray(actions) || !actions.length) throw conflict()
@@ -70,12 +99,13 @@ export async function approve(auth, id) {
   return { message: result.description }
 }
 
-export async function undo(auth, id) {
+export async function undo(auth, id, { password } = {}) {
   let result
   try {
     result = await withTransaction(async (client) => {
       const step = await getLocked(auth, id, client)
       if (step.state !== 'done') throw conflict()
+      if (step.actions.some((action)=>tools.get(action.tool)?.requiresPassword)) await verifyOwnerPassword(auth,password,client)
       const logs = await store.getLogs(auth.shopId, id, client)
       if (!logs.length) throw conflict()
       const events = []

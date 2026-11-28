@@ -5,6 +5,7 @@ import { listOrders, getOrder } from './tools/orders.js'
 import { exportBook } from './tools/books.js'
 import { queryTool } from './tools/query.js'
 import { proposeChange } from './tools/change.js'
+import { changeToolByName } from './tools/change.js'
 import { makeStep } from './steps.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
 import { classifyByRules, RULE_MODE_HELP } from './fallback.js'
@@ -78,6 +79,7 @@ export function buildAgentMessages(text, history) {
 }
 
 export async function runAgent({ text, history, ctx, signal }) {
+  ctx.ownerText = text
   const checked = await checkInput({ text, channel, ctx })
   if (checked.action === 'refuse') {
     const output = await checkOutput({ text: checked.message, channel, ctx })
@@ -98,6 +100,7 @@ export async function runAgent({ text, history, ctx, signal }) {
     assertToolAllowed(tool, { channel })
     const proposal = await tool.propose(input, toolCtx)
     if (actions.length + proposal.length > 20) throw appError('BAD_REQUEST', 'Quá nhiều thay đổi trong một đề xuất.')
+    if ([...actions,...proposal].some((action)=>changeToolByName.get(action.tool)?.requiresPassword || changeToolByName.get(action.tool)?.standalone) && (actions.length + proposal.length !== 1)) throw appError('BAD_REQUEST', 'Thao tác này phải được duyệt riêng.')
     actions.push(...proposal)
     const guarded = await guardData(JSON.stringify({ pending: true }), { source: 'tool_output', channel, ctx })
     return guarded.content

@@ -55,3 +55,5 @@ Giới hạn mặc định là 50 yêu cầu được chấp nhận mỗi cửa 
 7. The customer is abusive or demands a refund → handover.
 
 Trợ lý cửa hàng đề xuất thay đổi qua `propose_change`. Máy chủ kiểm tra thực thể, thao tác và trường theo danh sách cho phép; dữ liệu chỉ thay đổi sau khi người dùng duyệt, có nhật ký và hoàn tác khi không xung đột. Không cho công cụ đưa đơn sang trạng thái đã thanh toán hoặc sửa giao dịch ngân hàng.
+
+Đổi tài khoản nhận tiền mặc định tắt cho tới khi kiểm thử tổng. Bản nháp tin khách cần người dùng chọn người nhận, chỉnh sửa và duyệt; Messenger chưa được nối và công cụ không báo đã gửi.

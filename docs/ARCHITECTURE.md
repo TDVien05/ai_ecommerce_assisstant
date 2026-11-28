@@ -148,6 +148,8 @@ ordersRouter.patch('/:id/status', ordersValidator.updateStatus, controller.updat
 
 The assistant's `repositories/assistant/queryData.js` is a shared executor for the cross-entity, read-only `query_data` tool. It accepts only a plan assembled from the assistant's server-owned allowlist, requires a shop id and an existing transaction, applies a three-second statement timeout, and runs through `config/database.js`. It does not accept SQL from the model and does not replace table repositories for ordinary operations.
 
+The assistant's `changeResources.js` and `changeOrder.js` are transaction-scoped executors for the approved-change workflow. Their table and field lists are fixed in server code, their queries require a shop id, and they are not general-purpose SQL interfaces. The service performs validation, locking and conflict checks; these helpers do not open transactions.
+
 - **Where a query goes:** in the repository of the table it reads or writes. A query that joins other tables (for example a report on `ledger_entries` that joins `orders`) goes with its main table.
 - **Signature:** `shopId` first (tenant-scoped repositories check it with `requireShopId` from `repositories/guard.js`), then the input, then an optional `client` from `withTransaction` so the call can join a transaction.
 - **A repository never imports `db/pool.js` or `db/dataSource.js`.** It gets everything from `config/database.js`, the same way a `model/` file elsewhere calls `getCollection(...)` from `config/database`: SQL repositories call `query(text, params, client)`, TypeORM repositories call `getRepository(Model)`.
