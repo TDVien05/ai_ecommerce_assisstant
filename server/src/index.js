@@ -2,7 +2,9 @@ import { env } from './config/env.js'
 import { createApp } from './app.js'
 import { pool } from './db/pool.js'
 import { logger } from './lib/logger.js'
+import { recover } from './services/assistant.service.js'
 
+await recover()
 const app = createApp()
 
 const server = app.listen(env.PORT, () => {
