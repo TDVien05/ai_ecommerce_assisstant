@@ -7,7 +7,7 @@ import { unmatchedPayments } from './tools/payments.js'
 import { updateShop } from './tools/shop.js'
 import { makeStep } from './steps.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
-import { classifyByRules } from './fallback.js'
+import { classifyByRules, RULE_MODE_HELP } from './fallback.js'
 import { formatTime } from './view.js'
 
 const channel = 'owner'
@@ -113,9 +113,18 @@ export async function runAgent({ text, history, ctx, signal }) {
     if (match) {
       const tool = registry.list().find((item) => item.name === match.tool && item.tier === 'read')
       const parsed = tool?.schema.safeParse(match.input)
-      if (parsed?.success) { await tool.run(parsed.data, ctx); return resultBlocks(results) }
+      if (parsed?.success) {
+        try { await tool.run(parsed.data, ctx) } catch (toolError) {
+          // A client error (e.g. unknown order code) is answered in chat; anything else is a real failure.
+          if (!(toolError?.status >= 400 && toolError.status < 500)) throw toolError
+          const output = await checkOutput({ text: toolError.message, channel, ctx })
+          return [{ type: 'text', text: output.text }]
+        }
+        const note = await checkOutput({ text: 'Trợ lý AI đang tạm ngưng; kết quả dưới đây lấy theo chế độ cơ bản.', channel, ctx })
+        return [{ type: 'text', text: note.text }, ...resultBlocks(results)]
+      }
     }
-    const output = await checkOutput({ text: 'Trợ lý AI hiện không khả dụng. Vui lòng thử lại sau.', channel, ctx })
+    const output = await checkOutput({ text: RULE_MODE_HELP, channel, ctx })
     return [{ type: 'text', text: output.text }]
   }
 }
