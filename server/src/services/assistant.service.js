@@ -8,6 +8,8 @@ import { snapshotView } from './assistant/view.js'
 import { runAgent } from './assistant/agent.js'
 
 const notFound = () => new HttpError(404, 'NOT_FOUND', 'Không tìm thấy hội thoại hoặc tệp.')
+const activeRuns = new Map()
+let shuttingDown = false
 
 export async function snapshot(shopId) {
   const data = await store.loadSnapshot(shopId)
@@ -17,18 +19,28 @@ export async function snapshot(shopId) {
 export const subscribe = events.subscribe
 
 export async function sendMessage({ shopId, userId }, { conversationId, text, attachments }) {
+  if (shuttingDown) throw new HttpError(503, 'ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
   if (!events.acquire(shopId, conversationId)) throw new HttpError(409, 'ASSISTANT_BUSY', 'Hội thoại đang xử lý, vui lòng thử lại sau.')
+  const key = JSON.stringify([shopId, conversationId])
+  const controller = new AbortController()
+  let complete
+  const done = new Promise((resolve) => { complete = resolve })
+  activeRuns.set(key, { controller, done })
+  const finish = () => { activeRuns.delete(key); events.release(shopId, conversationId); complete() }
   try {
     if (!await store.conversationExists(shopId, conversationId) || !await store.attachmentsExist(shopId, attachments)) throw notFound()
+    if (controller.signal.aborted) throw new HttpError(503, 'ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
     const message = { id: randomUUID(), role: 'user', text, ...(attachments.length ? { files: attachments.map((file) => file.name) } : {}) }
     await store.insertMessage(shopId, conversationId, message)
     events.publish(shopId, { type: 'message', conversationId, message })
     events.publish(shopId, { type: 'typing', conversationId, value: true })
     setImmediate(async () => {
       try {
+        if (controller.signal.aborted) return
         const history = await store.recentMessages(shopId, conversationId)
         const ctx = { shopId, userId, runId: randomUUID() }
-        const blocks = await runAgent({ text, history, ctx })
+        const blocks = await runAgent({ text, history, ctx, signal: controller.signal })
+        if (controller.signal.aborted) return
         const reply = { id: randomUUID(), role: 'assistant', blocks }
         await withTransaction(async (client) => {
           await store.insertMessage(shopId, conversationId, reply, client)
@@ -36,6 +48,7 @@ export async function sendMessage({ shopId, userId }, { conversationId, text, at
         })
         events.publish(shopId, { type: 'message', conversationId, message: reply })
       } catch (err) {
+        if (controller.signal.aborted) return
         logger.error({ err }, 'Assistant reply failed')
         try {
           const reply = { id: randomUUID(), role: 'assistant', blocks: [{ type: 'text', text: 'Không thể xử lý yêu cầu lúc này. Vui lòng thử lại sau.' }] }
@@ -43,9 +56,9 @@ export async function sendMessage({ shopId, userId }, { conversationId, text, at
           events.publish(shopId, { type: 'message', conversationId, message: reply })
         } catch (saveError) { logger.error({ err: saveError }, 'Assistant error reply failed') }
       }
-      finally { events.release(shopId, conversationId); events.publish(shopId, { type: 'typing', conversationId, value: false }) }
+      finally { finish(); events.publish(shopId, { type: 'typing', conversationId, value: false }) }
     })
-  } catch (err) { events.release(shopId, conversationId); throw err }
+  } catch (err) { finish(); throw err }
 }
 
 export async function recover() {
@@ -55,5 +68,18 @@ export async function recover() {
       const message = { id: randomUUID(), role: 'assistant', blocks: [{ type: 'text', text: 'Tác vụ bị gián đoạn khi máy chủ khởi động lại. Vui lòng thử lại.' }] }
       await store.insertMessage(thread.shop_id, thread.id, message, client)
     }
+    const unanswered = await store.unansweredConversations(client)
+    for (const conversation of unanswered) {
+      const message = { id: randomUUID(), role: 'assistant', blocks: [{ type: 'text', text: 'Lượt trả lời bị gián đoạn. Bạn vui lòng gửi lại tin nhắn.' }] }
+      await store.insertMessage(conversation.shop_id, conversation.conversation_id, message, client)
+    }
   })
+}
+
+export async function interruptActive() {
+  shuttingDown = true
+  const runs = [...activeRuns.values()]
+  for (const run of runs) run.controller.abort()
+  await Promise.all(runs.map((run) => run.done))
+  await recover()
 }

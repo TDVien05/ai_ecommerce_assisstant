@@ -30,6 +30,14 @@ export async function recentMessages(shopId, conversationId) {
   return rows.map((row) => row.body)
 }
 
+export async function unansweredConversations(client) {
+  const { rows } = await client.query(`SELECT shop_id, conversation_id FROM (
+    SELECT DISTINCT ON (shop_id, conversation_id) shop_id, conversation_id, role
+    FROM assistant_messages ORDER BY shop_id, conversation_id, seq DESC
+  ) latest WHERE role = 'user'`)
+  return rows
+}
+
 export async function recoverInterrupted(client) {
   const steps = await client.query("UPDATE assistant_steps SET state = 'failed', decided_at = now(), view = jsonb_set(view, '{state}', '\"failed\"') WHERE state = 'working' RETURNING shop_id, id, message_id")
   for (const step of steps.rows) {

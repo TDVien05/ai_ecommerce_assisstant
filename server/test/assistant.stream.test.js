@@ -20,12 +20,17 @@ test('assistant SSE isolates shops and persists messages', { skip: !process.env.
   let readerA, readerB
   try {
     await pool.query('INSERT INTO shops (id, name) VALUES ($1, $2), ($3, $4)', [shopA, 'Shop A', shopB, 'Shop B'])
+    await pool.query("INSERT INTO assistant_messages (shop_id,id,conversation_id,role,body) VALUES ($1,'lost-turn','lost-thread','user',$2)", [shopB, { id: 'lost-turn', role: 'user', text: 'Câu bị gián đoạn' }])
     await pool.query("INSERT INTO assistant_threads (shop_id,id,title,status,scope) VALUES ($1,'interrupted','Test','running','Test')", [shopA])
     const stepId = randomUUID()
     const interrupted = { id: 'interrupted-message', role: 'assistant', blocks: [{ type: 'agentStep', stepId, state: 'working' }] }
     await pool.query('INSERT INTO assistant_messages (shop_id,id,conversation_id,role,body) VALUES ($1,$2,$3,$4,$5)', [shopA, interrupted.id, 'interrupted', 'assistant', interrupted])
     await pool.query("INSERT INTO assistant_steps (id,shop_id,conversation_id,message_id,state,view,actions) VALUES ($1,$2,'interrupted',$3,'working',$4,'[]')", [stepId, shopA, interrupted.id, interrupted.blocks[0]])
     await recover()
+    await recover()
+    const recovered = await pool.query("SELECT body FROM assistant_messages WHERE shop_id=$1 AND conversation_id='lost-thread' ORDER BY seq", [shopB])
+    assert.equal(recovered.rowCount, 2)
+    assert.match(recovered.rows[1].body.blocks[0].text, /bị gián đoạn/)
     assert.equal((await pool.query('SELECT state FROM assistant_steps WHERE id = $1', [stepId])).rows[0].state, 'failed')
     assert.equal((await pool.query("SELECT status FROM assistant_threads WHERE shop_id = $1 AND id = 'interrupted'", [shopA])).rows[0].status, 'done')
     assert.equal((await pool.query('SELECT body FROM assistant_messages WHERE shop_id = $1 AND id = $2', [shopA, interrupted.id])).rows[0].body.blocks[0].state, 'failed')

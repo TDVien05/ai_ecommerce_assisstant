@@ -7,7 +7,7 @@ test('agent uses verified ledger results and isolates shops', { skip: !process.e
   process.env.AI_MOCK = 'true'
   const { pool } = await import('../src/db/pool.js')
   const { setMockReplies } = await import('../src/services/ai/mock.js')
-  const { runAgent } = await import('../src/services/assistant/agent.js')
+  const { runAgent, buildAgentMessages } = await import('../src/services/assistant/agent.js')
   const { createRegistry } = await import('../src/services/assistant/registry.js')
   const shopA = randomUUID(), shopB = randomUUID()
   const from = '2026-01-01T00:00:00.000Z', to = '2027-01-01T00:00:00.000Z'
@@ -50,5 +50,15 @@ test('agent uses verified ledger results and isolates shops', { skip: !process.e
     assert.equal(limitedCard.metrics[0].value, 100)
     const empty = await invoke(shopA, 'get_summary', { from: '2024-01-01T00:00:00.000Z', to: '2025-01-01T00:00:00.000Z' })
     assert.ok(empty.some((block) => block.text?.includes('Chưa có dữ liệu')))
+    assert.equal(empty.length, 1)
+    assert.match(empty[0].text, /2024.*2025/)
+    assert.match(empty[0].text, /sao kê.*chưa được hỗ trợ/)
+    const context = buildAgentMessages('Câu mới', [{ role: 'user', text: 'Câu cũ' }, { role: 'user', text: 'Câu mới' }])
+    assert.match(context[0].content, /Chỉ xử lý yêu cầu ở tin nhắn người dùng cuối cùng/)
+    assert.equal(context.at(-1).content, 'Câu mới')
+    assert.match(context.at(-2).content, /Tin cũ chỉ để tham khảo: Câu cũ/)
+    setMockReplies([{ tool_calls: [toolCall('get_summary', { from: '2024-01-01T00:00:00.000Z', to: '2025-01-01T00:00:00.000Z' }), toolCall('get_summary', { from: '2024-01-01T00:00:00.000Z', to: '2025-01-01T00:00:00.000Z' })] }, { content: 'Đã xem.' }])
+    const deduped = await runAgent({ text: 'Câu mới', history: [{ role: 'user', text: 'Câu mới' }], ctx: { shopId: shopA, userId: randomUUID(), runId: randomUUID() } })
+    assert.equal(deduped.length, 1)
   } finally { await pool.end() }
 })
