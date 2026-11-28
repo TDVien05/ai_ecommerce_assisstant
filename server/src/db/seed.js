@@ -85,7 +85,6 @@ export async function seed() {
   if (existing.rows.length) {
     await withTransaction((client) => classifyTemplateEntries(existing.rows[0].id, client))
     console.log('Seed skipped: template shop already exists; missing classifications updated')
-    await seedDemoAccount()
     return { skipped: true, shopId: existing.rows[0].id }
   }
 
@@ -294,7 +293,7 @@ export async function seed() {
       [shopId],
     )
 
-    await classifyTemplateEntries(shopId,client)
+    await classifyTemplateEntries(shopId, client)
     return shopId
   })
 

@@ -184,10 +184,11 @@ export async function restoreEntry(row, client) {
 export async function copyFromShop(shopId, templateId, interval, keySuffix, db) {
   await query(
     `INSERT INTO ledger_entries (shop_id, type, category, amount, order_id, note, occurred_at, source,
-                                 counterparty, raw_description, dedupe_key, kind, channel, document_ref, document_date, industry, manual)
+                                 counterparty, raw_description, dedupe_key, kind, channel,
+                                 document_ref, document_date, industry, manual)
      SELECT $1, l.type, l.category, l.amount, m.new_id, l.note, l.occurred_at + $3::interval, l.source,
-            l.counterparty, l.raw_description,
-            l.dedupe_key || ':' || $4, l.kind, l.channel, l.document_ref, l.document_date, l.industry, l.manual
+            l.counterparty, l.raw_description, l.dedupe_key || ':' || $4, l.kind, l.channel,
+            l.document_ref, l.document_date, l.industry, l.manual
        FROM ledger_entries l
        LEFT JOIN demo_order_map m ON m.old_id = l.order_id
       WHERE l.shop_id = $2`,
@@ -198,19 +199,19 @@ export async function copyFromShop(shopId, templateId, interval, keySuffix, db) 
 /** Classify only identifiable template records that still lack a kind. */
 export async function classifyTemplateEntries(shopId, db) {
   requireShopId(shopId)
-  const result=await query(`UPDATE ledger_entries l SET kind=CASE
-      WHEN l.type='INCOME' AND l.category='SALES' AND l.source='order' AND l.order_id IS NOT NULL
-        AND l.dedupe_key LIKE 'seed:order:%' AND EXISTS(SELECT 1 FROM orders o WHERE o.id=l.order_id AND o.shop_id=l.shop_id)
-        THEN 'BUSINESS_REVENUE'
-      WHEN l.type='EXPENSE' AND l.source='manual' AND (l.category IN ('INVENTORY','ADS','SHIPPING')
-        OR (l.category='OTHER' AND l.note ILIKE '%mặt bằng%')) THEN 'EXPENSE'
-      ELSE NULL END
-    WHERE l.shop_id=$1 AND l.kind IS NULL AND (
-      (l.type='INCOME' AND l.category='SALES' AND l.source='order' AND l.order_id IS NOT NULL
-        AND l.dedupe_key LIKE 'seed:order:%' AND EXISTS(SELECT 1 FROM orders o WHERE o.id=l.order_id AND o.shop_id=l.shop_id))
-      OR (l.type='EXPENSE' AND l.source='manual' AND (l.category IN ('INVENTORY','ADS','SHIPPING')
-        OR (l.category='OTHER' AND l.note ILIKE '%mặt bằng%'))))`,[shopId],db)
-  return result.rowCount
+  await query(
+    `UPDATE ledger_entries l
+        SET kind = CASE l.type WHEN 'INCOME' THEN 'BUSINESS_REVENUE' ELSE 'EXPENSE' END
+      WHERE l.shop_id = $1 AND l.kind IS NULL AND (
+        (l.type = 'INCOME' AND l.category = 'SALES' AND l.source = 'order'
+          AND l.dedupe_key LIKE 'seed:order:%'
+          AND EXISTS (SELECT 1 FROM orders o WHERE o.id = l.order_id AND o.shop_id = l.shop_id))
+        OR (l.type = 'EXPENSE' AND l.source = 'manual'
+          AND (l.category IN ('INVENTORY', 'ADS', 'SHIPPING')
+            OR (l.category = 'OTHER' AND l.note ILIKE '%mặt bằng%')))
+      )`,
+    [shopId], db,
+  )
 }
 
 /** Demo reset: delete every row of this shop, in the caller's transaction. */
