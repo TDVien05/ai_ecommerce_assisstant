@@ -58,7 +58,7 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 
 ### Assistant (planned)
 
-The eight JWT-protected endpoints and SSE contract are specified in [ai-interface.md](ai-interface.md). The client interface exists; the server endpoints, agent and guardrails are not implemented yet.
+`GET /api/assistant/stream` provides a JWT-protected SSE stream with a snapshot first and heartbeats every 20 seconds. `POST /api/assistant/messages` accepts `{ conversationId, text, attachments }`, persists the message and returns `204`; the current assistant reply is fixed text. A busy conversation returns `409 ASSISTANT_BUSY`, and another shop's thread or attachment returns `404`. The remaining assistant endpoints, agent and guardrails are not implemented yet. The complete proposed contract is in [ai-interface.md](ai-interface.md).
 
 ### Products
 | Method | Path | Description |
