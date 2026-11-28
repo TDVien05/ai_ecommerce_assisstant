@@ -9,43 +9,44 @@ import { ThresholdCard } from '@/features/ledgerTemplates/ThresholdCard'
 import { MessengerPage } from '@/features/messenger/MessengerPage'
 import { SourcesPage } from '@/features/sources/SourcesPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+import { isReal } from '@/lib/realApi'
 
 /** Trang chức năng. "Sổ thu chi" có danh sách giao dịch; phần còn lại chưa nối dữ liệu. */
-export function FeaturePage({ id, title, about }: { id: string; title: string; about: string }) {
+export function FeaturePage({ id, title, about, allowMock }: { id: string; title: string; about: string; allowMock: boolean }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-5 py-8">
         <h1 className="m-0 text-[22px] leading-7 font-semibold tracking-tight">{title}</h1>
-        {id === 'ledger' ? (
+        {!allowMock && !(isReal('finance') && (id === 'ledger' || id === 'reports')) ? <Empty about={about} /> : id === 'ledger' ? (
           <>
-          <ThresholdCard />
-          <Tabs defaultValue="payments" className="gap-4">
+          {allowMock && !isReal('finance') && <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><ThresholdCard /></>}
+          <Tabs defaultValue={isReal('finance') ? 'entries' : 'payments'} className="gap-4">
             <TabsList variant="line">
-              <TabsTrigger value="payments">Giao dịch ngân hàng</TabsTrigger>
+              {allowMock && <TabsTrigger value="payments">Giao dịch ngân hàng</TabsTrigger>}
               <TabsTrigger value="entries">Thu chi</TabsTrigger>
-              <TabsTrigger value="templates">Mẫu sổ</TabsTrigger>
+              {allowMock && <TabsTrigger value="templates">Mẫu sổ</TabsTrigger>}
             </TabsList>
             <TabsContent value="payments">
-              <TransactionsPanel />
+              <p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><TransactionsPanel />
             </TabsContent>
             <TabsContent value="entries">
               <LedgerPanel />
             </TabsContent>
-            <TabsContent value="templates"><TemplatesPage /></TabsContent>
+            <TabsContent value="templates"><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><TemplatesPage /></TabsContent>
           </Tabs>
           </>
         ) : id === 'orders' ? (
-          <OrdersPage />
+          <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><OrdersPage /></>
         ) : id === 'reports' ? (
           <ReportsPage />
         ) : id === 'fraud' ? (
-          <AlertsPage />
+          <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><AlertsPage /></>
         ) : id === 'messenger' ? (
-          <MessengerPage />
+          <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><MessengerPage /></>
         ) : id === 'sources' ? (
-          <SourcesPage />
+          <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><SourcesPage /></>
         ) : id === 'settings' ? (
-          <SettingsPage />
+          <><p className="text-sm text-muted-foreground">Dữ liệu mẫu.</p><SettingsPage /></>
         ) : (
           <Empty about={about} />
         )}

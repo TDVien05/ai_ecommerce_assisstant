@@ -16,8 +16,8 @@ export type LedgerChannel = 'CASH' | 'BANK' | 'EWALLET'
 export type LedgerEntry = {
   id: string
   type: LedgerType
-  kind: LedgerKind
-  channel: LedgerChannel
+  kind: LedgerKind | null
+  channel: LedgerChannel | null
   category: LedgerCategory
   documentRef: string | null
   documentDate: string | null

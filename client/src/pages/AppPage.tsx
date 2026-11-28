@@ -9,23 +9,24 @@ import { FEATURES } from '@/features/app/features'
 import { useFlowy } from '@/features/app/useFlowy'
 import { HUB } from '@/lib/ai'
 import { useAuth } from '@/features/auth/useAuth'
+import { isReal } from '@/lib/realApi'
 
 /** Màn hình chính: "/" chat trung tâm, "/threads/:id" luồng việc, "/pages/:id" trang chức năng. */
 export default function AppPage() {
   const { session } = useAuth()
-  if (!session?.shop.isDemo) return <EmptyApp />
+  if (!session?.shop.isDemo && !isReal('assistant')) return <EmptyApp />
   return <DemoApp />
 }
 
 function DemoApp() {
-  const state = useFlowy()
+  const { state, connection } = useFlowy()
   const { session, logout } = useAuth()
   const navigate = useNavigate()
   const threadId = useMatch('/threads/:id')?.params.id
   const featureId = useMatch('/pages/:id')?.params.id
   const atHub = Boolean(useMatch('/app'))
 
-  if (!state) return null
+  if (!state) return <div role="status" className="grid min-h-screen place-items-center text-muted-foreground">{connection === 'disconnected' ? 'Không kết nối được chat. Mình đang thử lại.' : 'Đang kết nối chat…'}</div>
 
   const thread = state.threads.find((t) => t.id === threadId)
   const feature = FEATURES.find((f) => f.id === featureId) ?? (featureId === 'settings' ? { id: 'settings', label: 'Cài đặt cửa hàng', about: 'Thông tin cửa hàng và tài khoản nhận tiền.' } : undefined)
@@ -67,13 +68,14 @@ function DemoApp() {
       }
     >
       {feature ? (
-        <FeaturePage id={feature.id} title={feature.label} about={feature.about} />
+        <FeaturePage id={feature.id} title={feature.label} about={feature.about} allowMock={session?.shop.isDemo === true} />
       ) : (
         <ChatView
           key={conversationId}
           conversationId={conversationId}
           messages={state.conversations[conversationId] ?? []}
           typing={state.typing.includes(conversationId)}
+          connected={connection === 'connected'}
           scope={thread?.scope}
           onOpenThread={go}
         />

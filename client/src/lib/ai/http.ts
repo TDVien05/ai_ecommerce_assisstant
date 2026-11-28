@@ -1,10 +1,10 @@
 import { api, ApiError } from '@/lib/api'
 import { readSse } from './sse'
-import type { AIEvent, AnswerRequest, ApproveResponse, Attachment, FlowyAI, SendRequest } from './types'
+import type { AIConnection, AIEvent, AnswerRequest, ApproveResponse, Attachment, FlowyAI, SendRequest } from './types'
 
 const delays = [1000, 2000, 5000, 10000]
 export class HttpFlowyAI implements FlowyAI {
-  subscribe(listener: (event: AIEvent) => void) {
+  subscribe(listener: (event: AIEvent) => void, onConnection?: (state: AIConnection) => void) {
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     let attempt = 0
@@ -18,7 +18,7 @@ export class HttpFlowyAI implements FlowyAI {
             const value = payload as Record<string, unknown>
             const type = frame.event === 'message' && typeof value.type === 'string' ? value.type : frame.event
             if (!['snapshot', 'message', 'thread', 'typing'].includes(type)) return
-            if (type === 'snapshot') attempt = 0
+            if (type === 'snapshot') { attempt = 0; onConnection?.('connected') }
             listener({ ...value, type } as AIEvent)
           } catch { /* Bỏ qua khung không hợp lệ; kết nối tiếp tục. */ }
         })
@@ -26,6 +26,7 @@ export class HttpFlowyAI implements FlowyAI {
         if (controller.signal.aborted || (error instanceof ApiError && error.status === 401)) return
       }
       if (!controller.signal.aborted) {
+        onConnection?.('disconnected')
         const delay = delays[Math.min(attempt, delays.length - 1)]
         attempt += 1; timer = setTimeout(connect, delay)
       }
