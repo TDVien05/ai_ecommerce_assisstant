@@ -71,9 +71,9 @@ Login, registration and demo are public; `/me` requires `Authorization: Bearer <
 ### Orders
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/orders?status=&from=&to=` | list |
-| GET | `/api/orders/:id` | details + items + payment transactions |
-| PATCH | `/api/orders/:id/status` | `{ status: "SHIPPING" \| "COMPLETED" \| "CANCELLED" }` |
+| GET | `/api/orders?status=&from=&to=` | `{ items: Order[] }`, lọc theo cửa hàng, tối đa 100 đơn mới nhất; `from` gồm, `to` không gồm |
+| GET | `/api/orders/:id` | `{ order: OrderDetail }` gồm hàng và giao dịch đã gắn với đơn của cửa hàng |
+| PATCH | `/api/orders/:id/status` | `{ status: "SHIPPING" \| "COMPLETED" \| "CANCELLED" }` → `{ order: Order }`; chỉ PAID → SHIPPING, SHIPPING → COMPLETED, AWAITING_PAYMENT → CANCELLED; không chuyển sang PAID |
 
 ### Conversations
 | Method | Path | Description |
