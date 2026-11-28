@@ -1,15 +1,15 @@
 import { loadPrompt, runToolLoop, isAiUnavailable } from '../ai/index.js'
 import { createRegistry } from './registry.js'
 import { tools as financeTools } from './tools/finance.read.js'
-import { writeTools } from './tools/finance.write.js'
-import { listOrders, getOrder, updateOrderStatus } from './tools/orders.js'
+import { listOrders, getOrder } from './tools/orders.js'
 import { exportBook } from './tools/books.js'
 import { queryTool } from './tools/query.js'
-import { updateShop } from './tools/shop.js'
+import { proposeChange } from './tools/change.js'
 import { makeStep } from './steps.js'
 import { checkInput, guardData, assertToolAllowed, checkOutput } from './guard.js'
 import { classifyByRules, RULE_MODE_HELP } from './fallback.js'
 import { formatTime } from './view.js'
+import { appError } from '../../errors/index.js'
 
 const channel = 'owner'
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
@@ -94,10 +94,11 @@ export async function runAgent({ text, history, ctx, signal }) {
     results.push({ name: tool.name, data })
     return guarded.content
   } })
-  for (const tool of [...writeTools, updateOrderStatus, updateShop]) registry.register({ ...tool, run: async (input, toolCtx) => {
+  for (const tool of [proposeChange]) registry.register({ ...tool, run: async (input, toolCtx) => {
     assertToolAllowed(tool, { channel })
     const proposal = await tool.propose(input, toolCtx)
-    actions.push(proposal)
+    if (actions.length + proposal.length > 20) throw appError('BAD_REQUEST', 'Quá nhiều thay đổi trong một đề xuất.')
+    actions.push(...proposal)
     const guarded = await guardData(JSON.stringify({ pending: true }), { source: 'tool_output', channel, ctx })
     return guarded.content
   } })

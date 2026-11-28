@@ -156,6 +156,12 @@ export async function removeEntry(shopId, id, client) {
   return result.rowCount > 0
 }
 
+export async function updateManualEntry(shopId, id, value, client) {
+  const { rows } = await query(`UPDATE ledger_entries SET type=$3,kind=$4,channel=$5,category=$6,amount=$7,note=$8,occurred_at=$9,document_ref=$10,document_date=$11,industry=$12 WHERE shop_id=$1 AND id=$2 AND manual=true RETURNING ${entryColumns}`,
+    [shopId,id,value.type,value.kind,value.channel,value.category,value.amount,value.note,value.occurred_at,value.document_ref,value.document_date,value.industry], client)
+  return rows[0] ?? null
+}
+
 export async function restoreEntry(row, client) {
   await query(`INSERT INTO ledger_entries (${entryColumns}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
     [row.id, row.shop_id, row.type, row.kind, row.channel, row.category, row.amount, row.order_id, row.note, row.occurred_at, row.created_at, row.document_ref, row.document_date, row.industry, row.manual], client)
