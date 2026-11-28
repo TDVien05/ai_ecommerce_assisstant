@@ -9,7 +9,7 @@ import { financeApi, type LedgerCategory, type LedgerType, type LedgerChannel, t
 import { categoryLabels } from './categoryLabels'
 
 const categories: Record<LedgerType, LedgerCategory[]> = { INCOME: ['SALES', 'OTHER'], EXPENSE: ['SHIPPING', 'ADS', 'INVENTORY', 'OTHER'] }
-function localDate() { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` }
+function localDate() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) }
 export function ExpenseDialog({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
   const [type, setType] = useState<LedgerType>('EXPENSE')
   const [category, setCategory] = useState<LedgerCategory>('SHIPPING')
@@ -27,7 +27,7 @@ export function ExpenseDialog({ onClose, onChanged }: { onClose: () => void; onC
     if (!/^\d+$/.test(amount) || !Number.isSafeInteger(number) || number <= 0 || !date) { setError('Nhập số tiền nguyên dương và ngày hợp lệ.'); return }
     setSaving(true); setError('')
     try {
-      const { entry, message } = await financeApi.createEntry({ type, kind, channel, category, documentRef: documentRef.trim() || null, documentDate: null, industry: null, amount: number, note, occurredAt: new Date(`${date}T12:00:00`).toISOString() })
+      const { entry, message } = await financeApi.createEntry({ type, kind, channel, category, documentRef: documentRef.trim() || null, documentDate: null, industry: null, amount: number, note, occurredAt: new Date(`${date}T12:00:00+07:00`).toISOString() })
       toastDone(message, () => { financeApi.deleteEntry(entry.id).then(onChanged).catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Không hoàn tác được.')) })
       onChanged(); onClose()
     } catch (err) { setError(err instanceof Error ? err.message : 'Không ghi được. Bạn thử lại nhé.'); setSaving(false) }

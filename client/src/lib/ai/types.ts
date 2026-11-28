@@ -115,10 +115,11 @@ export type SendRequest = { conversationId: ConversationId; text: string; attach
 export type AnswerRequest = { stepId: string; questionId: string; option: string }
 
 export type ApproveResponse = { message: string }
+export type AIConnection = 'connecting' | 'connected' | 'disconnected'
 
 export interface FlowyAI {
   /** Sự kiện đầu tiên luôn là 'snapshot'. Trả về hàm hủy đăng ký. */
-  subscribe(listener: (event: AIEvent) => void): () => void
+  subscribe(listener: (event: AIEvent) => void, onConnection?: (state: AIConnection) => void): () => void
   /** Hàm duy nhất không gửi JSON: bản thật gửi multipart. */
   upload(file: File): Promise<Attachment>
   send(request: SendRequest): Promise<void>

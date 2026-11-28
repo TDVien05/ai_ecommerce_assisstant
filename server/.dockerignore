@@ -16,3 +16,4 @@ Dockerfile
 **/secrets
 **/*credentials*.json
 **/service-account*.json
+**/*.local.*

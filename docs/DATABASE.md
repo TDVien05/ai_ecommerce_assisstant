@@ -100,6 +100,13 @@ Money is stored as `BIGINT` (VND, no decimal part).
 | raw_description | text | original bank description |
 | dedupe_key | text | unique per shop when set → bank imports never duplicate |
 | run_id | uuid FK NULL | agent run that wrote the row (for undo) |
+| kind | text NULL | `BUSINESS_REVENUE`, `PERSONAL`, `EXPENSE`, `TRANSFER`; NULL means not yet classified. |
+| channel | text NULL | `CASH`, `BANK`, `EWALLET`; NULL means unknown. |
+| document_ref, industry | text NULL | Source document reference and business sector when known. |
+| document_date | date NULL | Source document date when known. |
+| manual | boolean NOT NULL DEFAULT true | Whether the entry is manually created; legacy entries of unknown origin are conservatively marked false. |
+
+The migration leaves legacy `kind` and `channel` as NULL rather than guessing. Services must require a valid classification and channel for new manual entries, distinguish unknown from zero in reports, and never count an unclassified entry as business revenue. A legacy entry marked `manual = false` cannot be deleted through the manual-only flow unless its origin is established by a later, explicit process.
 
 ### `labels`
 `id, shop_id, name, color, created_at`, UNIQUE `(shop_id, name)` — user-defined ledger labels.
@@ -132,6 +139,23 @@ One row per check, including signature failures (metadata only, no body).
 ### `ai_usage`
 `shop_id NULL, role, model, prompt_tokens, completion_tokens, created_at` — one row per provider call.
 
+### Owner assistant
+
+These tables are separate from Messenger `conversations` and `messages`. Every query must be scoped by the authenticated `shop_id`; foreign keys do not replace that authorization check.
+
+| Table | Key columns | Purpose |
+|---|---|---|
+| `assistant_threads` | `(shop_id, id)`; `title`, `status`, `scope`, `created_at`, `updated_at` | Owner work threads; `status` is `alert`, `waiting`, `running` or `done`. |
+| `assistant_messages` | `(shop_id, id)`; `conversation_id`, `role`, `body jsonb`, `seq`, timestamps | Owner and assistant messages; `conversation_id` is `hub` or a thread ID, not a Messenger ID. Updates retain the same message ID and sequence. |
+| `assistant_steps` | `id`, `shop_id`, `conversation_id`, `message_id`, `state`, `view jsonb`, `actions jsonb`, `created_at`, `decided_at` | Proposed actions and their view; the message reference is scoped to the same shop. States: `working`, `waiting`, `done`, `undone`, `failed`. |
+| `assistant_action_log` | `id`, `shop_id`, `step_id`, `user_id`, `tool`, `before`, `after`, `applied_at`, `undone_at` | Snapshots for applied actions and undo; the step reference is scoped to the same shop. |
+| `assistant_files` | `id`, `shop_id`, `name`, `mime`, `size`, `content`, `created_at` | Uploaded content, limited to 2 MiB; the stored size must match the byte count. |
+| `assistant_alerts` | `id`, `shop_id`, `level`, `title`, `reasons`, `order_id`, `detected_at`, `status` | Risk alerts: level `mid`/`high`; status `OPEN`/`HELD`/`DISMISSED`. Order ownership must be checked by the service. |
+
+`assistant_action_log` and `assistant_alerts` serve only the owner assistant and are independent of `changes`, `agent_runs` and `fraud_checks`. The team will decide later whether to consolidate them.
+
+`assistant_messages`, `assistant_steps` and `assistant_threads` use text conversation IDs so `hub` can exist without a thread row. Services validate thread and message ownership and consistency. Approval and action logging must share one transaction; state transitions and undo require concurrency checks as described in [ai-interface.md](ai-interface.md).
+
 ## Order state machine
 
 ```mermaid
@@ -140,15 +164,17 @@ stateDiagram-v2
   AWAITING_PAYMENT --> PAID: SePay webhook matches
   AWAITING_PAYMENT --> EXPIRED: past expires_at
   AWAITING_PAYMENT --> CANCELLED: customer/shop owner cancels
-  PAID --> SHIPPED
-  SHIPPED --> LIKELY_DELIVERED: courier reports delivery
+  PAID --> SHIPPING
+  SHIPPING --> COMPLETED: courier reports delivery
+  SHIPPING --> LIKELY_DELIVERED: courier reports delivery (SRS extra)
   LIKELY_DELIVERED --> DELIVERED
-  SHIPPED --> DELIVERED
-  DELIVERED --> FOLLOWED_UP: after the follow-up message
-  DELIVERED --> REFUNDED
+  COMPLETED --> FOLLOWED_UP: after the follow-up message (SRS extra)
+  COMPLETED --> REFUNDED
   FOLLOWED_UP --> REFUNDED
 ```
 
+- The constraint also accepts the SRS 2.1 aliases `SHIPPED` and `DELIVERED`; the dashboard,
+  the assistant and the sample data use `SHIPPING` and `COMPLETED` so every status has a label.
 - `EXPIRED` is set by a scheduled sweep when `expires_at` passes without payment.
 - Decrement stock when moving to `PAID` (or, optionally, reserve it at order creation and release it on `EXPIRED`).
 - Write the `INCOME/SALES` `ledger_entries` row in the **same DB transaction** that moves the order to `PAID`.

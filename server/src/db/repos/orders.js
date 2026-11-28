@@ -5,8 +5,8 @@ const columns = `id, shop_id, customer_id, payment_code, status, risk_level, sub
   shipping_name, shipping_phone, shipping_address, expires_at, paid_at, created_at`
 
 export const STATUSES = [
-  'AWAITING_PAYMENT', 'PAID', 'EXPIRED', 'CANCELLED', 'SHIPPED',
-  'LIKELY_DELIVERED', 'DELIVERED', 'FOLLOWED_UP', 'REFUNDED',
+  'AWAITING_PAYMENT', 'PAID', 'EXPIRED', 'CANCELLED', 'SHIPPING', 'COMPLETED',
+  'SHIPPED', 'LIKELY_DELIVERED', 'DELIVERED', 'FOLLOWED_UP', 'REFUNDED',
 ]
 
 export async function list(shopId, { status, from, to, limit = 100, offset = 0 } = {}, db = pool) {

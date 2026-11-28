@@ -3,6 +3,7 @@ import path from 'node:path'
 import { pinoHttp } from 'pino-http'
 import { env } from './config/env.js'
 import { logger } from './lib/logger.js'
+import { cors } from './middlewares/cors.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 import { healthRouter } from './routes/health.js'
 import { apiRouter } from './routes/index.js'
@@ -38,14 +39,8 @@ export function createApp() {
 
   app.use(express.json({ limit: '1mb' }))
 
-  // Dev: the Vite proxy makes requests same-origin. This only matters if the client is served elsewhere.
-  app.use('/api', (req, res, next) => {
-    res.set('Access-Control-Allow-Origin', env.CORS_ORIGIN)
-    res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-    res.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS')
-    if (req.method === 'OPTIONS') return res.sendStatus(204)
-    next()
-  })
+  // The client calls /api and /health; in production it lives on a different origin.
+  app.use(['/api', '/health'], cors)
 
   app.use('/health', healthRouter)
   app.use('/api', apiRouter)

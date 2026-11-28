@@ -3,7 +3,10 @@ import { createApp } from './app.js'
 import { pool } from './db/pool.js'
 import { logger } from './lib/logger.js'
 import { deleteExpiredDemoShops } from './services/demo.service.js'
+import { recover, interruptActive } from './services/assistant.service.js'
+import { closeAllStreams } from './services/assistant/events.js'
 
+try { await recover() } catch (err) { logger.error({ err }, 'Assistant recovery failed') }
 const app = createApp()
 
 const server = app.listen(env.PORT, () => {
@@ -18,7 +21,10 @@ setInterval(sweepDemoShops, 60 * 60 * 1000).unref()
 
 const shutdown = (signal) => {
   logger.info(`${signal} received, shutting down`)
-  server.close(() => pool.end().finally(() => process.exit(0)))
+  closeAllStreams()
+  const closing = new Promise((resolve) => server.close(resolve))
+  Promise.all([closing, interruptActive().catch((err) => logger.error({ err }, 'Assistant shutdown recovery failed'))])
+    .then(() => pool.end()).finally(() => process.exit(0))
   setTimeout(() => process.exit(1), 10_000).unref()
 }
 

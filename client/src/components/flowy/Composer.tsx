@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { ArrowUp, Paperclip } from 'lucide-react'
 
 type ComposerProps = {
-  onSubmit: (text: string, files: File[]) => void
+  onSubmit: (text: string, files: File[]) => void | boolean | Promise<void | boolean>
   /** Tối đa 3 câu gợi ý, viết như lời người dùng sẽ nói. Ẩn khi đang gõ. */
   suggestions?: string[]
   placeholder?: string
@@ -18,13 +18,22 @@ export function Composer({
 }: ComposerProps) {
   const [text, setText] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [sending, setSending] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const sendingRef = useRef(false)
 
-  const send = (value = text) => {
-    if (!value.trim() && files.length === 0) return
-    onSubmit(value.trim(), files)
-    setText('')
-    setFiles([])
+  const send = async (value = text) => {
+    if (disabled || sendingRef.current || (!value.trim() && files.length === 0)) return
+    sendingRef.current = true
+    setSending(true)
+    const sentFiles = files
+    try {
+      const accepted = await onSubmit(value.trim(), sentFiles)
+      if (accepted !== false) {
+        setText((current) => current === value ? '' : current)
+        setFiles((current) => current === sentFiles ? [] : current)
+      }
+    } finally { sendingRef.current = false; setSending(false) }
   }
 
   return (
@@ -35,8 +44,8 @@ export function Composer({
             <button
               key={s}
               type="button"
-              onClick={() => send(s)}
-              disabled={disabled}
+              onClick={() => s === 'Nhập sao kê' ? fileRef.current?.click() : void send(s)}
+              disabled={disabled || sending}
               className="h-7 rounded-sm border bg-background px-2.5 text-[13px] hover:bg-accent"
             >
               {s}
@@ -48,14 +57,13 @@ export function Composer({
         <input
           ref={fileRef}
           type="file"
-          multiple
           hidden
-          accept=".xlsx,.xls,.csv,image/*"
+          accept=".csv,text/csv"
           onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
         />
         <button
           type="button"
-          aria-label="Đính kèm sao kê hoặc ảnh"
+          aria-label="Đính kèm sao kê CSV"
           onClick={() => fileRef.current?.click()}
           className="grid size-8 place-items-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
         >
@@ -64,13 +72,12 @@ export function Composer({
         <textarea
           rows={1}
           value={text}
-          disabled={disabled}
           placeholder={files.length ? `${files.length} file đính kèm. Thêm lời nhắn...` : placeholder}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
-              send()
+              if (!disabled && !sending) void send()
             }
           }}
           className="max-h-36 min-w-0 flex-1 resize-none self-center bg-transparent text-base leading-6 outline-none [field-sizing:content] placeholder:text-muted-foreground"
@@ -78,8 +85,8 @@ export function Composer({
         <button
           type="button"
           aria-label="Gửi"
-          onClick={() => send()}
-          disabled={disabled || (!text.trim() && files.length === 0)}
+          onClick={() => void send()}
+          disabled={disabled || sending || (!text.trim() && files.length === 0)}
           className="grid size-8 shrink-0 place-items-center rounded-sm bg-primary text-primary-foreground disabled:opacity-35"
         >
           <ArrowUp className="size-4" />

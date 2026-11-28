@@ -10,19 +10,19 @@ Hộ kinh doanh trực tuyến thường theo dõi đơn hàng, giao dịch và 
 
 Flowy hướng tới việc tập trung các thông tin này trong một giao diện, hỗ trợ nhận diện tình huống cần kiểm tra và trình bày công việc để chủ hộ xem xét. Các thay đổi do AI đề xuất được thiết kế để người dùng duyệt trước khi thực hiện và có thể hoàn tác.
 
-**Trạng thái dự án:** sản phẩm đang phát triển. Nhiều màn hình nghiệp vụ hiện dùng dữ liệu giả lập; kết nối dữ liệu máy chủ, trợ lý AI đầu cuối, đối soát SePay và xử lý Messenger thực tế chưa hoàn tất. Không sử dụng các số liệu giả lập làm căn cứ vận hành hoặc kê khai.
+**Trạng thái dự án:** sản phẩm đang phát triển. Chat, sổ thu chi, đơn hàng và cảnh báo đã có kết nối máy chủ khi bật mô-đun tương ứng. Một số trang vẫn dùng dữ liệu giả lập; chưa sử dụng số liệu giả lập làm căn cứ vận hành hoặc kê khai.
 
 ## Tính năng chính
 
 | Tính năng | Trạng thái |
 |---|---|
-| **Chat trung tâm và luồng việc** | Có giao diện chat, luồng việc, thẻ thông báo và bước chờ duyệt. Nội dung và hành vi trợ lý trên giao diện hiện được giả lập; kết nối AI đầu cuối đang phát triển. |
-| **Quản lý thu chi và giao dịch** | Có màn hình giao dịch, gán đơn, nhập khoản thu chi và báo cáo. Các màn hình nghiệp vụ hiện dùng mock; kết nối dữ liệu máy chủ và đối soát thực tế đang phát triển. |
-| **Mẫu sổ theo Thông tư 152/2025/TT-BTC** | Có danh sách mẫu, xem trước và xuất PDF/Excel. Các mẫu cần được đối chiếu bản gốc trước khi sử dụng; dữ liệu sổ thực tế và việc xác định nghĩa vụ thuế đang phát triển. |
-| **Cảnh báo rủi ro** | Có giao diện ba mức Thấp, Trung bình, Cao và màn hình xử lý cảnh báo giả lập. Phát hiện rủi ro từ dữ liệu thực tế đang phát triển. |
-| **Bot Messenger** | Có giao diện hội thoại và điều khiển trạng thái AI với dữ liệu giả lập. Xử lý tin nhắn và kết nối Messenger đầu cuối đang phát triển. |
+| **Chat trung tâm và luồng việc** | Đọc sổ, đơn hàng; đề xuất thay đổi cần duyệt và hỗ trợ hoàn tác. Nhập sao kê CSV có bộ đọc và phân loại tạm, cần kiểm tra định dạng trước khi dùng. |
+| **Quản lý thu chi và đơn hàng** | Có API máy chủ và giao diện kết nối khi cấu hình `VITE_REAL_API`. Báo cáo yêu cầu dữ liệu phân loại và giá vốn đầy đủ; đối soát giao dịch đang phát triển. |
+| **Mẫu sổ theo Thông tư 152/2025/TT-BTC** | Có xem trước và xuất PDF/Excel bằng dữ liệu giả lập; mẫu cần đối chiếu bản gốc trước khi sử dụng. |
+| **Cảnh báo rủi ro** | Hiển thị và xử lý cảnh báo từ máy chủ; nguồn phát hiện gian lận tự động đang phát triển. |
+| **Bot Messenger** | Giao diện giả lập; kết nối Messenger đầu cuối đang phát triển. |
 
-Ứng dụng cũng có trang giới thiệu, đăng ký, đăng nhập và quản lý phiên. Tệp dữ liệu cục bộ tùy chọn và thông tin xác thực không được đưa vào kho mã.
+Hạn mức trợ lý hiện lưu trong bộ nhớ của từng tiến trình máy chủ và đặt lại khi khởi động lại; cần cơ chế dùng chung, bền vững trước khi mở bản công khai. Tệp dữ liệu demo và thông tin xác thực không được đưa vào kho mã.
 
 ## Kiến trúc và công nghệ
 
@@ -32,7 +32,7 @@ Trình duyệt
     ▼
 React + Vite + shadcn/ui ── HTTP ──► Express 5 ──► PostgreSQL
         │                                │
-        └── Mock nghiệp vụ               ├── Lớp AI / nhà cung cấp mô hình
+        └── Một số màn hình dùng mẫu     ├── Lớp AI / nhà cung cấp mô hình
                                          ├── Meta Messenger (đang phát triển)
                                          └── SePay (đang phát triển)
 ```
@@ -42,7 +42,7 @@ React + Vite + shadcn/ui ── HTTP ──► Express 5 ──► PostgreSQL
 | Giao diện | React, TypeScript, Vite, Tailwind CSS và shadcn/ui; hệ thống thiết kế Flowy trong `client/`. |
 | Máy chủ | Node.js và Express 5; xác thực, kiểm tra trạng thái, các tuyến webhook và lớp tích hợp AI. |
 | Cơ sở dữ liệu | PostgreSQL; schema và migration nằm trong `server/src/db/`. |
-| AI | Có lớp gọi nhà cung cấp tương thích OpenAI và chế độ giả lập; tích hợp vào luồng nghiệp vụ đang phát triển. |
+| AI | Lớp gọi nhà cung cấp tương thích OpenAI, chế độ giả lập, công cụ đọc và đề xuất cần duyệt; bảo vệ nâng cao và hạn mức bền vững đang phát triển. |
 | Thanh toán và nhắn tin | SePay và Meta Messenger là các tích hợp đang phát triển; webhook SePay chưa thực hiện đối soát. |
 
 Tài liệu kỹ thuật bổ sung: [Kiến trúc](docs/ARCHITECTURE.md), [API](docs/API.md), [Cơ sở dữ liệu](docs/DATABASE.md) và [Hệ thống thiết kế](docs/design-system/README.md).

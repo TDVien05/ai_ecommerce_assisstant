@@ -13,12 +13,12 @@ CREATE INDEX IF NOT EXISTS shops_demo_expires_idx ON shops (demo_expires_at) WHE
 -- ---------------------------------------------------------------- orders
 
 ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
-UPDATE orders SET status = 'SHIPPED' WHERE status = 'SHIPPING';
-UPDATE orders SET status = 'DELIVERED' WHERE status = 'COMPLETED';
 ALTER TABLE orders ALTER COLUMN status SET DEFAULT 'AWAITING_PAYMENT';
+-- Keep the lifecycle names the dashboard and assistant already use (SHIPPING, COMPLETED)
+-- and add the SRS 2.1 states on top, so both naming schemes stay valid.
 ALTER TABLE orders ADD CONSTRAINT orders_status_check
-  CHECK (status IN ('AWAITING_PAYMENT', 'PAID', 'EXPIRED', 'CANCELLED', 'SHIPPED',
-                    'LIKELY_DELIVERED', 'DELIVERED', 'FOLLOWED_UP', 'REFUNDED'));
+  CHECK (status IN ('AWAITING_PAYMENT', 'PAID', 'EXPIRED', 'CANCELLED', 'SHIPPING', 'COMPLETED',
+                    'SHIPPED', 'LIKELY_DELIVERED', 'DELIVERED', 'FOLLOWED_UP', 'REFUNDED'));
 
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS risk_level text NOT NULL DEFAULT 'LOW'
   CHECK (risk_level IN ('LOW', 'MEDIUM', 'HIGH'));
