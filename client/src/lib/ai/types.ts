@@ -39,6 +39,7 @@ export type Metric = {
 
 export type Block =
   | { type: 'text'; text: string }
+  | { type: 'dataTable'; columns: import('@/components/flowy').DataColumn[]; rows: import('@/components/flowy').DataValue[][]; source: string; updatedAt: string; how: string }
   | { type: 'ledgerExport'; code: import('@/lib/ledgerTemplates').TemplateCode; name: string; from: string; to: string; warnings: string[] }
   | {
       /** Thay đổi dữ liệu do AI đề xuất. Chỉ ghi sau khi người dùng duyệt. */

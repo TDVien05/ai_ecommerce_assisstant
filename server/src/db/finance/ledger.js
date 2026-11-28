@@ -1,5 +1,10 @@
 import { pool } from '../pool.js'
 
+export async function shopName(shopId) {
+  const result = await pool.query('SELECT name FROM shops WHERE id = $1', [shopId])
+  return result.rows[0]?.name ?? ''
+}
+
 export async function summary(shopId, from, to) {
   const { rows } = await pool.query(`SELECT
     count(*)::int AS total_count,

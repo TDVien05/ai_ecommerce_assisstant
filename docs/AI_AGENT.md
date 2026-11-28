@@ -33,7 +33,7 @@ You are a sales assistant for the shop "{shop_name}" on Facebook Messenger.
 
 ### Trợ lý dành cho chủ cửa hàng
 
-Trợ lý nhận tin tại `POST /api/assistant/messages` và gửi kết quả qua SSE. Công cụ hiện có: `get_summary`, `list_ledger`, `get_activity`, `export_ledger_book`, `list_orders`, `get_order`, đề xuất `add_ledger_entries`, `delete_manual_entry`, `update_order_status` và đổi tên cửa hàng. Giao dịch chưa đối soát và thay đổi thông tin ngân hàng chưa hỗ trợ.
+Trợ lý nhận tin tại `POST /api/assistant/messages` và gửi kết quả qua SSE. Công cụ hiện có: `query_data` đọc dữ liệu theo danh sách trắng, `get_summary`, `list_ledger`, `get_activity`, `export_ledger_book`, `list_orders`, `get_order`, đề xuất `add_ledger_entries`, `delete_manual_entry`, `update_order_status` và đổi tên cửa hàng. `query_data` chỉ xem giao dịch đã gắn cửa hàng, không thay đổi hoặc gán giao dịch; thay đổi thông tin ngân hàng chưa hỗ trợ.
 
 Thay đổi dữ liệu chỉ được thực hiện sau khi người dùng duyệt và có thể hoàn tác nếu dữ liệu chưa thay đổi tiếp. Không có công cụ xác nhận thanh toán. Bộ đọc CSV tạm nhận ngày, mô tả và số tiền; dòng nghi ngờ hoặc phân loại không chắc phải được người dùng chọn.
 
