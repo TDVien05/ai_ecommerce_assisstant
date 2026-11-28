@@ -1,0 +1,14 @@
+{
+  "id": 92704,
+  "gateway": "MB",
+  "transactionDate": "2026-11-27 15:20:00",
+  "accountNumber": "1017588888",
+  "code": "DH8F3K2A",
+  "content": "DH8F3K2A chuyen tien",
+  "transferType": "in",
+  "transferAmount": 250000,
+  "accumulated": 19077000,
+  "subAccount": null,
+  "referenceCode": "FT24012345678",
+  "description": ""
+}

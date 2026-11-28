@@ -63,6 +63,7 @@ Money is stored as `BIGINT` (VND, no decimal part).
 | shipping_name, shipping_phone, shipping_address | text | snapshot at order time |
 | expires_at | timestamptz | payment deadline |
 | paid_at | timestamptz | |
+| risk_level | text | `LOW` / `MEDIUM` / `HIGH` — set by the hard-rule fraud check |
 | created_at | timestamptz | |
 
 ### `order_items`
@@ -73,6 +74,7 @@ Money is stored as `BIGINT` (VND, no decimal part).
 |---|---|---|
 | id | uuid PK | |
 | sepay_id | bigint UNIQUE | deduplicates SePay retries |
+| shop_id | uuid FK NULL | resolved from the receiving account / order; deleted with the shop |
 | gateway, account_number, code, content, reference_code | text | |
 | transfer_type | text | `in` / `out` |
 | transfer_amount | bigint | |
@@ -92,6 +94,12 @@ Money is stored as `BIGINT` (VND, no decimal part).
 | order_id | uuid FK NULL | income from an order |
 | note | text | |
 | occurred_at | timestamptz | |
+| source | text | `manual` / `order` / `bank` / `agent` |
+| label_id | uuid FK NULL | `labels` row (user-defined category) |
+| counterparty | text | who paid / who was paid |
+| raw_description | text | original bank description |
+| dedupe_key | text | unique per shop when set → bank imports never duplicate |
+| run_id | uuid FK NULL | agent run that wrote the row (for undo) |
 | kind | text NULL | `BUSINESS_REVENUE`, `PERSONAL`, `EXPENSE`, `TRANSFER`; NULL means not yet classified. |
 | channel | text NULL | `CASH`, `BANK`, `EWALLET`; NULL means unknown. |
 | document_ref, industry | text NULL | Source document reference and business sector when known. |
@@ -99,6 +107,37 @@ Money is stored as `BIGINT` (VND, no decimal part).
 | manual | boolean NOT NULL DEFAULT true | Whether the entry is manually created; legacy entries of unknown origin are conservatively marked false. |
 
 The migration leaves legacy `kind` and `channel` as NULL rather than guessing. Services must require a valid classification and channel for new manual entries, distinguish unknown from zero in reports, and never count an unclassified entry as business revenue. A legacy entry marked `manual = false` cannot be deleted through the manual-only flow unless its origin is established by a later, explicit process.
+
+### `labels`
+`id, shop_id, name, color, created_at`, UNIQUE `(shop_id, name)` — user-defined ledger labels.
+
+### `agent_runs` / `agent_run_events`
+One row per agent turn (`RUNNING`, `AWAITING_INPUT`, `AWAITING_APPROVAL`, `DONE`, `CANCELLED`,
+`FAILED`, `UNDONE`) with `command`, `plan jsonb`, `result jsonb`, `error`. `agent_run_events`
+stores the SSE steps: `(run_id, seq)` unique, `type`, `payload jsonb`.
+
+### `changes` (undo log)
+`id, shop_id, run_id, entity, entity_id, action (insert|update|delete), before jsonb, after jsonb, created_at`.
+`undoRun` replays a run backwards within 24 hours; it refuses when a row was edited again later.
+
+### `webhook_events` (intake + dedupe)
+`provider` (`messenger` / `sepay` / `sim`), `external_id`, `type`, `shop_id`, `payload`,
+`status` (`RECEIVED` / `PROCESSED` / `IGNORED` / `FAILED`), `error`, `received_at`, `processed_at`.
+UNIQUE `(provider, external_id)` — the same provider retry is stored once and never handled twice.
+
+### `fraud_checks`
+`shop_id NULL, provider, external_id, level (LOW|MEDIUM|HIGH), rule, reason, metadata jsonb, created_at`.
+One row per check, including signature failures (metadata only, no body).
+
+### `blocklist`
+`shop_id, kind (PSID|PHONE|BANK_ACCOUNT), value, reason`, UNIQUE `(shop_id, kind, value)`.
+
+### `todos` / `pins`
+`todos`: `title, detail, status (OPEN|DONE|DISMISSED), due_at, order_id`.
+`pins`: saved references `(shop_id, kind, ref_id)`, UNIQUE together.
+
+### `ai_usage`
+`shop_id NULL, role, model, prompt_tokens, completion_tokens, created_at` — one row per provider call.
 
 ### Owner assistant
 
@@ -126,11 +165,17 @@ stateDiagram-v2
   AWAITING_PAYMENT --> EXPIRED: past expires_at
   AWAITING_PAYMENT --> CANCELLED: customer/shop owner cancels
   PAID --> SHIPPING
-  SHIPPING --> COMPLETED
-  PAID --> REFUNDED
-  COMPLETED --> [*]
+  SHIPPING --> COMPLETED: courier reports delivery
+  SHIPPING --> LIKELY_DELIVERED: courier reports delivery (SRS extra)
+  LIKELY_DELIVERED --> DELIVERED
+  COMPLETED --> FOLLOWED_UP: after the follow-up message (SRS extra)
+  COMPLETED --> REFUNDED
+  FOLLOWED_UP --> REFUNDED
 ```
 
+- The constraint also accepts the SRS 2.1 aliases `SHIPPED` and `DELIVERED`; the dashboard,
+  the assistant and the sample data use `SHIPPING` and `COMPLETED` so every status has a label.
+- `EXPIRED` is set by a scheduled sweep when `expires_at` passes without payment.
 - Decrement stock when moving to `PAID` (or, optionally, reserve it at order creation and release it on `EXPIRED`).
 - Write the `INCOME/SALES` `ledger_entries` row in the **same DB transaction** that moves the order to `PAID`.
 

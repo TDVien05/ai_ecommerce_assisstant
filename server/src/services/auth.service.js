@@ -1,11 +1,15 @@
 import bcrypt from 'bcrypt'
+import crypto from 'node:crypto'
 import jwt from 'jsonwebtoken'
 import { env } from '../config/env.js'
 import { findByEmail, findWithShop } from '../db/users.js'
 import { pool } from '../db/pool.js'
 import { HttpError, unauthorized } from '../lib/httpError.js'
+import { createDemoShop, findTemplate } from './demo.service.js'
 
 const dummyHash = bcrypt.hashSync('not-a-user-password', 10)
+// Demo copies sign their own JWT; the stored hash is never used to log in.
+const demoShopPasswordHash = bcrypt.hashSync(crypto.randomUUID(), 10)
 const demoEmail = () => env.DEMO_EMAIL?.trim().toLowerCase() || null
 export async function login(email, password) {
   const user = await findByEmail(email)
@@ -14,8 +18,19 @@ export async function login(email, password) {
   return jwt.sign({ shopId: user.shop_id }, env.JWT_SECRET, { subject: user.id, algorithm: 'HS256', expiresIn: '12h' })
 }
 
+/**
+ * Every "Try a demo account" click gets its own copy of the template shop, so simultaneous
+ * judges never edit each other's rows. Falls back to the shared demo login when the seed
+ * (and therefore the template) has not run yet.
+ */
 export async function loginDemo() {
   if (!demoEmail() || !env.DEMO_PASSWORD) throw new HttpError(503, 'DEMO_UNAVAILABLE', 'Tài khoản demo chưa sẵn sàng.')
+  if (await findTemplate()) {
+    const demo = await createDemoShop({ passwordHash: demoShopPasswordHash })
+    return jwt.sign({ shopId: demo.shopId }, env.JWT_SECRET, {
+      subject: demo.userId, algorithm: 'HS256', expiresIn: '12h',
+    })
+  }
   return login(demoEmail(), env.DEMO_PASSWORD)
 }
 
@@ -25,7 +40,7 @@ export async function getSession({ userId, shopId }) {
   if (!user || user.shop_id !== shopId) throw unauthorized('Phiên đăng nhập không hợp lệ.')
   return {
     user: { id: user.id, email: user.email, ownerName: user.owner_name },
-    shop: { id: user.shop_id, name: user.shop_name, isDemo: user.email === demoEmail() },
+    shop: { id: user.shop_id, name: user.shop_name, isDemo: Boolean(user.is_demo) },
   }
 }
 

@@ -9,6 +9,7 @@ import { healthRouter } from './routes/health.js'
 import { apiRouter } from './routes/index.js'
 import { messengerWebhookRouter } from './routes/webhook.messenger.js'
 import { sepayWebhookRouter } from './routes/webhook.sepay.js'
+import { simWebhookRouter } from './routes/webhook.sim.js'
 
 export function createApp() {
   const app = express()
@@ -34,6 +35,7 @@ export function createApp() {
   // (Messenger needs the raw body for signature verification).
   app.use('/webhooks/messenger', messengerWebhookRouter)
   app.use('/webhooks/sepay', sepayWebhookRouter)
+  app.use('/webhooks/sim', simWebhookRouter)
 
   app.use(express.json({ limit: '1mb' }))
 

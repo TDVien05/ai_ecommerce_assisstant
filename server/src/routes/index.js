@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { authRouter } from './auth.js'
+import { demoRouter } from './demo.js'
+import { devRouter } from './dev.js'
 import { requireAuth } from '../middlewares/requireAuth.js'
 import { assistantRouter } from './assistant.js'
 import { financeRouter } from './finance.js'
@@ -12,6 +14,10 @@ import { alertsRouter } from './alerts.js'
 export const apiRouter = Router()
 apiRouter.use('/auth', authRouter)
 apiRouter.use(requireAuth)
+
+// Everything below requires the shop owner's JWT; req.auth = { userId, shopId }.
+apiRouter.use('/dev', devRouter)
+apiRouter.use('/demo', demoRouter)
 apiRouter.use('/assistant', assistantRouter)
 apiRouter.use('/finance', financeRouter)
 apiRouter.use('/orders', ordersRouter)

@@ -26,6 +26,9 @@ process.env.AI_BASE_URL = `http://127.0.0.1:${provider.address().port}/api/v1/`
 process.env.AI_API_KEY = 'sk-test'
 process.env.AI_MODEL = 'default/model'
 process.env.AI_MODEL_BOT = 'bot/model'
+// A developer's server/.env may set a per-role model; an empty string stops dotenv from
+// filling it and env.js treats it as unset, so the AI_MODEL fallback is exercised.
+process.env.AI_MODEL_AGENT = ''
 process.env.AI_MOCK = 'false'
 process.env.AI_TIMEOUT_MS = '800'
 

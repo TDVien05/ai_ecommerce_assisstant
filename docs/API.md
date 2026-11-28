@@ -43,6 +43,21 @@ Sending a QR image: `message.attachment = { type: "image", payload: { url, is_re
 }
 ```
 - Success → `200 { "success": true }`. Reconciliation rules: [PAYMENT_ANTI_SCAM.md](PAYMENT_ANTI_SCAM.md).
+- The event is stored in `webhook_events` before the response; processing continues in the
+  background. A repeated `id` answers `200 { "success": true, "duplicate": true }` and is not
+  processed again.
+
+### `POST /webhooks/sim` — in-app simulator
+- Header `X-Sim-Signature: sha256=<hex>`: HMAC-SHA256 of the **raw body** keyed with
+  `SIM_WEBHOOK_SECRET`; wrong → `403` (a HIGH `fraud_checks` row is written, metadata only).
+- Body is either a Messenger payload (`object: "page"`) or a SePay payload (`transferAmount`).
+- It enters the same `ingest` pipe with `provider = "sim"`, so the same handlers run.
+- See [events.md](events.md).
+
+### `POST /api/dev/simulate-payment`
+- Requires the shop JWT. Body `{ "orderId": "<uuid>" }`.
+- Builds the SePay payload for that order (amount + `payment_code`) and pushes it through the
+  simulator pipe. `202 { success, eventId, orderId, paymentCode, amount }`.
 
 ## 3. Dashboard REST API (`/api`, requires the shop owner's JWT)
 

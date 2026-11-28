@@ -68,7 +68,24 @@ BANK_ACCOUNT_NUMBER=
 BANK_ACCOUNT_NAME=
 ```
 
-## 4. Facebook App configuration
+## 4. Seed data (demo shop)
+
+```bash
+cd server && npm run seed
+```
+
+Creates the template shop **Lan Closet** (marked by `shops.fb_page_id = 'TEMPLATE_LAN_CLOSET'`):
+18 products, 25 customers, 12 conversations, 60 orders covering every status over the last
+30 days, ledger entries (including days that run negative), SePay transactions, one fraud case
+and a few todos — generated from a fixed seed, so the numbers are always the same.
+The command is idempotent: run it twice and nothing is duplicated.
+
+Every call to `POST /api/auth/demo` copies the template into a fresh demo shop
+(`is_demo = true`), so each judge session has its own data. Copies are deleted after
+`DEMO_SHOP_TTL_HOURS` (default 24) by the hourly sweep started with the server.
+`POST /api/demo/reset` (shop JWT) puts a demo shop back to the template data.
+
+## 5. Facebook App configuration
 1. Create an app at https://developers.facebook.com and add the **Messenger** product.
 2. Connect the Page → generate a **Page access token** → `FB_PAGE_ACCESS_TOKEN`.
 3. App Settings → Basic → **App Secret** → `FB_APP_SECRET`.
@@ -80,7 +97,7 @@ curl "http://localhost:4000/webhooks/messenger?hub.mode=subscribe&hub.verify_tok
 ```
 6. While the app is in development mode, only accounts with a role in the app can message it. Opening it to real customers requires App Review; see the requirements on the Messenger Platform page.
 
-## 5. SePay configuration
+## 6. SePay configuration
 1. Sign up at https://my.sepay.vn and link your bank account.
 2. General settings → **Cấu trúc mã thanh toán** (payment code structure): prefix `DH`.
 3. Webhook integration → Add: URL `https://<tunnel>/webhooks/sepay`, transaction type **Tiền vào** (incoming), authentication **API Key** → `SEPAY_WEBHOOK_API_KEY`, enable "Chỉ gửi khi có mã thanh toán" (only send when a payment code is present).

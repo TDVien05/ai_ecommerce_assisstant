@@ -13,11 +13,16 @@ const schema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173')
     .transform((v) => v.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean)),
   SERVE_CLIENT_DIR: optional,
+  PUBLIC_BASE_URL: optional,
 
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(8),
   DEMO_EMAIL: optional,
   DEMO_PASSWORD: optional,
+  // How long a demo shop copy lives before the hourly cleanup removes it.
+  DEMO_SHOP_TTL_HOURS: z.coerce.number().int().positive().default(24),
+  // Encrypts Page tokens at rest (optional until the deploy milestone).
+  APP_ENCRYPTION_KEY: optional,
 
   // Meta Messenger (required from M1)
   FB_APP_SECRET: optional,
@@ -27,6 +32,8 @@ const schema = z.object({
 
   // SePay (required from M4)
   SEPAY_WEBHOOK_API_KEY: optional,
+  // HMAC key for the in-app simulator webhook (/webhooks/sim).
+  SIM_WEBHOOK_SECRET: optional,
 
   // AI, OpenAI-compatible chat completions (required from M2)
   AI_BASE_URL: optional,
