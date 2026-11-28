@@ -5,11 +5,13 @@ import * as store from './store.js'
 import { publish } from './events.js'
 import { resolvedActions } from './steps.js'
 import { writeTools } from './tools/finance.write.js'
+import { updateOrderStatus } from './tools/orders.js'
+import { updateShop } from './tools/shop.js'
 
 const notFound = () => new HttpError(404, 'STEP_NOT_FOUND', 'Không tìm thấy bước cần duyệt.')
 const conflict = () => new HttpError(409, 'STEP_CONFLICT', 'Bước đã thay đổi hoặc không thể thực hiện.')
 const badInput = () => new HttpError(400, 'BAD_REQUEST', 'Thông tin trả lời không hợp lệ.')
-const tools = new Map(writeTools.map((tool) => [tool.name, tool]))
+const tools = new Map([...writeTools, updateOrderStatus, updateShop].map((tool) => [tool.name, tool]))
 
 async function getLocked(auth, id, client) {
   if (!z.string().uuid().safeParse(id).success) throw notFound()
@@ -49,12 +51,13 @@ export async function approve(auth, id) {
       const before = log.before ? { ...log.before, order } : null
       const after = log.after ? { ...log.after, order } : null
       await store.addLog(auth.shopId, step.id, auth.userId, tool.name, before, after, client)
-      count += (log.after ?? log.before).entries.length
-      if ((log.after ?? log.before).entries.length === 1) singleChange = { tool: tool.name, entry: (log.after ?? log.before).entries[0] }
+      const entries = (log.after ?? log.before).entries
+      count += entries?.length ?? 1
+      if (entries?.length === 1) singleChange = { tool: tool.name, entry: entries[0] }
     }
-    const description = count === 1
+    const description = count === 1 && singleChange
       ? `Đã ${singleChange.tool === 'add_ledger_entries' ? 'ghi' : 'xóa'} khoản ${singleChange.entry.type === 'INCOME' ? 'thu' : 'chi'} ${singleChange.entry.amount.toLocaleString('vi-VN')} ₫.`
-      : `Đã thực hiện ${count} thay đổi trong sổ.`
+      : `Đã thực hiện ${count} thay đổi.`
     const view = { ...step.view, state: 'done', doneText: description, steps: step.view.steps.map((item) => ({ ...item, status: 'done' })) }
     return { step, message: await store.saveStepAndMessage(step, view, client), description }
   })
@@ -77,7 +80,7 @@ export async function undo(auth, id) {
         await tool.revert(client, log, auth)
       }
       await store.markUndone(auth.shopId, id, client)
-      const view = { ...step.view, state: 'undone', doneText: 'Đã hoàn tác thay đổi trong sổ.', steps: step.view.steps.map((item) => ({ ...item, status: 'skipped' })) }
+      const view = { ...step.view, state: 'undone', doneText: 'Đã hoàn tác thay đổi.', steps: step.view.steps.map((item) => ({ ...item, status: 'skipped' })) }
       return { step, message: await store.saveStepAndMessage(step, view, client) }
     })
   } catch (error) {
