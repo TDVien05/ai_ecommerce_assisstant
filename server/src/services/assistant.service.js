@@ -6,6 +6,7 @@ import * as store from './assistant/store.js'
 import * as events from './assistant/events.js'
 import { snapshotView } from './assistant/view.js'
 import { runAgent } from './assistant/agent.js'
+import { startStatement, updateThread } from './assistant/threads.js'
 
 const notFound = () => new HttpError(404, 'NOT_FOUND', 'Không tìm thấy hội thoại hoặc tệp.')
 const activeRuns = new Map()
@@ -19,6 +20,7 @@ export async function snapshot(shopId) {
 export const subscribe = events.subscribe
 
 export async function sendMessage({ shopId, userId }, { conversationId, text, attachments }) {
+  if (attachments.length) { if (conversationId !== 'hub') throw new HttpError(400,'INVALID_FILE','Hãy gửi sao kê tại chat trung tâm.'); return startStatement({shopId,userId},{text,attachments}) }
   if (shuttingDown) throw new HttpError(503, 'ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
   if (!events.acquire(shopId, conversationId)) throw new HttpError(409, 'ASSISTANT_BUSY', 'Hội thoại đang xử lý, vui lòng thử lại sau.')
   const key = JSON.stringify([shopId, conversationId])
@@ -67,6 +69,7 @@ export async function recover() {
     for (const thread of threads.rows) {
       const message = { id: randomUUID(), role: 'assistant', blocks: [{ type: 'text', text: 'Tác vụ bị gián đoạn khi máy chủ khởi động lại. Vui lòng thử lại.' }] }
       await store.insertMessage(thread.shop_id, thread.id, message, client)
+      await updateThread(thread.shop_id,thread.id,'done','Tác vụ sao kê bị gián đoạn; mở luồng để xem chi tiết.',client)
     }
     const unanswered = await store.unansweredConversations(client)
     for (const conversation of unanswered) {

@@ -7,6 +7,7 @@ import { resolvedActions } from './steps.js'
 import { writeTools } from './tools/finance.write.js'
 import { updateOrderStatus } from './tools/orders.js'
 import { updateShop } from './tools/shop.js'
+import { updateThread, publishUpdate } from './threads.js'
 
 const notFound = () => new HttpError(404, 'STEP_NOT_FOUND', 'Không tìm thấy bước cần duyệt.')
 const conflict = () => new HttpError(409, 'STEP_CONFLICT', 'Bước đã thay đổi hoặc không thể thực hiện.')
@@ -32,6 +33,7 @@ export async function answer(auth, id, { questionId, option }) {
     return { step, message: await store.saveStepAndMessage(step, view, client) }
   })
   notify(auth, result.step, result.message)
+  publishUpdate(auth.shopId,result.update)
 }
 
 export async function approve(auth, id) {
@@ -59,9 +61,12 @@ export async function approve(auth, id) {
       ? `Đã ${singleChange.tool === 'add_ledger_entries' ? 'ghi' : 'xóa'} khoản ${singleChange.entry.type === 'INCOME' ? 'thu' : 'chi'} ${singleChange.entry.amount.toLocaleString('vi-VN')} ₫.`
       : `Đã thực hiện ${count} thay đổi.`
     const view = { ...step.view, state: 'done', doneText: description, steps: step.view.steps.map((item) => ({ ...item, status: 'done' })) }
-    return { step, message: await store.saveStepAndMessage(step, view, client), description }
+    const message = await store.saveStepAndMessage(step, view, client)
+    const update = step.conversation_id === 'hub' ? null : await updateThread(auth.shopId,step.conversation_id,'done','Sao kê đã được duyệt và ghi sổ.',client)
+    return { step, message, description, update }
   })
   notify(auth, result.step, result.message)
+  publishUpdate(auth.shopId,result.update)
   return { message: result.description }
 }
 
@@ -81,11 +86,14 @@ export async function undo(auth, id) {
       }
       await store.markUndone(auth.shopId, id, client)
       const view = { ...step.view, state: 'undone', doneText: 'Đã hoàn tác thay đổi.', steps: step.view.steps.map((item) => ({ ...item, status: 'skipped' })) }
-      return { step, message: await store.saveStepAndMessage(step, view, client) }
+      const message = await store.saveStepAndMessage(step, view, client)
+      const update = step.conversation_id === 'hub' ? null : await updateThread(auth.shopId,step.conversation_id,'done','Đã hoàn tác các khoản từ sao kê.',client)
+      return { step, message, update }
     })
   } catch (error) {
     if (['23503', '23505'].includes(error.code)) throw conflict()
     throw error
   }
   notify(auth, result.step, result.message)
+  publishUpdate(auth.shopId,result.update)
 }

@@ -52,7 +52,7 @@ test('agent uses verified ledger results and isolates shops', { skip: !process.e
     assert.ok(empty.some((block) => block.text?.includes('Chưa có dữ liệu')))
     assert.equal(empty.length, 1)
     assert.match(empty[0].text, /2024.*2025/)
-    assert.match(empty[0].text, /sao kê.*chưa được hỗ trợ/)
+    assert.match(empty[0].text, /CSV sao kê/)
     const customer = randomUUID()
     await pool.query('INSERT INTO customers (id,shop_id,psid) VALUES ($1,$2,$3)',[customer,shopA,randomUUID()])
     for (let i = 0; i < 4; i++) await pool.query("INSERT INTO orders (shop_id,customer_id,payment_code,status,subtotal,total) VALUES ($1,$2,$3,'PAID',100,100)",[shopA,customer,randomUUID()])
