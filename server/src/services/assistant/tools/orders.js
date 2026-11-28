@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { HttpError } from '../../../lib/httpError.js'
-import * as orders from '../../order.service.js'
+import * as orders from '../../orders/order.service.js'
 const status = z.enum(['AWAITING_PAYMENT','PAID','EXPIRED','CANCELLED','SHIPPING','COMPLETED','REFUNDED'])
 const code = z.string().trim().min(1).max(80)
 export const listOrders = { name: 'list_orders', tier: 'read', description: 'Liệt kê đơn của cửa hàng, có thể lọc trạng thái.', schema: z.object({ status: status.optional() }).strict(), run: async (input,ctx) => ({ items: await orders.listOrders(ctx.shopId,input) }) }

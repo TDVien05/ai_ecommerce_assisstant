@@ -1,6 +1,6 @@
 # Webhook events
 
-Every external event enters through one pipe: `services/webhook.service.js#ingest`.
+Every external event enters through one pipe: `services/webhook/webhook.service.js#ingest`.
 Providers: `messenger`, `sepay`, `sim` (the in-app simulator).
 
 ## Intake contract
@@ -9,7 +9,7 @@ Providers: `messenger`, `sepay`, `sim` (the in-app simulator).
 provider webhook → verify signature/API key → ingest({ provider, externalId, type, payload })
   1. store in webhook_events, UNIQUE (provider, external_id)
   2. duplicate → 200, nothing runs twice
-  3. hard fraud rules (services/fraud.service.js) → a fraud_checks row every time
+  3. hard fraud rules (services/payments/fraud.service.js) → a fraud_checks row every time
   4. HIGH finding → status IGNORED, handler never runs
   5. dispatch to every handler registered with onEvent(type, handler)
   6. status PROCESSED (or FAILED with the error message)
@@ -107,7 +107,8 @@ SePay shape (also what `/api/dev/simulate-payment` and `/webhooks/sim` produce):
 ## Registering a handler
 
 ```js
-import { onEvent } from '../services/webhook.service.js'
+// e.g. from services/payments/payment.service.js
+import { onEvent } from '../webhook/webhook.service.js'
 
 const off = onEvent('payment.received', async ({ eventId, shopId, payload }) => {
   // reconcile the payment (payment.service, M4)

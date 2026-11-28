@@ -2,7 +2,7 @@
 
 Prep notes for F5.3 / F5.4. Source of truth: [PAYMENT_ANTI_SCAM.md](PAYMENT_ANTI_SCAM.md).
 Reconciliation runs inside the `payment.received` handler registered on the webhook pipe
-(`services/webhook.service.js`), never in the route.
+(`services/webhook/webhook.service.js`), never in the route.
 
 ## Rules, in order
 
@@ -11,7 +11,7 @@ Reconciliation runs inside the `payment.received` handler registered on the webh
    does nothing else.
 3. **Only money in** — `transferType === "in"`; anything else is `IGNORED` and never touches an order.
 4. **Correct shop** — `accountNumber` must equal that shop's `bank_account_number`. A mismatch
-   is a HIGH fraud finding (already implemented in `services/fraud.service.js`).
+   is a HIGH fraud finding (already implemented in `services/payments/fraud.service.js`).
 5. **Find the order** — by `code`, falling back to `DH…` extracted from `content`. Not found →
    `match_status = NO_ORDER`, a `todos` row for the shop owner, no order change.
 6. **Order must be `AWAITING_PAYMENT`** — an already-paid order receiving more money is never
@@ -51,4 +51,4 @@ exact amount, underpay, overpay, expired order, duplicate `sepay_id`, unknown co
 5. **`orders.risk_level`**: does a HIGH fraud finding on the payment set the order to HIGH, or
    does it stay a fraud-only signal?
 6. **`todos` wording/ownership**: should the server create the `todos` row (my preference,
-   `services/payment.service.js`) or should the client derive them from `match_status`?
+   `services/payments/payment.service.js`) or should the client derive them from `match_status`?

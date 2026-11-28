@@ -6,7 +6,7 @@ test('shutdown records one interruption for a turn in progress', { skip: !proces
   process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
   process.env.AI_MOCK = 'true'
   const { pool } = await import('../src/db/pool.js')
-  const { sendMessage, interruptActive, recover } = await import('../src/services/assistant.service.js')
+  const { sendMessage, interruptActive, recover } = await import('../src/services/assistant/assistant.service.js')
   const { typingFor } = await import('../src/services/assistant/events.js')
   const shopId = randomUUID(), userId = randomUUID()
   const lock = await pool.connect()

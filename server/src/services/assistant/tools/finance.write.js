@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { isDeepStrictEqual } from 'node:util'
 import { HttpError } from '../../../lib/httpError.js'
-import * as db from '../../../db/ledger.write.js'
+import * as db from '../../../db/finance/ledger.write.js'
 
 export const kindOptions = { 'Doanh thu kinh doanh': 'BUSINESS_REVENUE', 'Chi phí kinh doanh': 'EXPENSE', 'Tiền cá nhân': 'PERSONAL', 'Chuyển tiền': 'TRANSFER' }
 export const channelOptions = { 'Tiền mặt': 'CASH', 'Ngân hàng': 'BANK', 'Ví điện tử': 'EWALLET' }

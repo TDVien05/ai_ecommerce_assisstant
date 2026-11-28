@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { HttpError } from '../../../lib/httpError.js'
-import { getShopSettings, updateShopSettings } from '../../shop.service.js'
+import { getShopSettings, updateShopSettings } from '../../shop/shop.service.js'
 // Q20: chỉ lưu và hoàn tác tên; dữ liệu ngân hàng chưa được hỗ trợ.
 export const updateShop = {
   name:'update_shop_settings', tier:'sensitive', description:'Đề xuất đổi tên cửa hàng; cần duyệt. Chưa hỗ trợ thay đổi thông tin ngân hàng.',

@@ -30,20 +30,46 @@ request → routes/ → middlewares/ → controllers/ → services/ → db/
 | `services/` | Business logic, transactions (order status change + ledger entry + stock decrement), external API calls, calls `db/` | Read `req` / write `res` |
 | `db/` | Connection pool, migrations | |
 
-Naming: `routes/orders.js` → `controllers/orders.controller.js` → `services/order.service.js`.
+Naming: `routes/orders/orders.js` → `controllers/orders/orders.controller.js` → `services/orders/order.service.js`.
 Controllers are async functions; Express 5 forwards their errors to `errorHandler`, so no try/catch is needed.
 
 Example:
 
 ```js
-// routes/orders.js
+// routes/orders/orders.js
 ordersRouter.post('/', validate(createOrderBody), ordersController.create)
 
-// controllers/orders.controller.js
+// controllers/orders/orders.controller.js
 export const create = async (req, res) => {
   res.status(201).json(await orderService.create(req.body))
 }
 ```
+
+### Feature folders
+
+Every layer keeps its role, and inside each layer the files are grouped into **one folder per feature**, the same way `services/ai/` and `services/assistant/` already are. A feature uses the same folder name in every layer it appears in.
+
+- Files keep their layer suffix (`.controller.js`, `.service.js`) so they stay easy to search for.
+- Inside a folder, a prefix that only repeats the folder name is dropped: `routes/webhook.sepay.js` becomes `routes/webhook/sepay.js`, `db/assistant.steps.js` becomes `db/assistant/steps.js`.
+- A new feature gets a new folder in each layer it needs; no new files directly under `routes/`, `controllers/`, `services/` or `db/`.
+- Only shared entry points stay at a layer root: `routes/index.js` (mounts every router), and in `db/` the `pool.js`, `migrate.js`, `seed.js`, `migrations/` and the shared data-access layer `repos/`.
+- `middlewares/`, `lib/` and `config/` are shared across features and stay flat.
+
+| Feature | `routes/` | `controllers/` | `services/` | `db/` |
+|---|---|---|---|---|
+| `ai` | | | `client.js`, `toolLoop.js`, `prompts/`… (model layer) | |
+| `alerts` | `alerts.js` | `alerts.controller.js` | `alerts.service.js` | `alerts.js` |
+| `assistant` | `assistant.js` | `assistant.controller.js` | `assistant.service.js`, `agent.js`, `tools/`… | `assistant.js`, `files.js`, `steps.js`, `threads.js` |
+| `auth` | `auth.js` | `auth.controller.js` | `auth.service.js` | `users.js` |
+| `demo` | `demo.js` | `demo.controller.js` | `demo.service.js` | |
+| `dev` | `dev.js` | `dev.controller.js` | | |
+| `finance` | `finance.js` | `finance.controller.js` | `finance.service.js`, `ledger.service.js` | `finance.js`, `ledger.js`, `ledger.write.js` |
+| `guardrail` (planned, NV-00) | | | `guardrail.service.js` | |
+| `health` | `health.js` | `health.controller.js` | `health.service.js` | |
+| `orders` | `orders.js` | `orders.controller.js` | `order.service.js` | `orders.js` |
+| `payments` | | | `payment.service.js`, `fraud.service.js` | |
+| `shop` | | | `shop.service.js` | `shop.js` |
+| `webhook` | `messenger.js`, `sepay.js`, `sim.js` | `messenger.controller.js`, `sepay.controller.js`, `sim.controller.js` | `webhook.service.js`, `sim.service.js` | |
 
 ## Backend modules
 

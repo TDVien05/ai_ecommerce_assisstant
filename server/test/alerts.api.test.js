@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken'
 
 test('alerts are idempotent, shop-scoped and never change order status', {skip:!process.env.TEST_DATABASE_URL,timeout:30000}, async () => {
   process.env.DATABASE_URL=process.env.TEST_DATABASE_URL
-  const {pool,withTransaction}=await import('../src/db/pool.js');const {env}=await import('../src/config/env.js');const {createApp}=await import('../src/app.js');const {createAlert}=await import('../src/services/alerts.service.js')
+  const {pool,withTransaction}=await import('../src/db/pool.js');const {env}=await import('../src/config/env.js');const {createApp}=await import('../src/app.js');const {createAlert}=await import('../src/services/alerts/alerts.service.js')
   const shop=randomUUID(),other=randomUUID(),customer=randomUUID(),order=randomUUID(),code=randomUUID()
   const server=createApp().listen(0,'127.0.0.1');await new Promise((resolve)=>server.once('listening',resolve))
   const base=`http://127.0.0.1:${server.address().port}/api`

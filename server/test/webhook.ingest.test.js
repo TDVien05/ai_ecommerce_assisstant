@@ -9,7 +9,7 @@ import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 
 const { createShop, dropShops, dbAvailable, pool } = await import('../test-support/db.js')
-const webhook = await import('../src/services/webhook.service.js')
+const webhook = await import('../src/services/webhook/webhook.service.js')
 const blocklist = await import('../src/db/repos/blocklist.js')
 const payments = await import('../src/db/repos/payments.js')
 const customers = await import('../src/db/repos/customers.js')

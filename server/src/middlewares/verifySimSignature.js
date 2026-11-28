@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { env } from '../config/env.js'
 import { HttpError, forbidden } from '../lib/httpError.js'
-import { recordSignatureFailure } from '../services/fraud.service.js'
+import { recordSignatureFailure } from '../services/payments/fraud.service.js'
 
 /**
  * Verify `X-Sim-Signature: sha256=<hex>` (HMAC-SHA256 of the RAW body, key = SIM_WEBHOOK_SECRET)

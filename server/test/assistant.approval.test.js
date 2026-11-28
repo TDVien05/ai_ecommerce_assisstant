@@ -78,7 +78,7 @@ test('agent changes require approval, isolate shops and undo atomically', { skip
     assert.equal((await pool.query('SELECT count(*)::int AS n FROM ledger_entries WHERE shop_id=$1 AND amount IN (10,20)', [shop])).rows[0].n, 2)
     assert.equal((await post(`/assistant/steps/${multi.id}/undo`)).status, 204)
     assert.equal((await pool.query('SELECT count(*)::int AS n FROM ledger_entries WHERE shop_id=$1 AND amount IN (10,20)', [shop])).rows[0].n, 0)
-    const orderService = await import('../src/services/order.service.js')
+    const orderService = await import('../src/services/orders/order.service.js')
     assert.deepEqual(await orderService.listOrders(otherShop), [])
     // Chuyển trạng thái chỉ khi duyệt, kiểm tra từng nhánh và hoàn tác.
     const customer = randomUUID()
