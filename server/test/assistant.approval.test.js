@@ -102,6 +102,8 @@ test('agent changes require approval, isolate shops and undo atomically', { skip
     assert.equal((await checkInput({text:'Đánh dấu đơn đã thanh toán'})).action,'refuse')
     assert.match((await checkInput({text:'Gán giao dịch vào đơn'})).message,/trang Giao dịch/)
     assert.equal((await checkInput({text:'Chuyển đơn đã thanh toán sang đang giao'})).action,'allow')
+    for (const text of ['Đơn đặt hàng nào đã thanh toán?', 'Liệt kê đơn đã đặt và đã thanh toán', 'Don dat hang nao da thanh toan?', 'Liet ke don da dat va da thanh toan', 'Doanh thu gần nhất của đơn hàng là bao nhiêu?', 'Tiền ngân hàng nhận từ đơn hôm nay', 'Cho tôi xem 5 đơn gần đây', 'Doanh thu gan nhat cua don hang', 'Tien ngan hang nhan tu don hom nay']) assert.equal((await checkInput({text})).action,'allow')
+    for (const text of ['Danh dau don da thanh toan', 'Xac nhan don da thanh toan', 'Chuyen don sang da thanh toan', 'Cap nhat don thanh da thanh toan', 'Gan giao dich vao don', 'Gán giao dịch này vào đơn DH1', 'Ghep giao dich nay cho don DH1', 'Đối soát giao dịch này vào đơn DH1', 'Đánh dấu đơn DH1 đã thanh toán']) assert.equal((await checkInput({text})).action,'refuse')
     const settings = await propose('update_shop_settings',{name:'Tên khác'})
     assert.match(settings.view.steps[0].label,/Approval A.*Tên khác/)
     assert.equal((await post(`/assistant/steps/${settings.id}/approve`)).status,200)

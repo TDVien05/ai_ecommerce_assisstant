@@ -36,7 +36,12 @@ function resultBlocks(results) {
       const items = name === 'get_order' ? [data] : data.items
       if (!items.length) return [{ type: 'text', text: 'Không có đơn hàng phù hợp.' }]
       const labels = { AWAITING_PAYMENT: 'Chờ thanh toán', PAID: 'Đã thanh toán', SHIPPING: 'Đang giao', COMPLETED: 'Hoàn tất', CANCELLED: 'Đã hủy', EXPIRED: 'Hết hạn', REFUNDED: 'Đã hoàn tiền' }
-      return [{ type: 'resultCard', metrics: items.map((item) => ({ label: `${item.paymentCode} · ${labels[item.status] ?? item.status}`, value: item.total })), source: 'Đơn hàng của cửa hàng; tối đa 100 đơn gần nhất', updatedAt: formatTime(new Date()), how: items.map((item) => ({ label: `${item.paymentCode}: tổng tiền đơn`, value: item.total })) }]
+      const cards = []
+      for (let i = 0; i < items.length; i += 3) {
+        const chunk = items.slice(i, i + 3)
+        cards.push({ type: 'resultCard', metrics: chunk.map((item) => ({ label: `${item.paymentCode} · ${labels[item.status] ?? item.status}`, value: item.total })), source: 'Đơn hàng của cửa hàng; tối đa 100 đơn gần nhất', updatedAt: formatTime(new Date()), how: chunk.map((item) => ({ label: `${item.paymentCode}: tổng tiền đơn`, value: item.total })) })
+      }
+      return cards
     }
     if (!data.items.length) return [{ type: 'text', text: emptyMessage(data) }]
     return [{

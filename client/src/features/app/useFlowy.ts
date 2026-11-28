@@ -10,6 +10,7 @@ export function useFlowy() {
     dispatch(event)
     if (event.type === 'snapshot' || (event.type === 'message' && event.message.role === 'assistant' && event.message.blocks.some((block) => block.type === 'agentStep' && (block.state === 'done' || block.state === 'undone')))) {
       window.dispatchEvent(new Event('flowy:ledger-changed'))
+      window.dispatchEvent(new Event('flowy:orders-changed'))
     }
   }, setConnection), [])
   return { state, connection }
