@@ -1,4 +1,4 @@
-import { pool } from '../../db/pool.js'
+import { recordCall } from '../../repositories/ai/aiUsage.repository.js'
 import { logger } from '../../lib/logger.js'
 
 let tableMissingLogged = false
@@ -11,11 +11,7 @@ let tableMissingLogged = false
  */
 export async function recordUsage({ shopId, role, model, promptTokens, completionTokens }) {
   try {
-    await pool.query(
-      `INSERT INTO ai_usage (shop_id, role, model, prompt_tokens, completion_tokens)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [shopId ?? null, role, model, promptTokens ?? 0, completionTokens ?? 0],
-    )
+    await recordCall({ shopId, role, model, promptTokens, completionTokens })
   } catch (err) {
     if (err.code === '42P01') {
       if (!tableMissingLogged) logger.warn('ai_usage table missing, AI token usage is not recorded yet')

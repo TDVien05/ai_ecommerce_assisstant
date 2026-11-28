@@ -2,6 +2,8 @@
 
 Money is stored as `BIGINT` (VND, no decimal part).
 
+The schema is defined by the SQL files in `server/src/db/migrations/`. Each table has one repository with all of its queries in `server/src/repositories/<feature>/<table>.repository.js`, and a TypeORM model in `server/src/models/<feature>/`, kept in sync with the migrations and checked by `test/models.schema.test.js` (see `docs/ARCHITECTURE.md`, "Models (TypeORM)").
+
 ## Tables
 
 ### `shops`

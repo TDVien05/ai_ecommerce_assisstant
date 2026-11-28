@@ -1,32 +1,31 @@
-import { HttpError } from '../lib/httpError.js'
+import { appError, toAppError, databaseCode } from '../errors/index.js'
 import { logger } from '../lib/logger.js'
 
 export const notFoundHandler = (req, res) => {
-  res
-    .status(404)
-    .json({ error: { code: 'NOT_FOUND', message: `Route ${req.method} ${req.path} not found` } })
+  const error = appError('NOT_FOUND', `Route ${req.method} ${req.path} not found`)
+  res.status(error.status).json({ error: { code: error.code, message: error.message } })
 }
 
 // Express 5 forwards errors thrown in async handlers here automatically.
-// Response shape (docs/API.md): { error: { code, message } }
+// Every error leaves in one shape (docs/API.md): { error: { code, message, details? } }.
+// What maps to which status lives in errors/ (docs/ARCHITECTURE.md, section "Errors").
 export const errorHandler = (err, _req, res, _next) => {
-  if (err.type === 'entity.parse.failed') {
-    return res.status(400).json({ error: { code: 'INVALID_JSON', message: 'Malformed JSON body' } })
+  const error = toAppError(err)
+
+  if (error.status >= 500) {
+    // Log every server-side failure once, in full (the logger drops TypeORM query parameters).
+    logger.error({ err, code: error.code }, 'Request failed')
+  } else if (error !== err && databaseCode(err)) {
+    // A database error answered with a 4xx: log only the codes, never the values in its detail.
+    const pg = err.driverError ?? err
+    logger.warn({ code: error.code, pgCode: pg.code, constraint: pg.constraint }, 'Database rejected the request')
   }
 
-  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 600 ? err.status : 500
-
-  // Unexpected errors: log details, hide them from the client. Intentional HttpErrors are exposed.
-  if (status >= 500 && !(err instanceof HttpError)) {
-    logger.error({ err }, 'Unhandled error')
-    return res.status(status).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } })
-  }
-
-  res.status(status).json({
+  res.status(error.status).json({
     error: {
-      code: err.code ?? 'ERROR',
-      message: err.message,
-      ...(err.details ? { details: err.details } : {}),
+      code: error.code,
+      message: error.message,
+      ...(error.details ? { details: error.details } : {}),
     },
   })
 }

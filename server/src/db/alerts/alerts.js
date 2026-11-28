@@ -1,9 +1,0 @@
-import { pool } from '../pool.js'
-const columns='a.id,a.shop_id,a.level,a.title,a.reasons,a.order_id,o.payment_code AS order_code,a.detected_at,a.status'
-export async function list(shopId,status,client=pool) { const {rows}=await client.query(`SELECT ${columns} FROM assistant_alerts a LEFT JOIN orders o ON o.id=a.order_id AND o.shop_id=a.shop_id WHERE a.shop_id=$1 AND ($2::text IS NULL OR a.status=$2) ORDER BY a.detected_at DESC,a.id`,[shopId,status??null]); return rows }
-export async function find(shopId,id,client=pool,lock=false) { const {rows}=await client.query(`SELECT ${columns} FROM assistant_alerts a LEFT JOIN orders o ON o.id=a.order_id AND o.shop_id=a.shop_id WHERE a.shop_id=$1 AND a.id=$2${lock?' FOR UPDATE OF a':''}`,[shopId,id]);return rows[0]??null }
-export async function insert(shopId,id,input,client) { const result=await client.query(`INSERT INTO assistant_alerts (id,shop_id,level,title,reasons,order_id) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(id) DO NOTHING`,[id,shopId,input.level,input.title,JSON.stringify(input.reasons),input.orderId??null]); return result.rowCount>0 }
-export async function orderExists(shopId,id,client) { const {rowCount}=await client.query('SELECT 1 FROM orders WHERE shop_id=$1 AND id=$2',[shopId,id]);return rowCount>0 }
-export async function setStatus(shopId,id,status,client) { await client.query('UPDATE assistant_alerts SET status=$3 WHERE shop_id=$1 AND id=$2',[shopId,id,status]) }
-export async function updateMessage(shopId,id,message,client) { const {rowCount}=await client.query('UPDATE assistant_messages SET body=$3,updated_at=now() WHERE shop_id=$1 AND id=$2',[shopId,id,message]); return rowCount>0 }
-export async function getMessage(shopId,id,client,lock=false) { const {rows}=await client.query(`SELECT body FROM assistant_messages WHERE shop_id=$1 AND id=$2${lock?' FOR UPDATE':''}`,[shopId,id]);return rows[0]?.body??null }

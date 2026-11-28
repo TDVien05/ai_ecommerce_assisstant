@@ -1,14 +1,21 @@
 import pg from 'pg'
-import { env } from '../config/env.js'
-import { logger } from '../lib/logger.js'
+import { getPool, closeDataSource } from './dataSource.js'
 
 // Money is BIGINT VND in the DB and `number` in JS. pg returns int8 as string by default;
 // VND amounts stay far below Number.MAX_SAFE_INTEGER, so parse them as numbers.
+// The parser is global to the pg module, so it also applies to TypeORM's pool.
 pg.types.setTypeParser(pg.types.builtins.INT8, (v) => Number(v))
 
-export const pool = new pg.Pool({ connectionString: env.DATABASE_URL })
-
-pool.on('error', (err) => logger.error({ err }, 'Unexpected PostgreSQL pool error'))
+/**
+ * SQL access to the server's single pool (owned by db/dataSource.js). Same calls as a pg.Pool:
+ * query(text, params), connect() for a transaction client, end() to close the pool.
+ * Used by config/database.js and the migrate / seed scripts; repositories go through config/database.js.
+ */
+export const pool = {
+  query: async (text, params) => (await getPool()).query(text, params),
+  connect: async () => (await getPool()).connect(),
+  end: () => closeDataSource(),
+}
 
 export const query = (text, params) => pool.query(text, params)
 

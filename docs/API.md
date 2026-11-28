@@ -1,6 +1,6 @@
 # API
 
-Base URL: `http://localhost:4000`. Uniform error response: `{ "error": { "code": "STRING", "message": "..." } }`.
+Base URL: `http://localhost:4000`. Uniform error response: `{ "error": { "code": "STRING", "message": "...", "details": [...] } }` (`details` only for validation errors). Every code and its HTTP status is listed in `server/src/errors/codes.js`; database and parser errors are mapped as described in `docs/ARCHITECTURE.md`, section "Errors".
 
 ## 1. Messenger webhook
 

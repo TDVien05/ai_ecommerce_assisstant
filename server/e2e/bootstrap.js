@@ -31,7 +31,7 @@ await writeFile('/shared/scenario.json', JSON.stringify([...scenario, ...scenari
 await writeFile('/shared/test.json', JSON.stringify({ shopId, orderId, paymentCode, income, expense, note }))
 
 let child, stopping = false, restarting = false
-const start = () => { child = spawn(process.execPath, ['src/index.js'], { stdio: 'inherit', env: process.env }); child.once('exit', () => { if (restarting && !stopping) { restarting = false; start(); void writeFile('/shared/restarted', 'ok') } else if (!stopping) process.exit(1) }) }
+const start = () => { child = spawn(process.execPath, ['src/app.js'], { stdio: 'inherit', env: process.env }); child.once('exit', () => { if (restarting && !stopping) { restarting = false; start(); void writeFile('/shared/restarted', 'ok') } else if (!stopping) process.exit(1) }) }
 watch('/shared', async (_, name) => {
   if (name !== 'restart' || restarting || stopping) return
   restarting = true

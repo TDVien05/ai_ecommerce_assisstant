@@ -1,7 +1,7 @@
-import * as shopsRepo from '../../db/repos/shops.js'
-import * as blocklistRepo from '../../db/repos/blocklist.js'
-import * as paymentsRepo from '../../db/repos/payments.js'
-import * as fraudRepo from '../../db/repos/fraudChecks.js'
+import * as shopsRepo from '../../repositories/shop/shop.repository.js'
+import * as blocklistRepo from '../../repositories/payments/blocklist.repository.js'
+import * as paymentsRepo from '../../repositories/payments/paymentTransaction.repository.js'
+import * as fraudRepo from '../../repositories/payments/fraudCheck.repository.js'
 import { logger } from '../../lib/logger.js'
 
 /**

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { withTransaction } from '../../db/pool.js'
-import { HttpError } from '../../lib/httpError.js'
+import { withTransaction } from '../../repositories/database.js'
+import { appError } from '../../errors/index.js'
 import { logger } from '../../lib/logger.js'
 import * as store from './store.js'
 import * as events from './events.js'
@@ -9,7 +9,7 @@ import { runAgent } from './agent.js'
 import { startStatement, updateThread } from './threads.js'
 import { reserveAgentRun } from './quota.js'
 
-const notFound = () => new HttpError(404, 'NOT_FOUND', 'Không tìm thấy hội thoại hoặc tệp.')
+const notFound = () => appError('NOT_FOUND', 'Không tìm thấy hội thoại hoặc tệp.')
 const activeRuns = new Map()
 let shuttingDown = false
 
@@ -21,13 +21,13 @@ export async function snapshot(shopId) {
 export const subscribe = events.subscribe
 
 export async function sendMessage({ shopId, userId }, { conversationId, text, attachments }) {
-  if (shuttingDown) throw new HttpError(503, 'ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
+  if (shuttingDown) throw appError('ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
   if (attachments.length) {
-    if (conversationId !== 'hub') throw new HttpError(400,'INVALID_FILE','Hãy gửi sao kê tại chat trung tâm.')
+    if (conversationId !== 'hub') throw appError('INVALID_FILE', 'Hãy gửi sao kê tại chat trung tâm.')
     const reservation=reserveAgentRun(shopId)
     try { await startStatement({shopId,userId},{text,attachments}); reservation.commit(); return } catch(error) { reservation.refund(); throw error }
   }
-  if (!events.acquire(shopId, conversationId)) throw new HttpError(409, 'ASSISTANT_BUSY', 'Hội thoại đang xử lý, vui lòng thử lại sau.')
+  if (!events.acquire(shopId, conversationId)) throw appError('ASSISTANT_BUSY', 'Hội thoại đang xử lý, vui lòng thử lại sau.')
   const key = JSON.stringify([shopId, conversationId])
   const controller = new AbortController()
   let complete
@@ -37,7 +37,7 @@ export async function sendMessage({ shopId, userId }, { conversationId, text, at
   let reservation
   try {
     if (!await store.conversationExists(shopId, conversationId) || !await store.attachmentsExist(shopId, attachments)) throw notFound()
-    if (controller.signal.aborted) throw new HttpError(503, 'ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
+    if (controller.signal.aborted) throw appError('ASSISTANT_UNAVAILABLE', 'Máy chủ đang khởi động lại. Vui lòng thử lại sau.')
     reservation=reserveAgentRun(shopId)
     const message = { id: randomUUID(), role: 'user', text, ...(attachments.length ? { files: attachments.map((file) => file.name) } : {}) }
     await store.insertMessage(shopId, conversationId, message)
